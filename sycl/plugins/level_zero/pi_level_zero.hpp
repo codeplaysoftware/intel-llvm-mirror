@@ -856,9 +856,9 @@ struct _pi_ze_event_list_t {
 
 struct _pi_event : _pi_object {
   _pi_event(ze_event_handle_t ZeEvent, ze_event_pool_handle_t ZeEventPool,
-            pi_context Context, pi_command_type CommandType, bool OwnZeEvent)
+            pi_context Context, pi_command_type CommandType, bool OwnZeEvent, const pi_queue Queue)
       : ZeEvent{ZeEvent}, OwnZeEvent{OwnZeEvent}, ZeEventPool{ZeEventPool},
-        ZeCommandList{nullptr}, CommandType{CommandType}, Context{Context},
+        ZeCommandList{nullptr}, Queue{Queue}, CommandType{CommandType}, Context{Context},
         CommandData{nullptr} {}
 
   // Level Zero event handle.
@@ -878,7 +878,7 @@ struct _pi_event : _pi_object {
 
   // Keeps the command-queue and command associated with the event.
   // These are NULL for the user events.
-  pi_queue Queue = {nullptr};
+  const pi_queue Queue = {nullptr};
   pi_command_type CommandType;
   // Provide direct access to Context, instead of going via queue.
   // Not every PI event has a queue, and we need a handle to Context

@@ -345,21 +345,22 @@ _pi_context::getFreeSlotInExistingOrNewPool(ze_event_pool_handle_t &ZePool,
   }
 
   Index = 0;
+  // Creation of the new ZePool with record in NumEventsAvailableInEventPool
+  // and initialization of the record in NumEventsUnreleasedInEventPool must
+  // be done atomically. Otherwise it is possible that
+  // decrementUnreleasedEventsInPool will be called for the record in
+  // NumEventsUnreleasedInEventPool before its
+  std::lock(NumEventsAvailableInEventPoolMutex,
+            NumEventsUnreleasedInEventPoolMutex);
+  std::lock_guard<std::mutex> NumEventsAvailableInEventPoolGuard(
+      NumEventsAvailableInEventPoolMutex, std::adopt_lock);
+  std::lock_guard<std::mutex> NumEventsUnreleasedInEventPoolGuard(
+      NumEventsUnreleasedInEventPoolMutex, std::adopt_lock);
+
+
   // Create one event ZePool per MaxNumEventsPerPool events
   if ((ZeEventPool == nullptr) ||
       (NumEventsAvailableInEventPool[ZeEventPool] == 0)) {
-    // Creation of the new ZePool with record in NumEventsAvailableInEventPool
-    // and initialization of the record in NumEventsUnreleasedInEventPool must
-    // be done atomically. Otherwise it is possible that
-    // decrementUnreleasedEventsInPool will be called for the record in
-    // NumEventsUnreleasedInEventPool before its
-    std::lock(NumEventsAvailableInEventPoolMutex,
-              NumEventsUnreleasedInEventPoolMutex);
-    std::lock_guard<std::mutex> NumEventsAvailableInEventPoolGuard(
-        NumEventsAvailableInEventPoolMutex, std::adopt_lock);
-    std::lock_guard<std::mutex> NumEventsUnreleasedInEventPoolGuard(
-        NumEventsUnreleasedInEventPoolMutex, std::adopt_lock);
-
     ZeStruct<ze_event_pool_desc_t> ZeEventPoolDesc;
     ZeEventPoolDesc.count = MaxNumEventsPerPool;
 
@@ -379,8 +380,6 @@ _pi_context::getFreeSlotInExistingOrNewPool(ze_event_pool_handle_t &ZePool,
     NumEventsAvailableInEventPool[ZeEventPool] = MaxNumEventsPerPool - 1;
     NumEventsUnreleasedInEventPool[ZeEventPool] = MaxNumEventsPerPool;
   } else {
-    std::lock_guard<std::mutex> NumEventsAvailableInEventPoolGuard(
-        NumEventsAvailableInEventPoolMutex);
     Index = MaxNumEventsPerPool - NumEventsAvailableInEventPool[ZeEventPool];
     --NumEventsAvailableInEventPool[ZeEventPool];
   }
@@ -511,6 +510,37 @@ ze_result_t ZeCall::doCall(ze_result_t ZeResult, const char *ZeName,
 // on the Queue that is passed in.
 inline static void piQueueRetainNoLock(pi_queue Queue) { Queue->RefCount++; }
 
+// Helper function to create an event
+static pi_result EventCreateImpl(pi_context Context, const pi_queue Queue, pi_event *RetEvent) {
+  size_t Index = 0;
+  ze_event_pool_handle_t ZeEventPool = {};
+  if (auto Res = Context->getFreeSlotInExistingOrNewPool(ZeEventPool, Index))
+    return Res;
+
+  ze_event_handle_t ZeEvent;
+  ZeStruct<ze_event_desc_t> ZeEventDesc;
+  // We have to set the SIGNAL flag as HOST scope because the
+  // Level-Zero plugin implementation waits for the events to complete
+  // on the host.
+  ZeEventDesc.signal = ZE_EVENT_SCOPE_FLAG_HOST;
+  ZeEventDesc.wait = 0;
+  ZeEventDesc.index = Index;
+
+  ZE_CALL(zeEventCreate, (ZeEventPool, &ZeEventDesc, &ZeEvent));
+
+  try {
+    PI_ASSERT(RetEvent, PI_INVALID_VALUE);
+
+    *RetEvent = new _pi_event(ZeEvent, ZeEventPool, Context,
+                              PI_COMMAND_TYPE_USER, true, Queue);
+  } catch (const std::bad_alloc &) {
+    return PI_OUT_OF_HOST_MEMORY;
+  } catch (...) {
+    return PI_ERROR_UNKNOWN;
+  }
+  return PI_SUCCESS;
+}
+
 // This helper function creates a pi_event and associate a pi_queue.
 // Note that the caller of this function must have acquired lock on the Queue
 // that is passed in.
@@ -522,11 +552,10 @@ inline static pi_result
 createEventAndAssociateQueue(pi_queue Queue, pi_event *Event,
                              pi_command_type CommandType,
                              pi_command_list_ptr_t CommandList) {
-  pi_result Res = piEventCreate(Queue->Context, Event);
+  pi_result Res = EventCreateImpl(Queue->Context, Queue, Event);
   if (Res != PI_SUCCESS)
     return Res;
 
-  (*Event)->Queue = Queue;
   (*Event)->CommandType = CommandType;
 
   // Append this Event to the CommandList, if any
@@ -4293,33 +4322,7 @@ pi_result piextKernelGetNativeHandle(pi_kernel Kernel,
 // Events
 //
 pi_result piEventCreate(pi_context Context, pi_event *RetEvent) {
-  size_t Index = 0;
-  ze_event_pool_handle_t ZeEventPool = {};
-  if (auto Res = Context->getFreeSlotInExistingOrNewPool(ZeEventPool, Index))
-    return Res;
-
-  ze_event_handle_t ZeEvent;
-  ZeStruct<ze_event_desc_t> ZeEventDesc;
-  // We have to set the SIGNAL flag as HOST scope because the
-  // Level-Zero plugin implementation waits for the events to complete
-  // on the host.
-  ZeEventDesc.signal = ZE_EVENT_SCOPE_FLAG_HOST;
-  ZeEventDesc.wait = 0;
-  ZeEventDesc.index = Index;
-
-  ZE_CALL(zeEventCreate, (ZeEventPool, &ZeEventDesc, &ZeEvent));
-
-  try {
-    PI_ASSERT(RetEvent, PI_INVALID_VALUE);
-
-    *RetEvent = new _pi_event(ZeEvent, ZeEventPool, Context,
-                              PI_COMMAND_TYPE_USER, true);
-  } catch (const std::bad_alloc &) {
-    return PI_OUT_OF_HOST_MEMORY;
-  } catch (...) {
-    return PI_ERROR_UNKNOWN;
-  }
-  return PI_SUCCESS;
+  return EventCreateImpl(Context, /*Queue*/ nullptr, RetEvent);
 }
 
 pi_result piEventGetInfo(pi_event Event, pi_event_info ParamName,
@@ -4328,7 +4331,7 @@ pi_result piEventGetInfo(pi_event Event, pi_event_info ParamName,
 
   PI_ASSERT(Event, PI_INVALID_EVENT);
 
-  std::lock_guard<std::mutex> Guard(Prog->PiEventMutex);
+  std::lock_guard<std::mutex> Guard(Event->PiEventMutex);
 
   ReturnHelper ReturnValue(ParamValueSize, ParamValue, ParamValueSizeRet);
   switch (ParamName) {
@@ -4387,7 +4390,7 @@ pi_result piEventGetProfilingInfo(pi_event Event, pi_profiling_info ParamName,
 
   PI_ASSERT(Event, PI_INVALID_EVENT);
 
-  std::lock_guard<std::mutex> Guard(Prog->PiEventMutex);
+  std::lock_guard<std::mutex> Guard(Event->PiEventMutex);
 
   uint64_t ZeTimerResolution =
       Event->Queue
@@ -4456,7 +4459,9 @@ static pi_result cleanupAfterEvent(pi_event Event) {
   auto Queue = Event->Queue;
   if (Queue) {
     // Lock automatically releases when this goes out of scope.
-    std::lock_guard<std::mutex> lock(Queue->PiQueueMutex);
+    std::lock(Queue->PiQueueMutex, Event->PiEventMutex);
+    std::lock_guard<std::mutex> EventLock(Event->PiEventMutex, std::adopt_lock);
+    std::lock_guard<std::mutex> QueueLock(Queue->PiQueueMutex, std::adopt_lock);
 
     // Cleanup the command list associated with the event if it hasn't
     // been cleaned up already.
@@ -4523,7 +4528,7 @@ static pi_result cleanupAfterEvent(pi_event Event) {
     // NOTE: that this needs to be done only once for an event so
     // this is guarded with the CleanedUp flag.
     //
-    PI_CALL(piEventRelease(Event));
+    PI_CALL(piEventReleaseNoLock(Event));
   }
 
   // Make a list of all the dependent events that must have signalled
@@ -4535,12 +4540,15 @@ static pi_result cleanupAfterEvent(pi_event Event) {
   // that preceded this implementation.
 
   std::list<pi_event> EventsToBeReleased;
-
-  Event->WaitList.collectEventsForReleaseAndDestroyPiZeEventList(
-      EventsToBeReleased);
+  {
+    std::lock_guard<std::mutex> EventLock(Event->PiEventMutex);
+    Event->WaitList.collectEventsForReleaseAndDestroyPiZeEventList(
+        EventsToBeReleased);
+  }
 
   while (!EventsToBeReleased.empty()) {
     pi_event DepEvent = EventsToBeReleased.front();
+    std::lock_guard<std::mutex> DepEventLock(DepEvent->PiEventMutex);
     EventsToBeReleased.pop_front();
 
     DepEvent->WaitList.collectEventsForReleaseAndDestroyPiZeEventList(
@@ -4551,14 +4559,20 @@ static pi_result cleanupAfterEvent(pi_event Event) {
       // twice, so it is safe. Lock automatically releases when this goes out of
       // scope.
       // TODO: this code needs to be moved out of the guard.
-      std::lock_guard<std::mutex> lock(DepEvent->Queue->PiQueueMutex);
       if (DepEvent->CommandType == PI_COMMAND_TYPE_NDRANGE_KERNEL &&
           DepEvent->CommandData) {
         PI_CALL(piKernelRelease(pi_cast<pi_kernel>(DepEvent->CommandData)));
         DepEvent->CommandData = nullptr;
       }
     }
-    PI_CALL(piEventRelease(DepEvent));
+    if (!DepEvent->CleanedUp) {
+      DepEvent->CleanedUp = true;
+      // Release this event since we explicitly retained it on creation.
+      // NOTE: that this needs to be done only once for an event so
+      // this is guarded with the CleanedUp flag.
+      //
+      PI_CALL(piEventReleaseNoLock(DepEvent));
+    }
   }
 
   return PI_SUCCESS;
@@ -4622,8 +4636,7 @@ pi_result piEventRetain(pi_event Event) {
   return PI_SUCCESS;
 }
 
-pi_result piEventRelease(pi_event Event) {
-  PI_ASSERT(Event, PI_INVALID_EVENT);
+pi_result piEventReleaseNoLock(pi_event Event) {
   if (!Event->RefCount) {
     die("piEventRelease: called on a destroyed event");
   }
@@ -4674,6 +4687,13 @@ pi_result piEventRelease(pi_event Event) {
     delete Event;
   }
   return PI_SUCCESS;
+}
+
+pi_result piEventRelease(pi_event Event) {
+  PI_ASSERT(Event, PI_INVALID_EVENT);
+
+  std::lock_guard<std::mutex> Guard(Event->PiEventMutex);
+  return piEventReleaseNoLock(Event);
 }
 
 pi_result piextEventGetNativeHandle(pi_event Event,
