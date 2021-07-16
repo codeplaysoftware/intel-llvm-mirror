@@ -222,6 +222,13 @@ struct _pi_platform {
   // in the driver.
   std::list<pi_context> Contexts;
   std::mutex ContextsMutex;
+
+  // Mutex to be locked on entry to a _pi_platform API call, and unlocked
+  // prior to exit.  Access to all state of a platform is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_platform API call.  No other mutexes/locking should be
+  // needed/used for the platform data structures.
+  std::mutex PiPlatformMutex;
 };
 
 // Implements memory allocation via L0 RT for USM allocator interface.
@@ -338,6 +345,13 @@ struct _pi_device : _pi_object {
   // Cache of the immutable device properties.
   ZeStruct<ze_device_properties_t> ZeDeviceProperties;
   ZeStruct<ze_device_compute_properties_t> ZeDeviceComputeProperties;
+
+  // Mutex to be locked on entry to a _pi_device API call, and unlocked
+  // prior to exit.  Access to all state of a device is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_device API call.  No other mutexes/locking should be
+  // needed/used for the device data structures.
+  std::mutex PiDeviceMutex;
 };
 
 // Structure describing the specific use of a command-list in a queue.
@@ -508,6 +522,12 @@ struct _pi_context : _pi_object {
   // when kernel has finished execution.
   std::unordered_map<void *, MemAllocRecord> MemAllocs;
 
+  // Mutex to be locked on entry to a _pi_context API call, and unlocked
+  // prior to exit.  Access to all state of a context is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_context API call.  No other mutexes/locking should be
+  // needed/used for the context data structures.
+  std::mutex PiContextMutex;
 private:
   // Following member variables are used to manage assignment of events
   // to event pools.
@@ -721,6 +741,12 @@ struct _pi_mem : _pi_object {
   pi_result addMapping(void *MappedTo, size_t Size, size_t Offset);
   pi_result removeMapping(void *MappedTo, Mapping &MapInfo);
 
+  // Mutex to be locked on entry to a _pi_mem API call, and unlocked
+  // prior to exit.  Access to all state of a mem is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_mem API call.  No other mutexes/locking should be
+  // needed/used for the mem data structures.
+  std::mutex PiMemMutex;
 protected:
   _pi_mem(pi_context Ctx, char *HostPtr, bool MemOnHost = false)
       : Context{Ctx}, MapHostPtr{HostPtr}, OnHost{MemOnHost}, Mappings{} {}
@@ -873,6 +899,13 @@ struct _pi_event : _pi_object {
   // actions are performed only once.
   //
   bool CleanedUp = {false};
+
+  // Mutex to be locked on entry to a _pi_event API call, and unlocked
+  // prior to exit.  Access to all state of a event is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_event API call.  No other mutexes/locking should be
+  // needed/used for the event data structures.
+  std::mutex PiEventMutex;
 };
 
 struct _pi_program : _pi_object {
@@ -1054,6 +1087,13 @@ struct _pi_program : _pi_object {
   // Level Zero build or link log, used for programs in Obj, Exe, or LinkedExe
   // state.
   ze_module_build_log_handle_t ZeBuildLog;
+
+  // Mutex to be locked on entry to a _pi_program API call, and unlocked
+  // prior to exit.  Access to all state of a program is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_program API call.  No other mutexes/locking should be
+  // needed/used for the program data structures.
+  std::mutex PiProgramMutex;
 };
 
 struct _pi_kernel : _pi_object {
@@ -1107,6 +1147,13 @@ struct _pi_kernel : _pi_object {
   // of times. And that's why there is no value of RefCount which can mean zero
   // submissions.
   std::atomic<pi_uint32> SubmissionsCount;
+
+  // Mutex to be locked on entry to a _pi_kernel API call, and unlocked
+  // prior to exit.  Access to all state of a kernel is done only after
+  // this lock has been acquired, and this must be released upon exit
+  // from a pi_kernel API call.  No other mutexes/locking should be
+  // needed/used for the kernel data structures.
+  std::mutex PiKernelMutex;
 };
 
 struct _pi_sampler : _pi_object {

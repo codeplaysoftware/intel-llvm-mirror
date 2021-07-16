@@ -850,6 +850,7 @@ pi_result _pi_context::getAvailableCommandList(
   // command lists we can create.
   // Once created, this command list & fence are added to the command list fence
   // map.
+  std::lock_guard<std::mutex> lock(Queue->Device->Platform->PiPlatformMutex);
   if (Queue->Device->Platform->ZeGlobalCommandListCount <
       ZeMaxCommandListCacheSize) {
     ze_command_list_handle_t ZeCommandList;
@@ -1268,6 +1269,8 @@ static bool setEnvVar(const char *name, const char *value) {
   return true;
 }
 
+// Platforms are initialized only once and stored in cache, so we don't need to
+// use synchronization mechanisms here.
 pi_result _pi_platform::initialize() {
   // Cache driver properties
   ZeStruct<ze_driver_properties_t> ZeDriverProperties;
@@ -1416,6 +1419,8 @@ pi_result piPlatformsGet(pi_uint32 NumEntries, pi_platform *Platforms,
   return PI_SUCCESS;
 }
 
+// Fields returned by this API are initialized only once because platforms are
+// stored in cache, so we don't need to use synchronization mechanisms here.
 pi_result piPlatformGetInfo(pi_platform Platform, pi_platform_info ParamName,
                             size_t ParamValueSize, void *ParamValue,
                             size_t *ParamValueSizeRet) {
@@ -1466,6 +1471,8 @@ pi_result piPlatformGetInfo(pi_platform Platform, pi_platform_info ParamName,
   return PI_SUCCESS;
 }
 
+// ZeDriver value doens't change after initialization, so we don't need to use
+// synchronization mechanisms here.
 pi_result piextPlatformGetNativeHandle(pi_platform Platform,
                                        pi_native_handle *NativeHandle) {
   PI_ASSERT(Platform, PI_INVALID_PLATFORM);
@@ -3176,6 +3183,7 @@ pi_result piProgramGetInfo(pi_program Program, pi_program_info ParamName,
 
   PI_ASSERT(Program, PI_INVALID_PROGRAM);
 
+  std::lock_guard<std::mutex> Guard(Program->PiProgramMutex);
   ReturnHelper ReturnValue(ParamValueSize, ParamValue, ParamValueSizeRet);
   switch (ParamName) {
   case PI_PROGRAM_INFO_REFERENCE_COUNT:
@@ -3328,12 +3336,6 @@ pi_result piProgramLink(pi_context Context, pi_uint32 NumDevices,
   // Validate input parameters.
   if (NumInputPrograms == 0 || InputPrograms == nullptr)
     return PI_INVALID_VALUE;
-  for (pi_uint32 I = 0; I < NumInputPrograms; I++) {
-    if (InputPrograms[I]->State != _pi_program::Object) {
-      return PI_INVALID_OPERATION;
-    }
-    PI_ASSERT(InputPrograms[I]->ZeModule, PI_INVALID_VALUE);
-  }
 
   // Linking modules on Level Zero is different from OpenCL.  With Level Zero,
   // each input object module already has native code loaded onto the device.
@@ -3370,8 +3372,14 @@ pi_result piProgramLink(pi_context Context, pi_uint32 NumDevices,
     ZeHandles.reserve(NumInputPrograms);
     for (pi_uint32 I = 0; I < NumInputPrograms; I++) {
       pi_program Input = InputPrograms[I];
+      std::unique_lock<std::mutex> Guard(Input->PiProgramMutex);
+
+      if (InputPrograms[I]->State != _pi_program::Object) {
+        return PI_INVALID_OPERATION;
+      }
+      PI_ASSERT(InputPrograms[I]->ZeModule, PI_INVALID_VALUE);
+
       if (Input->HasImports) {
-        std::unique_lock<std::mutex> Guard(Input->MutexHasImportsAndIsLinked);
         if (!Input->HasImportsAndIsLinked) {
           // This module imports symbols, but it isn't currently linked with
           // any other module.  Grab the flag to indicate that it is now
@@ -3383,7 +3391,6 @@ pi_result piProgramLink(pi_context Context, pi_uint32 NumDevices,
           // already, so it needs to be copied.  We expect this to be quite
           // rare since linking is mostly used to link against libraries which
           // only export symbols.
-          Guard.unlock();
           ze_module_handle_t ZeModule;
           pi_result res = copyModule(Context->ZeContext, Device->ZeDevice,
                                      Input->ZeModule, &ZeModule);
@@ -3440,6 +3447,8 @@ pi_result piProgramCompile(
   if (!Program)
     return PI_INVALID_OPERATION;
 
+  std::lock_guard<std::mutex> Guard(Program->PiProgramMutex);
+
   // It's only valid to compile a program created from IL (we don't support
   // programs created from source code).
   //
@@ -3468,6 +3477,8 @@ pi_result piProgramBuild(pi_program Program, pi_uint32 NumDevices,
   // no corresponding PI error code.
   PI_ASSERT(Program, PI_INVALID_PROGRAM);
 
+  std::lock_guard<std::mutex> Guard(Program->PiProgramMutex);
+
   // It is legal to build a program created from either IL or from native
   // device code.
   if (Program->State != _pi_program::IL &&
@@ -3486,6 +3497,8 @@ pi_result piProgramBuild(pi_program Program, pi_uint32 NumDevices,
 }
 
 // Perform common operations for compiling or building a program.
+// PiProgramMutex mutex of the Program object must be locked before calling this
+// funtcion.
 static pi_result compileOrBuild(pi_program Program, pi_uint32 NumDevices,
                                 const pi_device *DeviceList,
                                 const char *Options) {
@@ -3510,8 +3523,6 @@ static pi_result compileOrBuild(pi_program Program, pi_uint32 NumDevices,
   std::vector<uint32_t> ZeSpecContantsIds;
   std::vector<uint64_t> ZeSpecContantsValues;
   if (Program->State == _pi_program::IL) {
-    std::lock_guard<std::mutex> Guard(Program->MutexZeSpecConstants);
-
     ZeSpecConstants.numConstants = Program->ZeSpecConstants.size();
     ZeSpecContantsIds.reserve(ZeSpecConstants.numConstants);
     ZeSpecContantsValues.reserve(ZeSpecConstants.numConstants);
@@ -3560,6 +3571,8 @@ pi_result piProgramGetBuildInfo(pi_program Program, pi_device Device,
                                 size_t ParamValueSize, void *ParamValue,
                                 size_t *ParamValueSizeRet) {
   (void)Device;
+
+  std::lock_guard<std::mutex> Guard(Program->PiProgramMutex);
 
   ReturnHelper ReturnValue(ParamValueSize, ParamValue, ParamValueSizeRet);
   if (ParamName == CL_PROGRAM_BINARY_TYPE) {
@@ -3618,6 +3631,7 @@ pi_result piextProgramGetNativeHandle(pi_program Program,
   PI_ASSERT(Program, PI_INVALID_PROGRAM);
   PI_ASSERT(NativeHandle, PI_INVALID_VALUE);
 
+  std::lock_guard<std::mutex> Guard(Program->PiProgramMutex);
   auto ZeModule = pi_cast<ze_module_handle_t *>(NativeHandle);
 
   switch (Program->State) {
@@ -3851,6 +3865,12 @@ pi_result piKernelSetArg(pi_kernel Kernel, pi_uint32 ArgIndex, size_t ArgSize,
 
   PI_ASSERT(Kernel, PI_INVALID_KERNEL);
 
+  // Per specification
+  // https://spec.oneapi.com/level-zero/latest/core/api.html#zekernelsetargumentvalue
+  // this API cannot be called from simultaneous threads with the same kernel
+  // handle. Lock automatically releases when this goes out of scope.
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex);
+
   ZE_CALL(zeKernelSetArgumentValue,
           (pi_cast<ze_kernel_handle_t>(Kernel->ZeKernel),
            pi_cast<uint32_t>(ArgIndex), pi_cast<size_t>(ArgSize),
@@ -3869,6 +3889,12 @@ pi_result piextKernelSetArgMemObj(pi_kernel Kernel, pi_uint32 ArgIndex,
 
   PI_ASSERT(Kernel, PI_INVALID_KERNEL);
 
+  // Per specification
+  // https://spec.oneapi.com/level-zero/latest/core/api.html#zekernelsetargumentvalue
+  // this API cannot be called from simultaneous threads with the same kernel
+  // handle. Lock automatically releases when this goes out of scope.
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex);
+
   ZE_CALL(zeKernelSetArgumentValue,
           (pi_cast<ze_kernel_handle_t>(Kernel->ZeKernel),
            pi_cast<uint32_t>(ArgIndex), sizeof(void *),
@@ -3881,6 +3907,12 @@ pi_result piextKernelSetArgMemObj(pi_kernel Kernel, pi_uint32 ArgIndex,
 pi_result piextKernelSetArgSampler(pi_kernel Kernel, pi_uint32 ArgIndex,
                                    const pi_sampler *ArgValue) {
   PI_ASSERT(Kernel, PI_INVALID_KERNEL);
+
+  // Per specification
+  // https://spec.oneapi.com/level-zero/latest/core/api.html#zekernelsetargumentvalue
+  // this API cannot be called from simultaneous threads with the same kernel
+  // handle. Lock automatically releases when this goes out of scope.
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex);
 
   ZE_CALL(zeKernelSetArgumentValue,
           (pi_cast<ze_kernel_handle_t>(Kernel->ZeKernel),
@@ -4032,10 +4064,21 @@ pi_result piKernelGetSubGroupInfo(pi_kernel Kernel, pi_device Device,
   return PI_SUCCESS;
 }
 
+pi_result piKernelRetainNoLock(pi_kernel Kernel) {
+
+  PI_ASSERT(Kernel, PI_INVALID_KERNEL);
+
+  ++(Kernel->RefCount);
+  // When retaining a kernel, you are also retaining the program it is part of.
+  PI_CALL(piProgramRetain(Kernel->Program));
+  return PI_SUCCESS;
+}
+
 pi_result piKernelRetain(pi_kernel Kernel) {
 
   PI_ASSERT(Kernel, PI_INVALID_KERNEL);
 
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex);
   ++(Kernel->RefCount);
   // When retaining a kernel, you are also retaining the program it is part of.
   PI_CALL(piProgramRetain(Kernel->Program));
@@ -4047,6 +4090,7 @@ static pi_result USMFreeHelper(pi_context Context, void *Ptr);
 pi_result piKernelRelease(pi_kernel Kernel) {
 
   PI_ASSERT(Kernel, PI_INVALID_KERNEL);
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex);
 
   if (IndirectAccessTrackingEnabled) {
     // piKernelRelease is called by cleanupAfterEvent as soon as kernel
@@ -4094,6 +4138,13 @@ piEnqueueKernelLaunch(pi_queue Queue, pi_kernel Kernel, pi_uint32 WorkDim,
   PI_ASSERT(Event, PI_INVALID_EVENT);
   PI_ASSERT((WorkDim > 0) && (WorkDim < 4), PI_INVALID_WORK_DIMENSION);
 
+  // Per specification zeKernelSetGlobalOffsetExp and zeKernelSetGroupSize
+  // cannot be called from simultaneous threads with the same kernel handle.
+  // Lock automatically releases when this goes out of scope.
+  std::lock(Queue->PiQueueMutex, Kernel->PiKernelMutex);
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex, std::adopt_lock);
+  std::lock_guard<std::mutex> QueueLock(Queue->PiQueueMutex, std::adopt_lock);
+
   if (GlobalWorkOffset != NULL) {
     if (!PiDriverGlobalOffsetExtensionFound) {
       zePrint("No global offset extension found on this driver\n");
@@ -4105,8 +4156,8 @@ piEnqueueKernelLaunch(pi_queue Queue, pi_kernel Kernel, pi_uint32 WorkDim,
              GlobalWorkOffset[2]));
   }
 
-  ze_group_count_t ZeThreadGroupDimensions{1, 1, 1};
   uint32_t WG[3];
+  ze_group_count_t ZeThreadGroupDimensions{1, 1, 1};
 
   // global_work_size of unused dimensions must be set to 1
   PI_ASSERT(WorkDim == 3 || GlobalWorkSize[2] == 1, PI_INVALID_VALUE);
@@ -4169,9 +4220,6 @@ piEnqueueKernelLaunch(pi_queue Queue, pi_kernel Kernel, pi_uint32 WorkDim,
 
   ZE_CALL(zeKernelSetGroupSize, (Kernel->ZeKernel, WG[0], WG[1], WG[2]));
 
-  // Lock automatically releases when this goes out of scope.
-  std::lock_guard<std::mutex> QueueLock(Queue->PiQueueMutex);
-
   _pi_ze_event_list_t TmpWaitList;
 
   if (auto Res = TmpWaitList.createAndRetainPiZeEventList(NumEventsInWaitList,
@@ -4202,7 +4250,7 @@ piEnqueueKernelLaunch(pi_queue Queue, pi_kernel Kernel, pi_uint32 WorkDim,
   // code in cleanupAfterEvent will do a piReleaseKernel to update
   // the reference count on the kernel, using the kernel saved
   // in CommandData.
-  PI_CALL(piKernelRetain(Kernel));
+  PI_CALL(piKernelRetainNoLock(Kernel));
 
   // Add the command to the command list
   ZE_CALL(zeCommandListAppendLaunchKernel,
@@ -4280,6 +4328,8 @@ pi_result piEventGetInfo(pi_event Event, pi_event_info ParamName,
 
   PI_ASSERT(Event, PI_INVALID_EVENT);
 
+  std::lock_guard<std::mutex> Guard(Prog->PiEventMutex);
+
   ReturnHelper ReturnValue(ParamValueSize, ParamValue, ParamValueSizeRet);
   switch (ParamName) {
   case PI_EVENT_INFO_COMMAND_QUEUE:
@@ -4336,6 +4386,8 @@ pi_result piEventGetProfilingInfo(pi_event Event, pi_profiling_info ParamName,
                                   size_t *ParamValueSizeRet) {
 
   PI_ASSERT(Event, PI_INVALID_EVENT);
+
+  std::lock_guard<std::mutex> Guard(Prog->PiEventMutex);
 
   uint64_t ZeTimerResolution =
       Event->Queue
@@ -6616,6 +6668,11 @@ pi_result piKernelSetExecInfo(pi_kernel Kernel, pi_kernel_exec_info ParamName,
   PI_ASSERT(Kernel, PI_INVALID_KERNEL);
   PI_ASSERT(ParamValue, PI_INVALID_VALUE);
 
+  // Per specification
+  // this API cannot be called from simultaneous threads with the same kernel
+  // handle. Lock automatically releases when this goes out of scope.
+  std::lock_guard<std::mutex> KernelLock(Kernel->PiKernelMutex);
+
   if (ParamName == PI_USM_INDIRECT_ACCESS &&
       *(static_cast<const pi_bool *>(ParamValue)) == PI_TRUE) {
     // The whole point for users really was to not need to know anything
@@ -6639,7 +6696,7 @@ pi_result piextProgramSetSpecializationConstant(pi_program Prog,
                                                 const void *SpecValue) {
   // Level Zero sets spec constants when creating modules,
   // so save them for when program is built.
-  std::lock_guard<std::mutex> Guard(Prog->MutexZeSpecConstants);
+  std::lock_guard<std::mutex> Guard(Prog->PiProgramMutex);
 
   // Pass SpecValue pointer. Spec constant value is retrieved
   // by Level Zero when creating the module.
