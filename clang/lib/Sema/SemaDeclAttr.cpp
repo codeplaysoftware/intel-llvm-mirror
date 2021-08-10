@@ -3505,6 +3505,21 @@ static void handleUseStallEnableClustersAttr(Sema &S, Decl *D,
   handleSimpleAttribute<SYCLIntelUseStallEnableClustersAttr>(S, D, Attr);
 }
 
+// Handles kernel_const_mem
+static void handleKernelConstMemAttr(Sema &S, Decl *D,
+                                             const ParsedAttr &Attr) {
+  if (D->isInvalidDecl())
+    return;
+
+  unsigned NumArgs = Attr.getNumArgs();
+  if (NumArgs > 0) {
+    S.Diag(Attr.getLoc(), diag::warn_attribute_too_many_arguments) << Attr << 0;
+    return;
+  }
+
+  handleSimpleAttribute<SYCLKernelConstMemAttr>(S, D, Attr);
+}
+
 // Handles disable_loop_pipelining attribute.
 static void handleSYCLIntelFPGADisableLoopPipeliningAttr(Sema &S, Decl *D,
                                                          const ParsedAttr &A) {
@@ -9691,6 +9706,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
     break;
   case ParsedAttr::AT_SYCLIntelUseStallEnableClusters:
     handleUseStallEnableClustersAttr(S, D, AL);
+    break;
+  case ParsedAttr::AT_SYCLKernelConstMem:
+    handleKernelConstMemAttr(S, D, AL);
     break;
   case ParsedAttr::AT_SYCLIntelLoopFuse:
     handleSYCLIntelLoopFuseAttr(S, D, AL);

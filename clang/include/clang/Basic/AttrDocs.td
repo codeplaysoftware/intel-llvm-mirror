@@ -2617,6 +2617,42 @@ behavior when applied to a lambda in the type position.
   }];
 }
 
+def SYCLKernelConstMemAttrDocs : Documentation {
+  let Category = DocCatFunction;
+  let Heading = "cp::kernel_const_mem";
+  let Content = [{
+When applied to a lambda or function call operator (of a function
+object) on device, this requests that the function parameters
+(or lambda capture variables) are loaded to device constant memory
+(i.e. in the form of a CUDA Symbol). This attribute is ignored on
+the host.
+
+// TODO - decide on this
+// If ``cp::kernel_const_mem`` is applied to a function called from
+// a device kernel, the attribute is ignored and it is not propagated
+// to the kernel.
+
+The ``cp::kernel_const_mem`` attribute takes no argument and has
+an effect when applied to a function, and no effect otherwise.
+
+.. code-block:: c++
+
+  class Functor
+  {
+      [[cp::kernel_const_mem]] void operator()(item<1> item)
+      {
+          /* kernel code */
+      }
+  }
+
+  kernel<class kernel_name>(
+  []() [[cp::kernel_const_mem]] {
+       /* kernel code */
+  });
+
+  }];
+}
+
 def ReqdWorkGroupSizeAttrDocs : Documentation {
   let Category = DocCatFunction;
   let Heading = "reqd_work_group_size";
