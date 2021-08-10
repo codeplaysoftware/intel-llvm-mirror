@@ -2253,15 +2253,23 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
 
   pi_result retErr = PI_SUCCESS;
   std::unique_ptr<_pi_kernel> retKernel{nullptr};
+  std::string kernel_name_s(kernel_name);
+  bool param_to_const = false;
 
   try {
     ScopedContext active(program->get_context());
 
     CUfunction cuFunc;
-    retErr = PI_CHECK_ERROR(
-        cuModuleGetFunction(&cuFunc, program->get(), kernel_name));
+    CUresult bareRes = cuModuleGetFunction(&cuFunc, program->get(), kernel_name_s.c_str());
 
-    std::string kernel_name_woffset = std::string(kernel_name) + "_with_offset";
+    if (bareRes == CUDA_ERROR_NOT_FOUND) {
+      kernel_name_s += "_param_to_const";
+      retErr = PI_CHECK_ERROR(cuModuleGetFunction(&cuFunc, program->get(),
+                                                  kernel_name_s.c_str()));
+      param_to_const = true;
+    }
+
+    std::string kernel_name_woffset = kernel_name_s + "_with_offset";
     CUfunction cuFuncWithOffsetParam;
     CUresult offsetRes = cuModuleGetFunction(
         &cuFuncWithOffsetParam, program->get(), kernel_name_woffset.c_str());
@@ -2276,6 +2284,7 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
     retKernel = std::unique_ptr<_pi_kernel>(
         new _pi_kernel{cuFunc, cuFuncWithOffsetParam, kernel_name, program,
                        program->get_context()});
+    retKernel->param_to_const = param_to_const; // Mark this kernel as using a CUDA Symbol
   } catch (pi_result err) {
     retErr = err;
   } catch (...) {
@@ -2434,6 +2443,10 @@ pi_result cuda_piEnqueueKernelLaunch(
 
     retError = cuda_piEnqueueEventsWait(command_queue, num_events_in_wait_list,
                                         event_wait_list, nullptr);
+
+    if (kernel->param_to_const) {
+      // Pull out the parameters, write them to symbol & replace them in the kernel
+    }
 
     // Set the implicit global offset parameter if kernel has offset variant
     if (kernel->get_with_offset_parameter()) {
