@@ -1336,6 +1336,14 @@ def SYCLIntelUseStallEnableClusters : InheritableAttr {
   let SupportsNonconformingLambdaSyntax = 1;
 }
 
+def SYCLKernelConstMem : InheritableAttr {
+  let Spellings = [CXX11<"cp","kernel_const_mem">];
+  let LangOpts = [SYCLIsHost, SYCLIsDevice];
+  let Subjects = SubjectList<[Function], ErrorDiag>;
+  let Documentation = [SYCLKernelConstMemAttrDocs];
+  let SupportsNonconformingLambdaSyntax = 1;
+}
+
 def SYCLIntelSchedulerTargetFmaxMhz : InheritableAttr {
   let Spellings = [CXX11<"intelfpga","scheduler_target_fmax_mhz">,
                    CXX11<"intel","scheduler_target_fmax_mhz">];
