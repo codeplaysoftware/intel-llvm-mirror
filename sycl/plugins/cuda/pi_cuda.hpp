@@ -553,6 +553,7 @@ struct _pi_kernel {
   pi_context context_;
   pi_program program_;
   std::atomic_uint32_t refCount_;
+  bool param_to_const = false;
 
   /// Structure that holds the arguments to the kernel.
   /// Note earch argument size is known, since it comes
