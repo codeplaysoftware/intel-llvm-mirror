@@ -2444,10 +2444,6 @@ pi_result cuda_piEnqueueKernelLaunch(
     retError = cuda_piEnqueueEventsWait(command_queue, num_events_in_wait_list,
                                         event_wait_list, nullptr);
 
-    if (kernel->param_to_const) {
-      // Pull out the parameters, write them to symbol & replace them in the kernel
-    }
-
     // Set the implicit global offset parameter if kernel has offset variant
     if (kernel->get_with_offset_parameter()) {
       std::uint32_t cuda_implicit_offset[3] = {0, 0, 0};
@@ -2472,11 +2468,43 @@ pi_result cuda_piEnqueueKernelLaunch(
       retImplEv->start();
     }
 
-    retError = PI_CHECK_ERROR(cuLaunchKernel(
-        cuFunc, blocksPerGrid[0], blocksPerGrid[1], blocksPerGrid[2],
-        threadsPerBlock[0], threadsPerBlock[1], threadsPerBlock[2],
-        kernel->get_local_size(), cuStream, argIndices.data(), nullptr));
-    kernel->clear_local_size();
+    if (kernel->param_to_const) {
+
+      /* kernel->param_to_const implies that:
+         1) the -fsycl-const-param compiler flag was passed
+         2) the kernel was marked [[cp::kernel_const_mem]]
+      */
+
+      // First: Copy params to constant
+
+      CUdeviceptr d_constSymbol;
+      // TODO(Joe) - best way to get program?
+      PI_CHECK_ERROR(cuModuleGetGlobal(&d_constSymbol, NULL, kernel->get_program()->get(),
+                                       "whateverNameCompilerGivesUs"));
+
+      //TODO(Joe) - is the size here just kernel->get_local_size()?
+      PI_CHECK_ERROR(cuMemcpyHtoD(d_constSymbol, argIndices.data(),
+                                  argIndices.size() * sizeof(argIndices[0])));
+
+      // Launch the kernel w/o args
+      // TODO(Joe) - do we still need shared-memory size per thread?
+      retError = PI_CHECK_ERROR(cuLaunchKernel(
+          cuFunc, blocksPerGrid[0], blocksPerGrid[1], blocksPerGrid[2],
+          threadsPerBlock[0], threadsPerBlock[1], threadsPerBlock[2],
+          local_size, cuStream, nullptr, nullptr));
+
+    } else {
+
+      retError = PI_CHECK_ERROR(cuLaunchKernel(
+          cuFunc, blocksPerGrid[0], blocksPerGrid[1], blocksPerGrid[2],
+          threadsPerBlock[0], threadsPerBlock[1], threadsPerBlock[2],
+          local_size, cuStream,
+          const_cast<void **>(argIndices.data()), nullptr));
+    }
+
+    if (local_size != 0)
+      kernel->clear_local_size();
+
     if (event) {
       retError = retImplEv->record();
     }
