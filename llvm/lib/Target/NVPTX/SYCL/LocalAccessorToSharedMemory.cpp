@@ -16,6 +16,7 @@
 
 #include "LocalAccessorToSharedMemory.h"
 #include "../MCTargetDesc/NVPTXBaseInfo.h"
+#include "Utils.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
@@ -46,43 +47,17 @@ public:
     // Keep track of whether the module was changed.
     auto Changed = false;
 
-    // Access `nvvm.annotations` to determine which functions are kernel entry
-    // points.
-    auto NvvmMetadata = M.getNamedMetadata("nvvm.annotations");
-    if (!NvvmMetadata)
+    // Get all the kernels in the module.
+    auto NodeKernelPairs = NVPTX::Utils::getNVVKernels(M);
+    if (!NodeKernelPairs)
       return false;
 
-    for (auto MetadataNode : NvvmMetadata->operands()) {
-      if (MetadataNode->getNumOperands() != 3)
-        continue;
-
-      // NVPTX identifies kernel entry points using metadata nodes of the form:
-      //   !X = !{<function>, !"kernel", i32 1}
-      const MDOperand &TypeOperand = MetadataNode->getOperand(1);
-      auto Type = dyn_cast<MDString>(TypeOperand);
-      if (!Type)
-        continue;
-      // Only process kernel entry points.
-      if (Type->getString() != "kernel")
-        continue;
-
-      // Get a pointer to the entry point function from the metadata.
-      const MDOperand &FuncOperand = MetadataNode->getOperand(0);
-      if (!FuncOperand)
-        continue;
-      auto FuncConstant = dyn_cast<ConstantAsMetadata>(FuncOperand);
-      if (!FuncConstant)
-        continue;
-      auto Func = dyn_cast<Function>(FuncConstant->getValue());
-      if (!Func)
-        continue;
-
-      // Process the function and if changed, update the metadata.
-      auto NewFunc = this->ProcessFunction(M, Func);
-      if (NewFunc) {
-        Changed = true;
-        MetadataNode->replaceOperandWith(
-            0, llvm::ConstantAsMetadata::get(NewFunc));
+    for (auto &NodeKernelPair : NodeKernelPairs.getValue()) {
+      auto NewKernel = this->ProcessFunction(M, std::get<1>(NodeKernelPair));
+      if (NewKernel) {
+        Changed |= true;
+        std::get<0>(NodeKernelPair)
+            ->replaceOperandWith(0, llvm::ConstantAsMetadata::get(NewKernel));
       }
     }
 
@@ -153,22 +128,9 @@ public:
     }
 
     // Create new function type.
-    AttributeList NAttrs =
-        AttributeList::get(F->getContext(), FAttrs.getFnAttributes(),
-                           FAttrs.getRetAttributes(), ArgumentAttributes);
     FunctionType *NFTy =
         FunctionType::get(FTy->getReturnType(), Arguments, FTy->isVarArg());
-
-    // Create the new function body and insert it into the module.
-    Function *NF = Function::Create(NFTy, F->getLinkage(), F->getAddressSpace(),
-                                    Twine{""}, &M);
-    NF->copyAttributesFrom(F);
-    NF->setComdat(F->getComdat());
-    NF->setAttributes(NAttrs);
-    NF->takeName(F);
-
-    // Splice the body of the old function right into the new function.
-    NF->getBasicBlockList().splice(NF->begin(), F->getBasicBlockList());
+    Function *NF = NVPTX::Utils::splice(F, ArgumentAttributes, NFTy);
 
     i = 0;
     for (Function::arg_iterator FA = F->arg_begin(), FE = F->arg_end(),
@@ -204,13 +166,6 @@ public:
 
     // There should be no callers of kernel entry points.
     assert(F->use_empty());
-
-    // Clone metadata of the old function, including debug info descriptor.
-    SmallVector<std::pair<unsigned, MDNode *>, 1> MDs;
-    F->getAllMetadata(MDs);
-    for (auto MD : MDs)
-      NF->addMetadata(MD.first, *MD.second);
-
     // Now that the old function is dead, delete it.
     F->eraseFromParent();
 
