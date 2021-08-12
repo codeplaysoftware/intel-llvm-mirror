@@ -19,6 +19,7 @@
 #include "NVPTXTargetTransformInfo.h"
 #include "SYCL/GlobalOffset.h"
 #include "SYCL/LocalAccessorToSharedMemory.h"
+#include "SYCL/KernelArgsConstPromotion.h"
 #include "TargetInfo/NVPTXTargetInfo.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Triple.h"
@@ -77,6 +78,7 @@ void initializeNVPTXProxyRegErasurePass(PassRegistry &);
 
 void initializeGlobalOffsetPass(PassRegistry &);
 void initializeLocalAccessorToSharedMemoryPass(PassRegistry &);
+void initializeKernelArgsConstPromotionPass(PassRegistry &);
 
 } // end namespace llvm
 
@@ -102,6 +104,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeNVPTXTarget() {
   // SYCL-specific passes, needed here to be available to `opt`.
   initializeGlobalOffsetPass(PR);
   initializeLocalAccessorToSharedMemoryPass(PR);
+  initializeKernelArgsConstPromotionPass(PR);
 }
 
 static std::string computeDataLayout(bool is64Bit, bool UseShortPointers) {
@@ -311,6 +314,7 @@ void NVPTXPassConfig::addIRPasses() {
   if (getTM<NVPTXTargetMachine>().getTargetTriple().getOS() == Triple::CUDA) {
     addPass(createGlobalOffsetPass());
     addPass(createLocalAccessorToSharedMemoryPass());
+    addPass(createKernelArgsConstPromotionPass());
   }
 
   if (getOptLevel() != CodeGenOpt::None)

@@ -493,6 +493,7 @@ static bool shouldPinPassToLegacyPM(StringRef Pass) {
   std::vector<StringRef> PassNameExactToIgnore = {
       "globaloffset",
       "localaccessortosharedmemory",
+      "kernel-args-const-promotion",
       "nvvm-reflect",
       "nvvm-intr-range",
       "amdgpu-simplifylib",
