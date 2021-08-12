@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 //
 // This pass operates on SYCL kernels being compiled to CUDA. It looks for uses
-// of the `llvm.nvvm.implicit.offset` intrinsic and replaces it with a offset
+// of the `llvm.nvvm.implicit.offset` intrinsic and replaces it with an offset
 // parameter which will be threaded through from the kernel entry point.
 //
 //===----------------------------------------------------------------------===//
