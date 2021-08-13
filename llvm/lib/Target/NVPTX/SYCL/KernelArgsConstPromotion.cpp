@@ -127,12 +127,10 @@ bool KernelArgsConstPromotion::runOnModule(Module &M) {
 
   bool Changed = false;
   for (auto &NodeKernelPair : NodeKernelPairs.getValue()) {
-    // Only promote kernels with "kernel_const_mem" attribute.
-    // TODO: JOE: Uncomment and set the correct attribute.
-    //    if (!std::get<1>(NodeKernelPair)->hasFnAttribute(Attribute::NoUnwind))
-    //    {
-    //      continue;
-    //    }
+    // Only promote kernels with "kernel-const-mem" attribute.
+    if (!std::get<1>(NodeKernelPair)->hasFnAttribute("kernel-const-mem")) {
+      continue;
+    }
     Changed |=
         runOnKernel(std::get<1>(NodeKernelPair), std::get<0>(NodeKernelPair));
   }
