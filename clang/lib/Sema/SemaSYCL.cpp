@@ -565,7 +565,8 @@ static void collectSYCLAttributes(Sema &S, FunctionDecl *FD,
                SYCLIntelNumSimdWorkItemsAttr,
                SYCLIntelSchedulerTargetFmaxMhzAttr,
                SYCLIntelMaxWorkGroupSizeAttr, SYCLIntelMaxGlobalWorkDimAttr,
-               SYCLIntelNoGlobalWorkOffsetAttr, SYCLSimdAttr>(A);
+               SYCLIntelNoGlobalWorkOffsetAttr, SYCLSimdAttr,
+               SYCLKernelConstMemAttr>(A);
   });
 
   // Allow the kernel attribute "use_stall_enable_clusters" only on lambda

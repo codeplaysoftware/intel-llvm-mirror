@@ -754,6 +754,10 @@ void CodeGenFunction::EmitOpenCLKernelMetadata(const FunctionDecl *FD,
                     llvm::MDNode::get(Context, AttrMDArgs));
   }
 
+  if (FD->hasAttr<SYCLKernelConstMemAttr>()) {
+    Fn->addFnAttr("kernel-const-mem");
+  }
+
   if (const auto *A = FD->getAttr<SYCLIntelNoGlobalWorkOffsetAttr>()) {
     const auto *CE = cast<ConstantExpr>(A->getValue());
     Optional<llvm::APSInt> ArgVal = CE->getResultAsAPSInt();

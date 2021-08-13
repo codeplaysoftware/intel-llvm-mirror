@@ -24,7 +24,7 @@ entry:
   ret void
 }
 
-attributes #0 = { noinline norecurse "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "sycl-module-id"="attr_test.cpp" "target-cpu"="sm_50" "target-features"="+ptx72,+sm_50" "uniform-work-group-size"="true" }
+attributes #0 = { noinline norecurse "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "sycl-module-id"="attr_test.cpp" "target-cpu"="sm_50" "target-features"="+ptx72,+sm_50" "uniform-work-group-size"="true" "kernel-const-mem" }
 
 !nvvm.annotations = !{!0, !1, !2, !1, !3, !3, !3, !3, !4, !4, !3}
 !nvvmir.version = !{!5}
