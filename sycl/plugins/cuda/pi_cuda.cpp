@@ -2263,7 +2263,7 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
     CUresult bareRes = cuModuleGetFunction(&cuFunc, program->get(), kernel_name_s.c_str());
 
     if (bareRes == CUDA_ERROR_NOT_FOUND) {
-      kernel_name_s += "_param_to_const";
+      kernel_name_s += "_kacp";
       retErr = PI_CHECK_ERROR(cuModuleGetFunction(&cuFunc, program->get(),
                                                   kernel_name_s.c_str()));
       param_to_const = true;
@@ -2479,8 +2479,11 @@ pi_result cuda_piEnqueueKernelLaunch(
 
       CUdeviceptr d_constSymbol;
       // TODO(Joe) - best way to get program?
+      std::string symbolName = kernel->get_name();
+      symbolName += "_kacp_struct_data";
+
       PI_CHECK_ERROR(cuModuleGetGlobal(&d_constSymbol, NULL, kernel->get_program()->get(),
-                                       "whateverNameCompilerGivesUs"));
+                                       symbolName.c_str()));
 
       //TODO(Joe) - is the size here just kernel->get_local_size()?
       PI_CHECK_ERROR(cuMemcpyHtoD(d_constSymbol, argIndices.data(),
