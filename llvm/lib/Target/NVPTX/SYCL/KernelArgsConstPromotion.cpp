@@ -20,6 +20,7 @@
 #include "../MCTargetDesc/NVPTXBaseInfo.h"
 #include "Utils.h"
 #include "llvm/IR/Instructions.h"
+#include <iostream>
 
 using namespace llvm;
 
@@ -110,6 +111,7 @@ bool KernelArgsConstPromotion::runOnKernel(Function *Kernel, MDNode *Node) {
   // Now get rid of the old kernel, splice the body of it into a new kernel,
   // that has no arguments.
   std::string NewFuncName(Kernel->getName().str() + "_kacp");
+  std::cerr << "I made this: " << NewFuncName << std::endl;
   FunctionType *NewFuncTy =
       FunctionType::get(Kernel->getReturnType(), {}, Kernel->isVarArg());
   SmallVector<AttributeSet, 4> ArgumentAttributes;
@@ -141,5 +143,14 @@ bool KernelArgsConstPromotion::runOnModule(Module &M) {
     Changed |=
         runOnKernel(std::get<1>(NodeKernelPair), std::get<0>(NodeKernelPair));
   }
+
+  NodeKernelPairs = NVPTX::Utils::getNVVKernels(M);
+  for (auto &NodeKernelPair : NodeKernelPairs.getValue()) {
+    std::cerr << "Kernel called: " << std::get<1>(NodeKernelPair)->getName().str() << std::endl;
+  }
+
+
+  M.print(llvm::errs(), nullptr);
+
   return Changed;
 }

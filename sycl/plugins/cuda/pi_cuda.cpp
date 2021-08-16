@@ -2264,6 +2264,7 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
 
     if (bareRes == CUDA_ERROR_NOT_FOUND) {
       kernel_name_s += "_kacp";
+      std::cout << "Seeking kernel named: " << kernel_name_s << std::endl;
       retErr = PI_CHECK_ERROR(cuModuleGetFunction(&cuFunc, program->get(),
                                                   kernel_name_s.c_str()));
       param_to_const = true;
@@ -2297,6 +2298,8 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
 
 pi_result cuda_piKernelSetArg(pi_kernel kernel, pi_uint32 arg_index,
                               size_t arg_size, const void *arg_value) {
+
+  std::cout << "Setting kernel arg: " << arg_index << std::endl;
 
   assert(kernel != nullptr);
   pi_result retErr = PI_SUCCESS;
@@ -2482,6 +2485,7 @@ pi_result cuda_piEnqueueKernelLaunch(
       std::string symbolName = kernel->get_name();
       symbolName += "_kacp_struct_data";
 
+      std::cout << "Seeking symbol name: " << symbolName << std::endl;
       PI_CHECK_ERROR(cuModuleGetGlobal(&d_constSymbol, NULL, kernel->get_program()->get(),
                                        symbolName.c_str()));
 
