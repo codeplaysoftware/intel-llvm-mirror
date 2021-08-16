@@ -2485,9 +2485,14 @@ pi_result cuda_piEnqueueKernelLaunch(
       PI_CHECK_ERROR(cuModuleGetGlobal(&d_constSymbol, NULL, kernel->get_program()->get(),
                                        symbolName.c_str()));
 
-      //TODO(Joe) - is the size here just kernel->get_local_size()?
-      PI_CHECK_ERROR(cuMemcpyHtoD(d_constSymbol, argIndices.data(),
-                                  argIndices.size() * sizeof(argIndices[0])));
+      auto argStore = kernel->args_.storage_;
+      auto local_size = std::accumulate(std::begin(kernel->args_.paramSizes_),
+                                         std::end(kernel->args_.paramSizes_), 0);
+
+      PI_CHECK_ERROR(cuMemcpyHtoD(d_constSymbol, argStore.data(),
+                                  local_size));
+
+      retError = PI_CHECK_ERROR(cuStreamSynchronize(cuStream));
 
       // Launch the kernel w/o args
       // TODO(Joe) - do we still need shared-memory size per thread?

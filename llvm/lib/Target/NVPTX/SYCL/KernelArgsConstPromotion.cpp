@@ -65,7 +65,7 @@ bool KernelArgsConstPromotion::runOnKernel(Function *Kernel, MDNode *Node) {
   auto InsertionPt = Kernel->getEntryBlock().getFirstInsertionPt();
   llvm::SmallVector<llvm::Type *, 8> ArgTys;
   for (auto const &Arg : Kernel->args()) {
-    ArgTys.push_back(Arg.getType());
+    ArgTys.push_back(Arg.hasByValAttr() ? Arg.getParamByValType() : Arg.getType());
   }
 
   // Create a struct type corresponding to the aggregate of all kernel
@@ -77,7 +77,7 @@ bool KernelArgsConstPromotion::runOnKernel(Function *Kernel, MDNode *Node) {
   auto *SharedMemGlobal = new GlobalVariable(
       *M, StructTy, true, GlobalValue::LinkOnceODRLinkage,
       Constant::getNullValue(StructTy), KernelName + "_kacp_struct_data",
-      nullptr, GlobalValue::NotThreadLocal, ADDRESS_SPACE_CONST);
+      nullptr, GlobalValue::NotThreadLocal, ADDRESS_SPACE_CONST, true); //isExternallyInitialized
 
   auto *Int32Ty = Type::getInt32Ty(Context);
   auto *Zero = ConstantInt::get(Int32Ty, 0);
@@ -89,15 +89,22 @@ bool KernelArgsConstPromotion::runOnKernel(Function *Kernel, MDNode *Node) {
     auto *Arg = Kernel->arg_begin() + i;
     std::string GepName("Arg_GEP_");
     GepName.append(std::to_string(i));
-    auto *Gep = GetElementPtrInst::Create(
+    auto *Gep = GetElementPtrInst::CreateInBounds(
         StructTy, SharedMemGlobal,
         SmallVector<Value *>{Zero, ConstantInt::get(Int32Ty, i)},
         GepName.c_str());
-    std::string LoadName("Arg_Load_");
-    LoadName.append(std::to_string(i));
-    auto *Load = new LoadInst(Arg->getType(), Gep, LoadName, &*InsertionPt);
-    Gep->insertBefore(Load);
-    Arg->replaceAllUsesWith(Load);
+    if (Arg->hasByValAttr()) {
+      auto *Cast =
+          new AddrSpaceCastInst(Gep, Arg->getType(), "", &*InsertionPt);
+      Gep->insertBefore(Cast);
+      Arg->replaceAllUsesWith(Cast);
+    } else {
+      std::string LoadName("Arg_Load_");
+      LoadName.append(std::to_string(i));
+      auto *Load = new LoadInst(Arg->getType(), Gep, LoadName, &*InsertionPt);
+      Gep->insertBefore(Load);
+      Arg->replaceAllUsesWith(Load);
+    }
   }
 
   // Now get rid of the old kernel, splice the body of it into a new kernel,
