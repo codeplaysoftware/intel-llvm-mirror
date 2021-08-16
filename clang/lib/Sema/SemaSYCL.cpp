@@ -570,10 +570,14 @@ static void collectSYCLAttributes(Sema &S, FunctionDecl *FD,
                  SYCLIntelNumSimdWorkItemsAttr,
                  SYCLIntelSchedulerTargetFmaxMhzAttr,
                  SYCLIntelMaxWorkGroupSizeAttr, SYCLIntelMaxGlobalWorkDimAttr,
-                 SYCLIntelNoGlobalWorkOffsetAttr, SYCLSimdAttr,
-		 SYCLKernelConstMemAttr>(A);
+                 SYCLIntelNoGlobalWorkOffsetAttr, SYCLSimdAttr>(A);
     });
   }
+
+  // TODO (Joe) - this attribute propagates regardless for now
+  llvm::copy_if(FD->getAttrs(), std::back_inserter(Attrs), [](Attr *A) {
+    return isa<SYCLKernelConstMemAttr>(A);
+    });
 
   // Attributes that should not be propagated from device functions to a kernel.
   if (DirectlyCalled) {
