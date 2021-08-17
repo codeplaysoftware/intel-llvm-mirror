@@ -2295,8 +2295,6 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
 pi_result cuda_piKernelSetArg(pi_kernel kernel, pi_uint32 arg_index,
                               size_t arg_size, const void *arg_value) {
 
-  std::cout << "Setting kernel arg: " << arg_index << std::endl;
-
   assert(kernel != nullptr);
   pi_result retErr = PI_SUCCESS;
   try {
