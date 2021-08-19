@@ -2282,6 +2282,7 @@ pi_result cuda_piKernelCreate(pi_program program, const char *kernel_name,
         new _pi_kernel{cuFunc, cuFuncWithOffsetParam, kernel_name, program,
                        program->get_context()});
     retKernel->param_to_const = param_to_const; // Mark this kernel as using a CUDA Symbol
+    retKernel->args_.param_to_const = param_to_const; // TODO (Joe) this is horrendously hacky
   } catch (pi_result err) {
     retErr = err;
   } catch (...) {
@@ -2484,12 +2485,15 @@ pi_result cuda_piEnqueueKernelLaunch(
                                        symbolName.c_str()));
 
       auto argStore = kernel->args_.storage_;
-      auto local_size = std::accumulate(std::begin(kernel->args_.paramSizes_),
-                                         std::end(kernel->args_.paramSizes_), 0);
+      // auto local_size = std::accumulate(std::begin(kernel->args_.paramSizes_),
+      //                                    std::end(kernel->args_.paramSizes_), 0);
 
+      auto arg_size = kernel->args_.total_size;
       PI_CHECK_ERROR(cuMemcpyHtoD(d_constSymbol, argStore.data(),
-                                  local_size));
+                                  arg_size));
 
+      std::cout << "arg size: " << arg_size << std::endl;
+      std::cout << "get_local_size: " << kernel->get_local_size() << std::endl;
       retError = PI_CHECK_ERROR(cuStreamSynchronize(cuStream));
 
       // Launch the kernel w/o args
@@ -2497,7 +2501,10 @@ pi_result cuda_piEnqueueKernelLaunch(
       retError = PI_CHECK_ERROR(cuLaunchKernel(
           cuFunc, blocksPerGrid[0], blocksPerGrid[1], blocksPerGrid[2],
           threadsPerBlock[0], threadsPerBlock[1], threadsPerBlock[2],
-          local_size, cuStream, nullptr, nullptr));
+          arg_size, cuStream, nullptr, nullptr));
+
+      // TODO (Joe) this isn't necessary but helps debugging
+      retError = PI_CHECK_ERROR(cuStreamSynchronize(cuStream));
 
     } else {
 

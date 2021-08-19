@@ -73,7 +73,7 @@ bool KernelArgsConstPromotion::runOnKernel(Function *Kernel, MDNode *Node) {
   // arguments.
   auto *StructTy = StructType::create(Context, KernelName + "_kacp_struct_ty");
   // Make sure that the struct is packed.
-  StructTy->setBody(ArgTys, true);
+  StructTy->setBody(ArgTys, false);
   // The struct has to be in constant AS.
   auto *SharedMemGlobal = new GlobalVariable(
       *M, StructTy, true, GlobalValue::LinkOnceODRLinkage,

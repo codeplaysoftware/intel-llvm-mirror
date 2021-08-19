@@ -553,7 +553,7 @@ struct _pi_kernel {
   pi_context context_;
   pi_program program_;
   std::atomic_uint32_t refCount_;
-  bool param_to_const = false;
+  bool param_to_const = false; // TODO make this 'private-ish' & API it
 
   /// Structure that holds the arguments to the kernel.
   /// Note earch argument size is known, since it comes
@@ -569,10 +569,12 @@ struct _pi_kernel {
     using args_index_t = std::vector<void *>;
     args_t storage_;
     args_size_t paramSizes_;
+    args_size_t insertPoss_;
     args_index_t indices_;
     args_size_t offsetPerIndex_;
-
+    bool param_to_const = false;
     std::uint32_t implicitOffsetArgs_[3] = {0, 0, 0};
+    size_t total_size = 0;
 
     arguments() {
       // Place the implicit offset index at the end of the indicies collection
@@ -592,15 +594,35 @@ struct _pi_kernel {
         // Ensure enough space for the new argument
         paramSizes_.resize(index + 1);
         offsetPerIndex_.resize(index + 1);
+        insertPoss_.resize(index + 1);
       }
       paramSizes_[index] = size;
       // calculate the insertion point on the array
-      size_t insertPos = std::accumulate(std::begin(paramSizes_),
-                                         std::begin(paramSizes_) + index, 0);
+      if (this->param_to_const) {
+
+        if (index > 0) {
+          // Find aligned position of this argument
+          insertPoss_[index] =
+              ((insertPoss_[index - 1] + paramSizes_[index - 1] + size - 1) /
+               size) * size;
+        } else {
+          insertPoss_[index] = 0;
+        }
+        // TODO (Joe) this assumes that the last arg is inserted last...
+        // and probably doesn't account for the implicit offset argument?
+        total_size = insertPoss_[index] + size;
+
+      } else {
+
+        insertPoss_[index] = std::accumulate(
+            std::begin(paramSizes_), std::begin(paramSizes_) + index, 0);
+      }
+
       // Update the stored value for the argument
-      std::memcpy(&storage_[insertPos], arg, size);
-      indices_[index] = &storage_[insertPos];
+      std::memcpy(&storage_[insertPoss_[index]], arg, size);
+      indices_[index] = &storage_[insertPoss_[index]];
       offsetPerIndex_[index] = localSize;
+
     }
 
     void add_local_arg(size_t index, size_t size) {
