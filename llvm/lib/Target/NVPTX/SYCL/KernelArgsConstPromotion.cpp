@@ -47,6 +47,7 @@ private:
   // Remove kernel arguments and store them in a struct (global variable in
   // constant address space).
   bool runOnKernel(Function *Kernel, MDNode *Node);
+  const std::string kernel_suffix{"_kacp"};
 };
 } // end anonymous namespace
 
@@ -110,7 +111,7 @@ bool KernelArgsConstPromotion::runOnKernel(Function *Kernel, MDNode *Node) {
 
   // Now get rid of the old kernel, splice the body of it into a new kernel,
   // that has no arguments.
-  std::string NewFuncName(Kernel->getName().str() + "_kacp");
+  std::string NewFuncName(Kernel->getName().str() + kernel_suffix);
   std::cerr << "I made this: " << NewFuncName << std::endl;
   FunctionType *NewFuncTy =
       FunctionType::get(Kernel->getReturnType(), {}, Kernel->isVarArg());
@@ -137,7 +138,15 @@ bool KernelArgsConstPromotion::runOnModule(Module &M) {
   bool Changed = false;
   for (auto &NodeKernelPair : NodeKernelPairs.getValue()) {
     // Only promote kernels with "kernel-const-mem" attribute.
-    if (!std::get<1>(NodeKernelPair)->hasFnAttribute("kernel-const-mem")) {
+    auto kernel = std::get<1>(NodeKernelPair);
+    std::string kernel_name = kernel->getName().str();
+
+    bool alreadyPassed = kernel_name.size() > kernel_suffix.size() &&
+      kernel_name.compare(kernel_name.size() - kernel_suffix.size(),
+                          kernel_suffix.size(),
+                          kernel_suffix) == 0;
+
+    if ((!kernel->hasFnAttribute("kernel-const-mem")) || alreadyPassed ) {
       continue;
     }
     Changed |=
