@@ -219,6 +219,13 @@ void NVPTXTargetMachine::adjustPassManager(PassManagerBuilder &Builder) {
       PM.add(createNVVMReflectPass(Subtarget.getSmVersion()));
       PM.add(createNVVMIntrRangePass(Subtarget.getSmVersion()));
     });
+
+  Builder.addExtension(
+    PassManagerBuilder::EP_ModuleOptimizerEarly,
+    [&](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
+      PM.add(createKernelArgsConstPromotionPass());
+    });
+
 }
 
 void NVPTXTargetMachine::registerPassBuilderCallbacks(PassBuilder &PB) {
@@ -314,7 +321,6 @@ void NVPTXPassConfig::addIRPasses() {
   if (getTM<NVPTXTargetMachine>().getTargetTriple().getOS() == Triple::CUDA) {
     addPass(createGlobalOffsetPass());
     addPass(createLocalAccessorToSharedMemoryPass());
-    addPass(createKernelArgsConstPromotionPass());
   }
 
   if (getOptLevel() != CodeGenOpt::None)
