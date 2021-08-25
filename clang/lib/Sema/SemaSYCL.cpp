@@ -2227,10 +2227,10 @@ public:
     // when the struct field is a pointer, since non-USM pointers cannot be
     // passed directly. To work around this issue, all pointers inside the
     // struct are wrapped in a generated '__wrapper_class'.
-    if (StructDepth) {
-      RecordDecl *WrappedPointer = wrapField(FD, ModTy);
-      ModTy = SemaRef.getASTContext().getRecordType(WrappedPointer);
-    }
+    // if (StructDepth) {
+    //   RecordDecl *WrappedPointer = wrapField(FD, ModTy);
+    //   ModTy = SemaRef.getASTContext().getRecordType(WrappedPointer);
+    // }
 
     addParam(FD, ModTy);
     return true;
@@ -2742,13 +2742,13 @@ class SyclKernelBodyCreator : public SyclKernelFieldHandler {
     // Struct Type kernel arguments are decomposed. The pointer fields are
     // then wrapped inside a compiler generated struct. Therefore when
     // generating the initializers, we have to 'unwrap' the pointer.
-    if (Wrapped) {
-      CXXRecordDecl *WrapperStruct = ParamType->getAsCXXRecordDecl();
-      // Pointer field wrapped inside __wrapper_class
-      FieldDecl *Pointer = *(WrapperStruct->field_begin());
-      DRE = buildMemberExpr(DRE, Pointer);
-      ParamType = Pointer->getType();
-    }
+    // if (Wrapped) {
+    //   CXXRecordDecl *WrapperStruct = ParamType->getAsCXXRecordDecl();
+    //   // Pointer field wrapped inside __wrapper_class
+    //   FieldDecl *Pointer = *(WrapperStruct->field_begin());
+    //   DRE = buildMemberExpr(DRE, Pointer);
+    //   ParamType = Pointer->getType();
+    // }
 
     DRE = ImplicitCastExpr::Create(SemaRef.Context, ParamType,
                                    CK_LValueToRValue, DRE, /*BasePath=*/nullptr,
@@ -3422,8 +3422,7 @@ public:
 
   bool handlePointerType(FieldDecl *FD, QualType FieldTy) final {
     addParam(FD, FieldTy,
-             ((StructDepth) ? SYCLIntegrationHeader::kind_std_layout
-                            : SYCLIntegrationHeader::kind_pointer));
+             (SYCLIntegrationHeader::kind_pointer));
     return true;
   }
 
