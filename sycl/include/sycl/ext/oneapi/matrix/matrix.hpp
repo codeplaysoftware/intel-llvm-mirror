@@ -24,3 +24,6 @@
 #if (SYCL_EXT_ONEAPI_MATRIX == 2)
 #include <sycl/ext/oneapi/matrix/matrix-jit.hpp>
 #endif
+#if (SYCL_EXT_ONEAPI_MATRIX == 3)
+#include <sycl/ext/oneapi/matrix/matrix-cuda.hpp>
+#endif
