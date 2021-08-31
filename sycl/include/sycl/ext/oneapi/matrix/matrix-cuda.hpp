@@ -69,8 +69,7 @@ struct joint_matrix_load_impl<sub_group, matrix::matrix_type::a, 16, 16, Layout,
             multi_ptr<int32_t, Space> src, size_t stride) {
     // const int i = 0;
     // const int* ll;
-    __imma_m16n16k16_ld_a_s8(res.data, src.get(), stride,
-                             static_cast<const int>(get_layout_int<Layout>()));
+    __imma_m16n16k16_ld_a_s8(res.data, src.get(), stride, 0);
   }
 };
 
