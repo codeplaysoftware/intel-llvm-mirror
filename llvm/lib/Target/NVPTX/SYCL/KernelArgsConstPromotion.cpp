@@ -135,6 +135,7 @@ bool KernelArgsConstPromotion::runOnModule(Module &M) {
   if (!NodeKernelPairs)
     return false;
 
+#if 0
   bool Changed = false;
   for (auto &NodeKernelPair : NodeKernelPairs.getValue()) {
     // Only promote kernels with "kernel-const-mem" attribute.
@@ -157,9 +158,17 @@ bool KernelArgsConstPromotion::runOnModule(Module &M) {
   for (auto &NodeKernelPair : NodeKernelPairs.getValue()) {
     std::cerr << "Kernel called: " << std::get<1>(NodeKernelPair)->getName().str() << std::endl;
   }
+# endif
 
+  // Add a 16kb symbol in constant device memory
+  // TODO: determine correct linkage here - WeakODR results in renamed duplicates
+  auto* MyArrayTy = ArrayType::get(IntegerType::get( M.getContext(), 64), 2000);
+  auto* SharedMemGlobal = new GlobalVariable(
+      M, MyArrayTy, true, GlobalValue::WeakODRLinkage, //LinkOnceODRLinkage,
+      Constant::getNullValue(MyArrayTy), "a_most_unique_symbol_name",
+      nullptr, GlobalValue::NotThreadLocal, ADDRESS_SPACE_CONST, true); //isExternallyInitialized
 
-  M.print(llvm::errs(), nullptr);
+  llvm::errs() << "Added my constant symbol" << "\n";
 
-  return Changed;
+  return true;
 }
