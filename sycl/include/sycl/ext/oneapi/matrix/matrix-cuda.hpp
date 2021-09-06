@@ -14,7 +14,7 @@ enum class matrix_type { a, b, c };
 
 enum class matrix_layout { row_major, col_major, packed };
 
-// todo deal with Conditional enable_ifs for each case if appropriate.
+// TODO deal with Conditional enable_ifs for each case if appropriate.
 template <typename Group, matrix_type MT, size_t Rows = sycl::dynamic_extent,
           size_t Cols = sycl::dynamic_extent,
           matrix_layout Layout = matrix_layout::row_major>
@@ -25,7 +25,7 @@ struct joint_matrix {
 // TODO are A/B really identical in this case?
 template <matrix_layout Layout>
 struct joint_matrix<sub_group, matrix_type::a, 16, 16, Layout> {
-  int32_t data[2]; // "s8" : "i32" and "m16n16k16:a:s8" : 2
+  int32_t data[2]; // "s8" : "i32" and "m16n16k16:a:s8" : 2 
 };
 
 template <matrix_layout Layout>
@@ -67,9 +67,11 @@ struct joint_matrix_load_impl<sub_group, matrix::matrix_type::a, 16, 16, Layout,
   void load(matrix::joint_matrix<sub_group, matrix::matrix_type::a, 16, 16,
                                  Layout> &res,
             multi_ptr<int32_t, Space> src, size_t stride) {
-    // const int i = 0;
-    // const int* ll;
+#ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
     __imma_m16n16k16_ld_a_s8(res.data, src.get(), stride, 0);
+#endif
+#endif
   }
 };
 
@@ -81,7 +83,11 @@ struct joint_matrix_load_impl<sub_group, matrix::matrix_type::b, 16, 16, Layout,
             multi_ptr<int32_t, Space> src, size_t stride) {
     // const int i = 0;
     // const int* ll;
-    __imma_m16n16k16_ld_b_s8(res.data, src.get(), stride, 0);
+#ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+    __imma_m16n16k16_ld_b_s8(res.data, src.get(), stride, 1);
+#endif
+#endif  
   }
 };
 
@@ -92,8 +98,13 @@ struct joint_matrix_load_impl<sub_group, matrix::matrix_type::c, 16, 16, Layout,
   void load(matrix::joint_matrix<sub_group, matrix::matrix_type::c, 16, 16,
                                  Layout> &res,
             multi_ptr<int32_t, Space> src, size_t stride) {
-    // const int i = 0;
+
+#ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
     __imma_m16n16k16_ld_c(res.data, src.get(), stride, 0);
+#endif
+#endif
+    
   }
 };
 
@@ -105,13 +116,18 @@ struct joint_matrix_store_impl {
              multi_ptr<int32_t, Space> dst, size_t stride);
 };
 
-// todo: assuming row order.
+// TODO currently assuming row order.
 template <matrix::matrix_layout Layout, access::address_space Space>
 struct joint_matrix_store_impl<sub_group, 16, 16, Layout, Space> {
   void store(matrix::joint_matrix<sub_group, matrix::matrix_type::c, 16, 16,
                                   Layout> &src,
              multi_ptr<int32_t, Space> dst, size_t stride) {
+    
+            #ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
     __imma_m16n16k16_st_c_i32(dst, src.data, stride, 0);
+#endif
+#endif
   }
 };
 template <typename Group, std::size_t M, std::size_t K, std::size_t N,
@@ -150,7 +166,13 @@ struct joint_matrix_mma_impl<sub_group, 16, 16, 16, LayoutA, LayoutB, LayoutC> {
       matrix::joint_matrix<sub_group, matrix::matrix_type::c, 16, 16, LayoutC>
           C) {
     matrix::joint_matrix<sub_group, matrix::matrix_type::c, 16, 16, LayoutC> D;
-    __imma_m16n16k16_mma_s8(D.data, A.data, B.data, C.data, 0, 0);
+
+#ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+    __imma_m16n16k16_mma_s8(D.data, A.data, B.data, C.data, 1, 0);
+#endif
+#endif
+    
     return D;
   }
 };
