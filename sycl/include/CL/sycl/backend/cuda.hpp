@@ -43,6 +43,9 @@ template <> struct interop<backend::cuda, event> { using type = CUevent; };
 
 template <> struct interop<backend::cuda, program> { using type = CUmodule; };
 
+template <bundle_state State>
+struct interop<backend::cuda, kernel_bundle<State>> { using type = CUmodule; };
+
 template <typename DataT, int Dimensions, access::mode AccessMode>
 struct interop<backend::cuda, accessor<DataT, Dimensions, AccessMode,
                                        access::target::global_buffer,

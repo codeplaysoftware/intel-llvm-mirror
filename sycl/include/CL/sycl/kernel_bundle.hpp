@@ -313,7 +313,7 @@ public:
   template <backend Backend>
   std::vector<typename backend_traits<Backend>::template return_type<
       kernel_bundle<State>>>
-  get_native() {
+  get_native() const {
     std::vector<typename backend_traits<Backend>::template return_type<
         kernel_bundle<State>>>
         ReturnValue;
