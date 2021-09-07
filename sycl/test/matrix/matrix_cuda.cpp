@@ -3,10 +3,9 @@
 using namespace sycl;
 using namespace sycl::ext::intel::experimental::matrix;
 
-// This matrix size only requires a single subgroup operation: The "big matrix"
-// matches the size of a tile "sub matrix" for A,B,C: i.e. N=M=K=n=m=k=16.
-// Optimizations such as memory paddings are removed in order to aid clarity.
+// Optimizations such as memory paddings are not included in order to aid clarity.
 // Optimizations for avoiding bank conflicts can be added following e.g. https://github.com/NVIDIA/cuda-samples/blob/master/Samples/immaTensorCoreGemm/immaTensorCoreGemm.cu
+// This example forms a matrix from a single "TILE" using cuda example terminology.  Multiple TILES can be used to construct yet larger matrices.
 
 // These guys define the unit size of the matrix per subgroup operation
 constexpr int M = 16; //number of rows of C/D sub-matrices, number of cols of B sub-matrix
@@ -15,13 +14,15 @@ constexpr int K = 16; //number of cols of A/number of rows of B sub-matrices
 
 constexpr int N_THREADS_PER_MATRIX_OP = 32; // the number of threads per MMA subgroup is always 32 for cuda
 
-constexpr int TILES_M = 1; //number of submatrices per row of C/D matrices
-constexpr int TILES_N = 1; //number of submatrices per col of C/D matrices
-constexpr int TILES_K = 1; //number of submatrices per col of A/per row of B, matrices
+// This matrix size currently set only requires a single subgroup operation: The "big matrix"
+// matches the size of a subtile "sub matrix" for A,B,C: i.e. N=M=K=n=m=k=16.
+constexpr int SUB_TILES_M = 1; //number of submatrices per row of C/D matrices
+constexpr int SUB_TILES_N = 1; //number of submatrices per col of C/D matrices
+constexpr int SUB_TILES_K = 1; //number of submatrices per col of A/per row of B, matrices
 
-constexpr int BIG_M = TILES_M*M; //total number of M dimension matrix elements
-constexpr int BIG_N = TILES_N*N; //total number of N dimension matrix elements
-constexpr int BIG_K = TILES_K*K; //total number of N dimension matrix elements 
+constexpr int BIG_M = SUB_TILES_M*M; //total number of M dimension matrix elements
+constexpr int BIG_N = SUB_TILES_N*N; //total number of N dimension matrix elements
+constexpr int BIG_K = SUB_TILES_K*K; //total number of N dimension matrix elements
 
 // The stride should equal the number of elements between consecutive rows (columns for Matrix B) of the "big matrix". Assuming all matrices are indexed row major.
 // The stride tells the implementation how many elements to skip in memory matrix row/column multiplications.
@@ -68,17 +69,18 @@ int main() {
 
     auto accD = bufD.get_access<access::mode::read_write>(cgh);
 
+range<2> sGroup = {1, N_THREADS_PER_MATRIX_OP};
 
     cgh.parallel_for<class imatrix>(
-        nd_range<2>({TILES_M, TILES_N*N_THREADS_PER_MATRIX_OP},
-                    {1, N_THREADS_PER_MATRIX_OP}),
+        nd_range<2>({SUB_TILES_M, SUB_TILES_N*N_THREADS_PER_MATRIX_OP},
+                    sGroup), //group range should match the sub-group range for given architecture
         [=](nd_item<2> item)
 
         {
           sub_group sg = item.get_sub_group();
 
-          const auto m = item.get_global_id(0) * M; // row coordinate of start point of BIG C matrix
-          const auto n = item.get_global_id(1) * N / N_THREADS_PER_MATRIX_OP; // column coordinate of start point of BIG C matrix
+          const auto m = item.get_group().get_id()[0]; // row id of current submatrix of BIG C matrix
+          const auto n = item.get_group().get_id()[1]; // column id of current submatrix of BIG C matrix
 
           joint_matrix<sub_group, matrix_type::c, M, N,
                        matrix_layout::row_major>
@@ -94,26 +96,23 @@ int main() {
 
           // Note that matrix "C" here is acting as matrices C,D in ptx
           // terminology. It is added to the matrix product of A and B. calls:
-          
+
          //calls __imma_m16n16k16_ld_c(sub_c.data, accC.get_pointer() + ..., 0, 0);
-         // TODO: one of these must be wrong: c or a
-         joint_matrix_load(sg, sub_c, accC.get_pointer() + m * BIG_N  + n, STRIDE_C);
-          // if TILES_K > 1 then we would call this look and 
-          for (int k = 0; k < TILES_K * K; k += K) // row/col coordinate of start point of BIG A/B matrices
+         // Third argument should be the number of elements to skip from beginning of BIG matrix to start of sub matrix represented by group.
+         joint_matrix_load(sg, sub_c, accC.get_pointer() + (m * M) * BIG_N  + n * N, STRIDE_C);
+
+          for (int k = 0; k < SUB_TILES_K * K; k += K) // row/col id of current submatrix of BIG A/B matrices
           {
-            joint_matrix_load(sg, sub_a, accA.get_pointer() + k * BIG_N + n, STRIDE_A); //TODO: better to use e.g. STRIDE_A here for clarity
+            joint_matrix_load(sg, sub_a, accA.get_pointer() + (k * K) * BIG_N + n * N, STRIDE_A);
             //__imma_m16n16k16_ld_a_s8(sub_a.data, accA.get_pointer() + ..., 16, 0);
-            joint_matrix_load(sg, sub_b, accB.get_pointer() + m * BIG_K + k, STRIDE_B);
+            joint_matrix_load(sg, sub_b, accB.get_pointer() + (m * M) * BIG_K + k * K, STRIDE_B);
             //__imma_m16n16k16_ld_b_s8(sub_b.data, accB.get_pointer() + ..., 16, 0);
 
             sub_c = joint_matrix_mad(sg, sub_a, sub_b, sub_c);
-          }
+}
           // calls //__imma_m16n16k16_st_c_i32(accD.get_pointer() + ..., sub_c.data, 0, 0);
-          joint_matrix_store(sg, sub_c, accD.get_pointer() + m * BIG_N  + n, STRIDE_C);
+          joint_matrix_store(sg, sub_c, accD.get_pointer() + (m * M) * BIG_N  + n * N, STRIDE_C);
 
-    
-
-          
         });
   });
 //for (auto& c : C)
