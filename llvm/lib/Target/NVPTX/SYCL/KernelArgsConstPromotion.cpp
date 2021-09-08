@@ -163,7 +163,7 @@ bool KernelArgsConstPromotion::runOnModule(Module &M) {
   // Add a 16kb symbol in constant device memory
   // TODO: determine correct linkage here - WeakODR results in renamed duplicates
   auto* MyArrayTy = ArrayType::get(IntegerType::get( M.getContext(), 64), 2000);
-  auto* SharedMemGlobal = new GlobalVariable(
+  (void*)new GlobalVariable(
       M, MyArrayTy, true, GlobalValue::WeakODRLinkage, //LinkOnceODRLinkage,
       Constant::getNullValue(MyArrayTy), "a_most_unique_symbol_name",
       nullptr, GlobalValue::NotThreadLocal, ADDRESS_SPACE_CONST, true); //isExternallyInitialized
