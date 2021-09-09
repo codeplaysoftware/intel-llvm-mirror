@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "TestDialect.h"
-#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/StandardOps/Transforms/FuncConversions.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -17,7 +17,7 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
-using namespace mlir::test;
+using namespace test;
 
 // Native function for testing NativeCodeCall
 static Value chooseOperand(Value input1, Value input2, BoolAttr choice) {
@@ -44,6 +44,11 @@ static bool getFirstI32Result(Operation *op, Value &value) {
 
 static Value bindNativeCodeCallResult(Value value) { return value; }
 
+static SmallVector<Value, 2> bindMultipleNativeCodeCallResult(Value input1,
+                                                              Value input2) {
+  return SmallVector<Value, 2>({input2, input1});
+}
+
 // Test that natives calls are only called once during rewrites.
 // OpM_Test will return Pi, increased by 1 for each subsequent calls.
 // This let us check the number of times OpM_Test was called by inspecting
@@ -62,7 +67,7 @@ namespace {
 // Test Reduce Pattern Interface
 //===----------------------------------------------------------------------===//
 
-void mlir::test::populateTestReductionPatterns(RewritePatternSet &patterns) {
+void test::populateTestReductionPatterns(RewritePatternSet &patterns) {
   populateWithGenerated(patterns);
 }
 
@@ -94,6 +99,29 @@ public:
   }
 };
 
+/// This pattern creates a foldable operation at the entry point of the block.
+/// This tests the situation where the operation folder will need to replace an
+/// operation with a previously created constant that does not initially
+/// dominate the operation to replace.
+struct FolderInsertBeforePreviouslyFoldedConstantPattern
+    : public OpRewritePattern<TestCastOp> {
+public:
+  using OpRewritePattern<TestCastOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(TestCastOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op->hasAttr("test_fold_before_previously_folded_op"))
+      return failure();
+    rewriter.setInsertionPointToStart(op->getBlock());
+
+    auto constOp =
+        rewriter.create<ConstantOp>(op.getLoc(), rewriter.getBoolAttr(true));
+    rewriter.replaceOpWithNewOp<TestCastOp>(op, rewriter.getI32Type(),
+                                            Value(constOp));
+    return success();
+  }
+};
+
 struct TestPatternDriver : public PassWrapper<TestPatternDriver, FunctionPass> {
   StringRef getArgument() const final { return "test-patterns"; }
   StringRef getDescription() const final { return "Run test dialect patterns"; }
@@ -102,7 +130,9 @@ struct TestPatternDriver : public PassWrapper<TestPatternDriver, FunctionPass> {
     populateWithGenerated(patterns);
 
     // Verify named pattern is generated with expected name.
-    patterns.add<FoldingPattern, TestNamedPatternRule>(&getContext());
+    patterns.add<FoldingPattern, TestNamedPatternRule,
+                 FolderInsertBeforePreviouslyFoldedConstantPattern>(
+        &getContext());
 
     (void)applyPatternsAndFoldGreedily(getFunction(), std::move(patterns));
   }
@@ -159,7 +189,7 @@ static void reifyReturnShape(Operation *op) {
 struct TestReturnTypeDriver
     : public PassWrapper<TestReturnTypeDriver, FunctionPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<memref::MemRefDialect>();
+    registry.insert<tensor::TensorDialect>();
   }
   StringRef getArgument() const final { return "test-return-type"; }
   StringRef getDescription() const final { return "Run return type functions"; }

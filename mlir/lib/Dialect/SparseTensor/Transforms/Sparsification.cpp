@@ -6,46 +6,19 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements lowering sparse tensor types to actual sparse code.
+// This file implements converting sparse tensor types to actual sparse code.
 //
-// The concept of letting a compiler generate sparse code automatically was
-// pioneered for dense linear algebra code in Fortran by [Bik96] in MT1 and
-// formalized to tensor algebra by [Kjolstad17,20] for the Sparse Tensor
-// Algebra Compiler (TACO). The implementation in this file closely follows
-// the "sparse iteration theory" that forms the foundation of TACO. A rewriting
-// rule is applied to each tensor expression in linalg (MLIR's tensor index
-// notation) where the sparsity of tensors is indicated with annotation using
-// a per-dimension specification of sparse/dense storage together with a
-// specification of the order on the dimensions. Subsequently, a topologically
-// sorted iteration graph, reflecting the required order on indices with respect
-// to the dimensions of each tensor, is constructed to ensure that all tensors
-// are visited in natural index order. Next, iteration lattices are constructed
-// for the tensor expression for every index in topological order. Each
-// iteration lattice point consists of a conjunction of tensor indices together
-// with a tensor (sub)expression that needs to be evaluated for that
-// conjunction. Within the lattice, iteration points are ordered according to
-// the way indices are exhausted. As such these iteration lattices drive actual
-// sparse code generation, which consists of a tedious but relatively
-// straightforward one-to-one mapping from iteration lattices to combinations
-// of for-loops, while-loops, and if-statements.
-//
-// [Bik96] Aart J.C. Bik. Compiler Support for Sparse Matrix Computations.
-// PhD thesis, Leiden University, May 1996 (aartbik.com/sparse.php).
-// [Kjolstad17] Fredrik Berg Kjolstad, Shoaib Ashraf Kamil, Stephen Chou,
-// David Lugato, and Saman Amarasinghe. The Tensor Algebra Compiler.
-// Proceedings of the ACM on Programming Languages, October 2017.
-// [Kjolstad20] Fredrik Berg Kjolstad. Sparse Tensor Algebra Compilation.
-// PhD thesis, MIT, February, 2020 (tensor-compiler.org).
-//
-// Implementation detail: We use llvm::SmallVector for vectors with
-// variable lengths and std::vector for vectors with fixed lengths.
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Linalg/IR/LinalgOps.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
+#include "mlir/Dialect/SCF/Transforms.h"
 #include "mlir/Dialect/SparseTensor/IR/SparseTensor.h"
 #include "mlir/Dialect/SparseTensor/Transforms/Passes.h"
+#include "mlir/Dialect/SparseTensor/Utils/Merger.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/IR/Matchers.h"
@@ -56,245 +29,6 @@ using namespace mlir;
 using namespace mlir::sparse_tensor;
 
 namespace {
-
-enum class Kind { kTensor, kInvariant, kMulF, kMulI, kAddF, kAddI };
-enum class Dim { kSparse, kDense, kSingle, kUndef };
-
-/// Tensor expression. Represents a MLIR expression in tensor index notation.
-/// For tensors, e0 denotes the tensor index. For invariants, the IR value is
-/// stored directly. For binary operations, e0 and e1 denote the index of the
-/// children tensor expressions.
-struct TensorExp {
-  TensorExp(Kind k, unsigned x, unsigned y, Value v)
-      : kind(k), e0(x), e1(y), val(v) {
-    assert((kind == Kind::kTensor && e0 != -1u && e1 == -1u && !val) ||
-           (kind == Kind::kInvariant && e0 == -1u && e1 == -1u && val) ||
-           (kind >= Kind::kMulF && e0 != -1u && e1 != -1u && !val));
-  }
-  Kind kind;
-  /// Indices of children expression(s).
-  unsigned e0;
-  unsigned e1;
-  /// Direct link to IR for an invariant. During code generation,
-  /// field is used to cache "hoisted" loop invariant tensor loads.
-  Value val;
-};
-
-/// Lattice point. Each lattice point consists of a conjunction of tensor
-/// loop indices (encoded in a bitvector) and the index of the corresponding
-/// tensor expression.
-struct LatPoint {
-  LatPoint(unsigned n, unsigned e, unsigned b) : bits(n, false), exp(e) {
-    bits.set(b);
-  }
-  LatPoint(const llvm::BitVector &b, unsigned e) : bits(b), exp(e) {}
-  /// Conjunction of tensor loop indices as bitvector. This represents
-  /// all indices involved in the tensor expression
-  llvm::BitVector bits;
-  /// Simplified conjunction of tensor loop indices as bitvector. This
-  /// represents a simplified condition under which this tensor expression
-  /// must execute. Pre-computed during codegen to avoid repeated eval.
-  llvm::BitVector simple;
-  /// Index of the tensor expresssion.
-  unsigned exp;
-};
-
-/// A class to handle all iteration lattice operations. This class abstracts
-/// away from some implementation details of storing iteration lattices and
-/// tensor expressions. This allows for fine-tuning performance characteristics
-/// independently from the basic algorithm if bottlenecks are identified.
-class Merger {
-public:
-  /// Constructs a merger for the given number of tensors and loops. The
-  /// user supplies the number of tensors involved in the kernel, with the
-  /// last tensor in this set denoting the output tensor. The merger adds an
-  /// additional synthetic tensor at the end of this set to represent all
-  /// invariant expressions in the kernel.
-  Merger(unsigned t, unsigned l)
-      : outTensor(t - 1), numTensors(t + 1), numLoops(l),
-        dims(t + 1, std::vector<Dim>(l, Dim::kUndef)) {}
-
-  /// Adds a tensor expression. Returns its index.
-  unsigned addExp(Kind k, unsigned e0, unsigned e1 = -1u, Value v = Value()) {
-    unsigned e = tensorExps.size();
-    tensorExps.push_back(TensorExp(k, e0, e1, v));
-    return e;
-  }
-  unsigned addExp(Kind k, Value v) { return addExp(k, -1u, -1u, v); }
-
-  /// Adds an iteration lattice point. Returns its index.
-  unsigned addLat(unsigned t, unsigned i, unsigned e) {
-    assert(t < numTensors && i < numLoops);
-    unsigned p = latPoints.size();
-    latPoints.push_back(LatPoint(numLoops * numTensors, e, numTensors * i + t));
-    return p;
-  }
-
-  /// Adds a new, initially empty, set. Returns its index.
-  unsigned addSet() {
-    unsigned s = latSets.size();
-    latSets.emplace_back(SmallVector<unsigned, 16>());
-    return s;
-  }
-
-  /// Computes a single conjunction of two lattice points by taking the "union"
-  /// of loop indices (effectively constructing a larger "intersection" of those
-  /// indices) with a newly constructed tensor (sub)expression of given kind.
-  /// Returns the index of the new lattice point.
-  unsigned conjLatPoint(Kind kind, unsigned p0, unsigned p1) {
-    unsigned p = latPoints.size();
-    llvm::BitVector nb = llvm::BitVector(latPoints[p0].bits);
-    nb |= latPoints[p1].bits;
-    unsigned e = addExp(kind, latPoints[p0].exp, latPoints[p1].exp);
-    latPoints.push_back(LatPoint(nb, e));
-    return p;
-  }
-
-  /// Conjunctive merge of two lattice sets L0 and L1 is conjunction of
-  /// cartesian product. Returns the index of the new set.
-  unsigned takeConj(Kind kind, unsigned s0, unsigned s1) {
-    unsigned s = addSet();
-    for (unsigned p0 : latSets[s0])
-      for (unsigned p1 : latSets[s1])
-        latSets[s].push_back(conjLatPoint(kind, p0, p1));
-    return s;
-  }
-
-  /// Disjunctive merge of two lattice sets L0 and L1 is (L0 /\_op L1, L0, L1).
-  /// Returns the index of the new set.
-  unsigned takeDisj(Kind kind, unsigned s0, unsigned s1) {
-    unsigned s = takeConj(kind, s0, s1);
-    for (unsigned p : latSets[s0])
-      latSets[s].push_back(p);
-    for (unsigned p : latSets[s1])
-      latSets[s].push_back(p);
-    return s;
-  }
-
-  /// Optimizes the iteration lattice points in the given set. This
-  /// method should be called right before code generation to avoid
-  /// generating redundant loops and conditions.
-  unsigned optimizeSet(unsigned s0) {
-    unsigned s = addSet();
-    assert(latSets[s0].size() != 0);
-    unsigned p0 = latSets[s0][0];
-    for (unsigned p1 : latSets[s0]) {
-      bool add = true;
-      if (p0 != p1) {
-        // Is this a straightforward copy?
-        unsigned e = latPoints[p1].exp;
-        if (exp(e).kind == Kind::kTensor && exp(e).e0 == outTensor)
-          continue;
-        // Conjunction already covered?
-        for (unsigned p2 : latSets[s]) {
-          assert(!latGT(p1, p2)); // Lj => Li would be bad
-          if (onlyDenseDiff(p2, p1)) {
-            add = false;
-            break;
-          }
-        }
-        assert(!add || latGT(p0, p1));
-      }
-      if (add)
-        latSets[s].push_back(p1);
-    }
-    for (unsigned p : latSets[s])
-      latPoints[p].simple = simplifyCond(s, p);
-    return s;
-  }
-
-  /// Simplifies the conditions in a conjunction of a given lattice point
-  /// within the given set using just two basic rules:
-  /// (1) multiple dense conditions are reduced to single dense, and
-  /// (2) a *singleton* sparse/dense is reduced to sparse/random access.
-  llvm::BitVector simplifyCond(unsigned s, unsigned p0) {
-    // First determine if this lattice point is a *singleton*, i.e.,
-    // the last point in a lattice, no other is less than this one.
-    bool isSingleton = true;
-    for (unsigned p1 : latSets[s]) {
-      if (p0 != p1 && latGT(p0, p1)) {
-        isSingleton = false;
-        break;
-      }
-    }
-    // Now apply the two basic rules.
-    llvm::BitVector simple = latPoints[p0].bits;
-    bool reset = isSingleton && hasAnyDimOf(simple, Dim::kSparse);
-    for (unsigned b = 0, be = simple.size(); b < be; b++) {
-      if (simple[b] && !isDim(b, Dim::kSparse)) {
-        if (reset)
-          simple.reset(b);
-        reset = true;
-      }
-    }
-    return simple;
-  }
-
-  /// Returns true if Li > Lj.
-  bool latGT(unsigned i, unsigned j) const {
-    const llvm::BitVector &bitsi = latPoints[i].bits;
-    const llvm::BitVector &bitsj = latPoints[j].bits;
-    assert(bitsi.size() == bitsj.size());
-    if (bitsi.count() > bitsj.count()) {
-      for (unsigned b = 0, be = bitsj.size(); b < be; b++)
-        if (bitsj[b] && !bitsi[b])
-          return false;
-      return true;
-    }
-    return false;
-  }
-
-  /// Returns true if Li and Lj only differ in dense.
-  bool onlyDenseDiff(unsigned i, unsigned j) {
-    llvm::BitVector tmp = latPoints[j].bits;
-    tmp ^= latPoints[i].bits;
-    return !hasAnyDimOf(tmp, Dim::kSparse);
-  }
-
-  /// Bit translation.
-  unsigned tensor(unsigned b) const { return b % numTensors; }
-  unsigned index(unsigned b) const { return b / numTensors; }
-
-  /// Returns true if bit corresponds to queried dim.
-  bool isDim(unsigned b, Dim d) const { return isDim(tensor(b), index(b), d); }
-
-  /// Returns true if bit corresponds to index of output tensor.
-  bool isOutTensor(unsigned b, unsigned i) const {
-    return tensor(b) == outTensor && index(b) == i;
-  }
-
-  /// Returns true if tensor access at given index has queried dim.
-  bool isDim(unsigned t, unsigned i, Dim d) const {
-    assert(t < numTensors && i < numLoops);
-    return dims[t][i] == d;
-  }
-
-  /// Returns true if any set bit corresponds to queried dim.
-  bool hasAnyDimOf(const llvm::BitVector &bits, Dim d) const {
-    for (unsigned b = 0, be = bits.size(); b < be; b++)
-      if (bits[b] && isDim(b, d))
-        return true;
-    return false;
-  }
-
-  /// Setter
-  void setDim(unsigned t, unsigned i, Dim d) { dims[t][i] = d; }
-
-  /// Getters.
-  TensorExp &exp(unsigned e) { return tensorExps[e]; }
-  LatPoint &lat(unsigned l) { return latPoints[l]; }
-  SmallVector<unsigned, 16> &set(unsigned s) { return latSets[s]; }
-
-private:
-  const unsigned outTensor;
-  const unsigned numTensors;
-  const unsigned numLoops;
-
-  std::vector<std::vector<Dim>> dims;
-  llvm::SmallVector<TensorExp, 32> tensorExps;
-  llvm::SmallVector<LatPoint, 16> latPoints;
-  llvm::SmallVector<SmallVector<unsigned, 16>, 8> latSets;
-};
 
 // Code generation.
 struct CodeGen {
@@ -366,7 +100,6 @@ static Dim toDim(SparseTensorEncodingAttr &enc, unsigned d) {
 /// Fills the per-dimension sparsity information for all tensors.
 static bool findSparseAnnotations(Merger &merger, linalg::GenericOp op) {
   bool annotated = false;
-  OpOperand *lhs = op.getOutputOperand(0);
   for (OpOperand *t : op.getInputAndOutputOperands()) {
     auto map = op.getTiedIndexingMap(t);
     if (!map.isProjectedPermutation())
@@ -377,12 +110,7 @@ static bool findSparseAnnotations(Merger &merger, linalg::GenericOp op) {
     assert(map.getNumResults() == op.getRank(t));
     for (unsigned d = 0, rank = map.getNumResults(); d < rank; d++) {
       unsigned idx = map.getDimPosition(perm(enc, d));
-      Dim dim = toDim(enc, d);
       merger.setDim(t->getOperandNumber(), idx, toDim(enc, d));
-      // Accept only all-dense annotated "sparse" output.
-      // TODO: support truly sparse outputs too
-      if (t == lhs && dim != Dim::kDense)
-        return false;
     }
   }
   return annotated;
@@ -451,80 +179,37 @@ static bool computeIterationGraph(Merger &merger, linalg::GenericOp op,
   return true;
 }
 
-/// Traverses the SSA tree (possibly a DAG) to build a tensor expression.
-/// This simplifies constructing (sub)expressions during iteration lattice
-/// building (compared to using the SSA representation everywhere).
-static Optional<unsigned> buildTensorExp(Merger &merger, linalg::GenericOp op,
-                                         Value val) {
-  if (auto arg = val.dyn_cast<BlockArgument>()) {
-    unsigned argN = arg.getArgNumber();
-    // Any argument of the generic op that is not marked as a scalar
-    // argument is considered a tensor, indexed by the implicit loop
-    // bounds. This includes rank-0 tensor arguments.
-    if (arg.getOwner()->getParentOp() == op) {
-      OpOperand *t = op.getInputAndOutputOperands()[argN];
-      if (!op.isScalar(t))
-        return merger.addExp(Kind::kTensor, argN);
-      val = t->get(); // get scalar value
+/// Returns true when the tensor expression is admissable for codegen.
+/// Since all sparse input tensors are admissable, we just need to check
+/// whether the output tensor in the tensor expression codegen is admissable.
+static bool isAdmissableTensorExp(Merger &merger, linalg::GenericOp op,
+                                  unsigned exp) {
+  OpOperand *lhs = op.getOutputOperand(0);
+  unsigned tensor = lhs->getOperandNumber();
+  auto enc = getSparseTensorEncoding(lhs->get().getType());
+  // An non-annotated output tensor is assumed dense, and becomes a random
+  // access n-dim memref. Admissable since inserstions cannot occur.
+  if (!enc)
+    return true;
+  // An all-dense annotated "sparse" output tensor becomes a linearized random
+  // access 1-dim memref. Also admissable since insertions cannot occur.
+  bool allDense = true;
+  unsigned numLoops = op.iterator_types().getValue().size();
+  for (unsigned i = 0; i < numLoops; i++)
+    if (merger.isDim(tensor, i, Dim::kSparse)) {
+      allDense = false;
+      break;
     }
-    // Any other argument (marked as scalar argument for the generic op
-    // or belonging to an enveloping op) is considered invariant.
-    return merger.addExp(Kind::kInvariant, val);
-  }
-  Operation *def = val.getDefiningOp();
-  if (def->getBlock() != &op.region().front()) {
-    // Something defined outside is invariant.
-    return merger.addExp(Kind::kInvariant, val);
-  } else if (def->getNumOperands() == 2) {
-    // Construct binary operations if subexpressions could be built.
-    auto x = buildTensorExp(merger, op, def->getOperand(0));
-    auto y = buildTensorExp(merger, op, def->getOperand(1));
-    if (x.hasValue() && y.hasValue()) {
-      unsigned e0 = x.getValue();
-      unsigned e1 = y.getValue();
-      if (isa<MulFOp>(def))
-        return merger.addExp(Kind::kMulF, e0, e1);
-      if (isa<MulIOp>(def))
-        return merger.addExp(Kind::kMulI, e0, e1);
-      if (isa<AddFOp>(def))
-        return merger.addExp(Kind::kAddF, e0, e1);
-      if (isa<AddIOp>(def))
-        return merger.addExp(Kind::kAddI, e0, e1);
-    }
-  }
-  // Cannot build (yet).
-  return None;
-}
-
-/// Builds the iteration lattices in a bottom-up traversal given the remaining
-/// tensor (sub)expression and the next loop index in the iteration graph.
-static unsigned buildLattices(Merger &merger, linalg::GenericOp op,
-                              unsigned exp, unsigned idx) {
-  Kind kind = merger.exp(exp).kind;
-  if (kind == Kind::kTensor || kind == Kind::kInvariant) {
-    // Either the index is really used in the tensor expression, or it is
-    // set to the undefined index in that dimension. An invariant expression
-    // is set to a synthetic tensor with undefined indices only.
-    unsigned s = merger.addSet();
-    unsigned t = kind == Kind::kTensor ? merger.exp(exp).e0
-                                       : op.getNumInputsAndOutputs();
-    merger.set(s).push_back(merger.addLat(t, idx, exp));
-    return s;
-  }
-  unsigned s0 = buildLattices(merger, op, merger.exp(exp).e0, idx);
-  unsigned s1 = buildLattices(merger, op, merger.exp(exp).e1, idx);
-  switch (kind) {
-  case Kind::kTensor:
-  case Kind::kInvariant:
-    llvm_unreachable("handled above");
-  case Kind::kMulF:
-  case Kind::kMulI:
-    return merger.takeConj(kind, s0, s1);
-  case Kind::kAddF:
-  case Kind::kAddI:
-    return merger.takeDisj(kind, s0, s1);
-  }
-  llvm_unreachable("unexpected expression kind");
+  if (allDense)
+    return true;
+  // A tensor expression with a sparse output tensor that changes its values
+  // but not its nonzero structure, an operation called "simply dynamic" in
+  // [Bik96,Ch9], is also admissable without special codegen.
+  if (merger.isConjunction(tensor, exp))
+    return true;
+  // Reject for now since this requires changes to the nonzero structure.
+  // TODO: implement "workspaces" [Kjolstad2019]
+  return false;
 }
 
 /// Maps sparse integer option to actual integral storage type.
@@ -562,7 +247,7 @@ static Value genOutputBuffer(CodeGen &codegen, PatternRewriter &rewriter,
   // impact the running complexity of the sparse kernel.
   Value init = rewriter.create<memref::BufferCastOp>(loc, denseTp, tensor);
   Value alloc = rewriter.create<memref::AllocOp>(loc, denseTp, args);
-  rewriter.create<linalg::CopyOp>(loc, init, alloc);
+  rewriter.create<memref::CopyOp>(loc, init, alloc);
   return alloc;
 }
 
@@ -599,14 +284,12 @@ static bool genBuffers(Merger &merger, CodeGen &codegen,
         codegen.indices[tensor][idx] =
             rewriter.create<ToIndicesOp>(loc, indTp, t->get(), dim);
       }
-      // Find lower and upper bound in current dimension.
-      Value up;
-      if (shape[d] == MemRefType::kDynamicSize) {
-        up = rewriter.create<memref::DimOp>(loc, t->get(), d);
+      // Find upper bound in current dimension.
+      unsigned p = perm(enc, d);
+      Value up = linalg::createOrFoldDimOp(rewriter, loc, t->get(), p);
+      if (shape[p] == MemRefType::kDynamicSize)
         args.push_back(up);
-      } else {
-        up = rewriter.create<ConstantIndexOp>(loc, shape[d]);
-      }
+      assert(codegen.highs[tensor][idx] == nullptr);
       codegen.sizes[idx] = codegen.highs[tensor][idx] = up;
     }
     // Perform the required bufferization. Dense inputs materialize
@@ -667,7 +350,13 @@ static Value genVectorMask(CodeGen &codegen, PatternRewriter &rewriter,
   // during vector execution. Here we rely on subsequent loop optimizations to
   // avoid executing the mask in all iterations, for example, by splitting the
   // loop into an unconditional vector loop and a scalar cleanup loop.
-  Value end = rewriter.create<SubIOp>(loc, hi, iv);
+  auto minMap = AffineMap::get(
+      /*dimCount=*/2, /*symbolCount=*/1,
+      {rewriter.getAffineSymbolExpr(0),
+       rewriter.getAffineDimExpr(0) - rewriter.getAffineDimExpr(1)},
+      rewriter.getContext());
+  Value end =
+      rewriter.createOrFold<AffineMinOp>(loc, minMap, ValueRange{hi, iv, step});
   return rewriter.create<vector::CreateMaskOp>(loc, mtp, end);
 }
 
@@ -725,7 +414,7 @@ static Value genTensorLoad(Merger &merger, CodeGen &codegen,
   }
   // Actual load.
   SmallVector<Value, 4> args;
-  OpOperand *t = op.getInputAndOutputOperands()[merger.exp(exp).e0];
+  OpOperand *t = op.getInputAndOutputOperands()[merger.exp(exp).tensor];
   unsigned tensor = t->getOperandNumber();
   auto map = op.getTiedIndexingMap(t);
   auto enc = getSparseTensorEncoding(t->get().getType());
@@ -894,36 +583,36 @@ static void genReductionEnd(Merger &merger, CodeGen &codegen,
 /// Recursively generates tensor expression.
 static Value genExp(Merger &merger, CodeGen &codegen, PatternRewriter &rewriter,
                     linalg::GenericOp op, unsigned exp) {
+  Location loc = op.getLoc();
+  if (exp == -1u)
+    return Value();
   if (merger.exp(exp).kind == Kind::kTensor)
     return genTensorLoad(merger, codegen, rewriter, op, exp);
-  else if (merger.exp(exp).kind == Kind::kInvariant)
+  if (merger.exp(exp).kind == Kind::kInvariant)
     return genInvariantValue(merger, codegen, rewriter, exp);
-  Value v0 = genExp(merger, codegen, rewriter, op, merger.exp(exp).e0);
-  Value v1 = genExp(merger, codegen, rewriter, op, merger.exp(exp).e1);
-  switch (merger.exp(exp).kind) {
-  case Kind::kTensor:
-  case Kind::kInvariant:
-    llvm_unreachable("handled above");
-  case Kind::kMulF:
-    return rewriter.create<MulFOp>(op.getLoc(), v0, v1);
-  case Kind::kMulI:
-    return rewriter.create<MulIOp>(op.getLoc(), v0, v1);
-  case Kind::kAddF:
-    return rewriter.create<AddFOp>(op.getLoc(), v0, v1);
-  case Kind::kAddI:
-    return rewriter.create<AddIOp>(op.getLoc(), v0, v1);
+  Value v0 = genExp(merger, codegen, rewriter, op, merger.exp(exp).children.e0);
+  Value v1 = genExp(merger, codegen, rewriter, op, merger.exp(exp).children.e1);
+  if (merger.exp(exp).kind == Kind::kNegI) {
+    // TODO: no negi in std, need to make zero explicit.
+    Type tp = op.getOutputTensorTypes()[0].getElementType();
+    v1 = v0;
+    v0 = rewriter.create<ConstantOp>(loc, tp, rewriter.getZeroAttr(tp));
+    if (codegen.curVecLength > 1)
+      v0 = genVectorInvariantValue(codegen, rewriter, v0);
   }
-  llvm_unreachable("unexpected expression kind");
+  return merger.buildExp(rewriter, loc, exp, v0, v1);
 }
 
 /// Hoists loop invariant tensor loads for which indices have been exhausted.
 static void genInvariants(Merger &merger, CodeGen &codegen,
                           PatternRewriter &rewriter, linalg::GenericOp op,
                           unsigned exp, unsigned ldx, bool hoist) {
+  if (exp == -1u)
+    return;
   if (merger.exp(exp).kind == Kind::kTensor) {
     // Inspect tensor indices.
     bool atLevel = ldx == -1u;
-    OpOperand *t = op.getInputAndOutputOperands()[merger.exp(exp).e0];
+    OpOperand *t = op.getInputAndOutputOperands()[merger.exp(exp).tensor];
     auto map = op.getTiedIndexingMap(t);
     auto enc = getSparseTensorEncoding(t->get().getType());
     for (unsigned d = 0, rank = map.getNumResults(); d < rank; d++) {
@@ -945,8 +634,8 @@ static void genInvariants(Merger &merger, CodeGen &codegen,
     // Traverse into the binary operations. Note that we only hoist
     // tensor loads, since subsequent MLIR/LLVM passes know how to
     // deal with all other kinds of derived loop invariants.
-    unsigned e0 = merger.exp(exp).e0;
-    unsigned e1 = merger.exp(exp).e1;
+    unsigned e0 = merger.exp(exp).children.e0;
+    unsigned e1 = merger.exp(exp).children.e1;
     genInvariants(merger, codegen, rewriter, op, e0, ldx, hoist);
     genInvariants(merger, codegen, rewriter, op, e1, ldx, hoist);
   }
@@ -1056,7 +745,7 @@ static Operation *genFor(Merger &merger, CodeGen &codegen,
   unsigned tensor = merger.tensor(fb);
   assert(idx == merger.index(fb));
   auto iteratorTypes = op.iterator_types().getValue();
-  bool isReduction = linalg::isReductionIteratorType(iteratorTypes[idx]);
+  bool isReduction = isReductionIterator(iteratorTypes[idx]);
   bool isSparse = merger.isDim(fb, Dim::kSparse);
   bool isVector = isVectorFor(codegen, isInner, isSparse) &&
                   denseUnitStrides(merger, op, idx);
@@ -1315,7 +1004,7 @@ static void genStmt(Merger &merger, CodeGen &codegen, PatternRewriter &rewriter,
   // in play for a non-singleton loop sequence.
   Location loc = op.getLoc();
   unsigned idx = topSort[at];
-  unsigned lts = merger.optimizeSet(buildLattices(merger, op, exp, idx));
+  unsigned lts = merger.optimizeSet(merger.buildLattices(exp, idx));
   unsigned lsize = merger.set(lts).size();
   assert(lsize != 0);
   unsigned l0 = merger.set(lts)[0];
@@ -1390,15 +1079,34 @@ static void genStmt(Merger &merger, CodeGen &codegen, PatternRewriter &rewriter,
 }
 
 /// Converts the result computed by the sparse kernel into the required form.
-static void genResult(CodeGen &codegen, PatternRewriter &rewriter,
-                      linalg::GenericOp op) {
-  RankedTensorType resType = op.getOutputTensorTypes()[0];
-  Value result = codegen.buffers.back();
-  if (getSparseTensorEncoding(resType))
-    result = rewriter.create<ToTensorOp>(op.getLoc(), resType, result);
-  else
-    result =
-        rewriter.create<memref::TensorLoadOp>(op.getLoc(), resType, result);
+static void genResult(Merger &merger, CodeGen &codegen,
+                      PatternRewriter &rewriter, linalg::GenericOp op) {
+  Location loc = op.getLoc();
+  OpOperand *lhs = op.getOutputOperand(0);
+  Type resType = lhs->get().getType();
+  unsigned tensor = lhs->getOperandNumber();
+  auto map = op.getTiedIndexingMap(lhs);
+  auto enc = getSparseTensorEncoding(resType);
+  Value result = codegen.buffers.back(); // value array
+  if (enc) {
+    // The sparse annotation unambigiously defines the arrays needed
+    // to "reconstruct" the sparse tensor from the storage scheme
+    // (even though lowering should never need this eventually).
+    SmallVector<Value, 4> args;
+    for (unsigned d = 0, rank = map.getNumResults(); d < rank; d++) {
+      unsigned idx = map.getDimPosition(perm(enc, d));
+      if (merger.isDim(tensor, idx, Dim::kSparse)) {
+        args.push_back(codegen.pointers[tensor][idx]);
+        args.push_back(codegen.indices[tensor][idx]);
+      }
+    }
+    args.push_back(result);
+    result = rewriter.create<ToTensorOp>(loc, resType, args);
+  } else {
+    // To "reconstruct" an non-annotated tensor, sipmly load it
+    // from the bufferized value.
+    result = rewriter.create<memref::TensorLoadOp>(loc, resType, result);
+  }
   rewriter.replaceOp(op, result);
 }
 
@@ -1430,19 +1138,21 @@ public:
         !computeIterationGraph(merger, op, topSort, /*sparseOnly=*/true))
       return failure();
 
-    // Finds the terminating yield statement and builds the tensor
-    // expression for the Linalg operation in SSA form.
-    Operation *yield = op.region().front().getTerminator();
-    Optional<unsigned> exp = buildTensorExp(merger, op, yield->getOperand(0));
+    // Builds the tensor expression for the Linalg operation in SSA form.
+    Optional<unsigned> exp = merger.buildTensorExpFromLinalg(op);
     if (!exp.hasValue())
-      return failure(); // build failure
+      return failure();
+
+    // Rejects an inadmissable tensor expression.
+    if (!isAdmissableTensorExp(merger, op, exp.getValue()))
+      return failure();
 
     // Recursively generates code.
     CodeGen codegen(options, numTensors, numLoops);
     if (!genBuffers(merger, codegen, rewriter, op))
       return failure(); // could not bufferize
     genStmt(merger, codegen, rewriter, op, topSort, exp.getValue(), 0);
-    genResult(codegen, rewriter, op);
+    genResult(merger, codegen, rewriter, op);
     return success();
   }
 

@@ -9,6 +9,7 @@
 //
 //===----------------------------------------------------------------------===/
 
+#include "TreeTransform.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTMutationListener.h"
@@ -592,8 +593,7 @@ static void instantiateIntelFPGABankWidthAttr(
       S, Sema::ExpressionEvaluationContext::ConstantEvaluated);
   ExprResult Result = S.SubstExpr(Attr->getValue(), TemplateArgs);
   if (!Result.isInvalid())
-    S.AddOneConstantPowerTwoValueAttr<IntelFPGABankWidthAttr>(
-        New, *Attr, Result.getAs<Expr>());
+    S.AddIntelFPGABankWidthAttr(New, *Attr, Result.getAs<Expr>());
 }
 
 static void instantiateIntelFPGANumBanksAttr(
@@ -603,8 +603,7 @@ static void instantiateIntelFPGANumBanksAttr(
       S, Sema::ExpressionEvaluationContext::ConstantEvaluated);
   ExprResult Result = S.SubstExpr(Attr->getValue(), TemplateArgs);
   if (!Result.isInvalid())
-    S.AddOneConstantPowerTwoValueAttr<IntelFPGANumBanksAttr>(
-        New, *Attr, Result.getAs<Expr>());
+    S.AddIntelFPGANumBanksAttr(New, *Attr, Result.getAs<Expr>());
 }
 
 static void instantiateIntelFPGABankBitsAttr(
@@ -768,12 +767,6 @@ static void instantiateWorkGroupSizeHintAttr(
 static void instantiateDependentSYCLKernelAttr(
     Sema &S, const MultiLevelTemplateArgumentList &TemplateArgs,
     const SYCLKernelAttr &Attr, Decl *New) {
-  // Functions cannot be partially specialized, so if we are being instantiated,
-  // we are obviously a complete specialization. Since this attribute is only
-  // valid on function template declarations, we know that this is a full
-  // instantiation of a kernel.
-  S.AddSYCLKernelLambda(cast<FunctionDecl>(New));
-
   New->addAttr(Attr.clone(S.getASTContext()));
 }
 
@@ -1420,7 +1413,10 @@ Decl *TemplateDeclInstantiator::VisitVarDecl(VarDecl *D,
   if (Var->isStaticLocal())
     SemaRef.CheckStaticLocalForDllExport(Var);
 
-  SemaRef.addSyclVarDecl(Var);
+  // Only add this if we aren't instantiating a variable template.  We'll end up
+  // adding the VarTemplateSpecializationDecl later.
+  if (!InstantiatingVarTemplate)
+    SemaRef.addSyclVarDecl(Var);
   return Var;
 }
 
@@ -2129,9 +2125,16 @@ Decl *TemplateDeclInstantiator::VisitCXXRecordDecl(CXXRecordDecl *D) {
     PrevDecl = cast<CXXRecordDecl>(Prev);
   }
 
-  CXXRecordDecl *Record = CXXRecordDecl::Create(
-      SemaRef.Context, D->getTagKind(), Owner, D->getBeginLoc(),
-      D->getLocation(), D->getIdentifier(), PrevDecl);
+  CXXRecordDecl *Record = nullptr;
+  if (D->isLambda())
+    Record = CXXRecordDecl::CreateLambda(
+        SemaRef.Context, Owner, D->getLambdaTypeInfo(), D->getLocation(),
+        D->isDependentLambda(), D->isGenericLambda(),
+        D->getLambdaCaptureDefault());
+  else
+    Record = CXXRecordDecl::Create(SemaRef.Context, D->getTagKind(), Owner,
+                                   D->getBeginLoc(), D->getLocation(),
+                                   D->getIdentifier(), PrevDecl);
 
   // Substitute the nested name specifier, if any.
   if (SubstQualifier(D, Record))
@@ -2347,8 +2350,8 @@ Decl *TemplateDeclInstantiator::VisitFunctionDecl(
   } else {
     Function = FunctionDecl::Create(
         SemaRef.Context, DC, D->getInnerLocStart(), NameInfo, T, TInfo,
-        D->getCanonicalDecl()->getStorageClass(), D->isInlineSpecified(),
-        D->hasWrittenPrototype(), D->getConstexprKind(),
+        D->getCanonicalDecl()->getStorageClass(), D->UsesFPIntrin(),
+        D->isInlineSpecified(), D->hasWrittenPrototype(), D->getConstexprKind(),
         TrailingRequiresClause);
     Function->setRangeEnd(D->getSourceRange().getEnd());
   }
@@ -2610,6 +2613,20 @@ Decl *TemplateDeclInstantiator::VisitCXXMethodDecl(
   if (InstantiatedExplicitSpecifier.isInvalid())
     return nullptr;
 
+  // Implicit destructors/constructors created for local classes in
+  // DeclareImplicit* (see SemaDeclCXX.cpp) might not have an associated TSI.
+  // Unfortunately there isn't enough context in those functions to
+  // conditionally populate the TSI without breaking non-template related use
+  // cases. Populate TSIs prior to calling SubstFunctionType to make sure we get
+  // a proper transformation.
+  if (cast<CXXRecordDecl>(D->getParent())->isLambda() &&
+      !D->getTypeSourceInfo() &&
+      isa<CXXConstructorDecl, CXXDestructorDecl>(D)) {
+    TypeSourceInfo *TSI =
+        SemaRef.Context.getTrivialTypeSourceInfo(D->getType());
+    D->setTypeSourceInfo(TSI);
+  }
+
   SmallVector<ParmVarDecl *, 4> Params;
   TypeSourceInfo *TInfo = SubstFunctionType(D, Params);
   if (!TInfo)
@@ -2689,28 +2706,32 @@ Decl *TemplateDeclInstantiator::VisitCXXMethodDecl(
   if (CXXConstructorDecl *Constructor = dyn_cast<CXXConstructorDecl>(D)) {
     Method = CXXConstructorDecl::Create(
         SemaRef.Context, Record, StartLoc, NameInfo, T, TInfo,
-        InstantiatedExplicitSpecifier, Constructor->isInlineSpecified(), false,
+        InstantiatedExplicitSpecifier, Constructor->UsesFPIntrin(),
+        Constructor->isInlineSpecified(), false,
         Constructor->getConstexprKind(), InheritedConstructor(),
         TrailingRequiresClause);
     Method->setRangeEnd(Constructor->getEndLoc());
   } else if (CXXDestructorDecl *Destructor = dyn_cast<CXXDestructorDecl>(D)) {
     Method = CXXDestructorDecl::Create(
         SemaRef.Context, Record, StartLoc, NameInfo, T, TInfo,
-        Destructor->isInlineSpecified(), false, Destructor->getConstexprKind(),
-        TrailingRequiresClause);
+        Destructor->UsesFPIntrin(), Destructor->isInlineSpecified(), false,
+        Destructor->getConstexprKind(), TrailingRequiresClause);
     Method->setRangeEnd(Destructor->getEndLoc());
+    Method->setDeclName(SemaRef.Context.DeclarationNames.getCXXDestructorName(
+        SemaRef.Context.getCanonicalType(
+            SemaRef.Context.getTypeDeclType(Record))));
   } else if (CXXConversionDecl *Conversion = dyn_cast<CXXConversionDecl>(D)) {
     Method = CXXConversionDecl::Create(
         SemaRef.Context, Record, StartLoc, NameInfo, T, TInfo,
-        Conversion->isInlineSpecified(), InstantiatedExplicitSpecifier,
-        Conversion->getConstexprKind(), Conversion->getEndLoc(),
-        TrailingRequiresClause);
+        Conversion->UsesFPIntrin(), Conversion->isInlineSpecified(),
+        InstantiatedExplicitSpecifier, Conversion->getConstexprKind(),
+        Conversion->getEndLoc(), TrailingRequiresClause);
   } else {
     StorageClass SC = D->isStatic() ? SC_Static : SC_None;
-    Method = CXXMethodDecl::Create(SemaRef.Context, Record, StartLoc, NameInfo,
-                                   T, TInfo, SC, D->isInlineSpecified(),
-                                   D->getConstexprKind(), D->getEndLoc(),
-                                   TrailingRequiresClause);
+    Method = CXXMethodDecl::Create(
+        SemaRef.Context, Record, StartLoc, NameInfo, T, TInfo, SC,
+        D->UsesFPIntrin(), D->isInlineSpecified(), D->getConstexprKind(),
+        D->getEndLoc(), TrailingRequiresClause);
   }
 
   if (D->isInlined())
@@ -5223,10 +5244,76 @@ void Sema::InstantiateFunctionDefinition(SourceLocation PointOfInstantiation,
         Rec->isLocalClass() && !Function->isFunctionTemplateSpecialization();
 
   LocalInstantiationScope Scope(*this, MergeWithParentScope);
+  auto RebuildTypeSourceInfoForDefaultSpecialMembers = [&]() {
+    // Special members might get their TypeSourceInfo set up w.r.t the
+    // PatternDecl context, in which case parameters could still be pointing
+    // back to the original class, make sure arguments are bound to the
+    // instantiated record instead.
+    assert(PatternDecl->isDefaulted() &&
+           "Special member needs to be defaulted");
+    auto PatternSM = getDefaultedFunctionKind(PatternDecl).asSpecialMember();
+    if (!(PatternSM == Sema::CXXCopyConstructor ||
+          PatternSM == Sema::CXXCopyAssignment ||
+          PatternSM == Sema::CXXMoveConstructor ||
+          PatternSM == Sema::CXXMoveAssignment))
+      return;
 
-  if (PatternDecl->isDefaulted())
+    auto *NewRec = dyn_cast<CXXRecordDecl>(Function->getDeclContext());
+    const auto *PatternRec =
+        dyn_cast<CXXRecordDecl>(PatternDecl->getDeclContext());
+    if (!NewRec || !PatternRec)
+      return;
+    if (!PatternRec->isLambda())
+      return;
+
+    struct SpecialMemberTypeInfoRebuilder
+        : TreeTransform<SpecialMemberTypeInfoRebuilder> {
+      using Base = TreeTransform<SpecialMemberTypeInfoRebuilder>;
+      const CXXRecordDecl *OldDecl;
+      CXXRecordDecl *NewDecl;
+
+      SpecialMemberTypeInfoRebuilder(Sema &SemaRef, const CXXRecordDecl *O,
+                                     CXXRecordDecl *N)
+          : TreeTransform(SemaRef), OldDecl(O), NewDecl(N) {}
+
+      bool TransformExceptionSpec(SourceLocation Loc,
+                                  FunctionProtoType::ExceptionSpecInfo &ESI,
+                                  SmallVectorImpl<QualType> &Exceptions,
+                                  bool &Changed) {
+        return false;
+      }
+
+      QualType TransformRecordType(TypeLocBuilder &TLB, RecordTypeLoc TL) {
+        const RecordType *T = TL.getTypePtr();
+        RecordDecl *Record = cast_or_null<RecordDecl>(
+            getDerived().TransformDecl(TL.getNameLoc(), T->getDecl()));
+        if (Record != OldDecl)
+          return Base::TransformRecordType(TLB, TL);
+
+        QualType Result = getDerived().RebuildRecordType(NewDecl);
+        if (Result.isNull())
+          return QualType();
+
+        RecordTypeLoc NewTL = TLB.push<RecordTypeLoc>(Result);
+        NewTL.setNameLoc(TL.getNameLoc());
+        return Result;
+      }
+    } IR{*this, PatternRec, NewRec};
+
+    TypeSourceInfo *NewSI = IR.TransformType(Function->getTypeSourceInfo());
+    Function->setType(NewSI->getType());
+    Function->setTypeSourceInfo(NewSI);
+
+    ParmVarDecl *Parm = Function->getParamDecl(0);
+    TypeSourceInfo *NewParmSI = IR.TransformType(Parm->getTypeSourceInfo());
+    Parm->setType(NewParmSI->getType());
+    Parm->setTypeSourceInfo(NewParmSI);
+  };
+
+  if (PatternDecl->isDefaulted()) {
+    RebuildTypeSourceInfoForDefaultSpecialMembers();
     SetDeclDefaulted(Function, PatternDecl->getLocation());
-  else {
+  } else {
     MultiLevelTemplateArgumentList TemplateArgs =
       getTemplateInstantiationArgs(Function, nullptr, false, PatternDecl);
 

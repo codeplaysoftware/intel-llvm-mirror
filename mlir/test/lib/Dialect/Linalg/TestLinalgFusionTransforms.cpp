@@ -12,6 +12,7 @@
 
 #include "mlir/Dialect/Linalg/Analysis/DependenceAnalysis.h"
 #include "mlir/Dialect/Linalg/Transforms/Transforms.h"
+#include "mlir/Dialect/SCF/Transforms.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -235,9 +236,10 @@ struct TestLinalgGreedyFusion
     MLIRContext *context = &getContext();
     RewritePatternSet patterns =
         linalg::getLinalgTilingCanonicalizationPatterns(context);
-    patterns.add<AffineMinSCFCanonicalizationPattern>(context);
+    patterns.add<ExtractSliceOfPadTensorSwapPattern>(context);
+    scf::populateSCFForLoopCanonicalizationPatterns(patterns);
     FrozenRewritePatternSet frozenPatterns(std::move(patterns));
-    while (succeeded(fuseLinalgOpsGreedily(getFunction()))) {
+    do {
       (void)applyPatternsAndFoldGreedily(getFunction(), frozenPatterns);
       PassManager pm(context);
       pm.addPass(createLoopInvariantCodeMotionPass());
@@ -246,7 +248,7 @@ struct TestLinalgGreedyFusion
       LogicalResult res = pm.run(getFunction()->getParentOfType<ModuleOp>());
       if (failed(res))
         this->signalPassFailure();
-    }
+    } while (succeeded(fuseLinalgOpsGreedily(getFunction())));
   }
 };
 

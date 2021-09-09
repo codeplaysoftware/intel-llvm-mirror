@@ -2286,6 +2286,10 @@ public:
   /// instrumented with __cyg_profile_func_* calls
   bool ShouldInstrumentFunction();
 
+  /// ShouldSkipSanitizerInstrumentation - Return true if the current function
+  /// should not be instrumented with sanitizers.
+  bool ShouldSkipSanitizerInstrumentation();
+
   /// ShouldXRayInstrument - Return true if the current function should be
   /// instrumented with XRay nop sleds.
   bool ShouldXRayInstrumentFunction() const;
@@ -3600,7 +3604,7 @@ public:
                              const CodeGenLoopTy &CodeGenLoop, Expr *IncExpr);
 
   /// Helpers for the OpenMP loop directives.
-  void EmitOMPSimdInit(const OMPLoopDirective &D, bool IsMonotonic = false);
+  void EmitOMPSimdInit(const OMPLoopDirective &D);
   void EmitOMPSimdFinal(
       const OMPLoopDirective &D,
       const llvm::function_ref<llvm::Value *(CodeGenFunction &)> CondGen);
@@ -4126,30 +4130,30 @@ public:
   /// SVEBuiltinMemEltTy - Returns the memory element type for this memory
   /// access builtin.  Only required if it can't be inferred from the base
   /// pointer operand.
-  llvm::Type *SVEBuiltinMemEltTy(SVETypeFlags TypeFlags);
+  llvm::Type *SVEBuiltinMemEltTy(const SVETypeFlags &TypeFlags);
 
-  SmallVector<llvm::Type *, 2> getSVEOverloadTypes(SVETypeFlags TypeFlags,
-                                                   llvm::Type *ReturnType,
-                                                   ArrayRef<llvm::Value *> Ops);
-  llvm::Type *getEltType(SVETypeFlags TypeFlags);
+  SmallVector<llvm::Type *, 2>
+  getSVEOverloadTypes(const SVETypeFlags &TypeFlags, llvm::Type *ReturnType,
+                      ArrayRef<llvm::Value *> Ops);
+  llvm::Type *getEltType(const SVETypeFlags &TypeFlags);
   llvm::ScalableVectorType *getSVEType(const SVETypeFlags &TypeFlags);
-  llvm::ScalableVectorType *getSVEPredType(SVETypeFlags TypeFlags);
-  llvm::Value *EmitSVEAllTruePred(SVETypeFlags TypeFlags);
+  llvm::ScalableVectorType *getSVEPredType(const SVETypeFlags &TypeFlags);
+  llvm::Value *EmitSVEAllTruePred(const SVETypeFlags &TypeFlags);
   llvm::Value *EmitSVEDupX(llvm::Value *Scalar);
   llvm::Value *EmitSVEDupX(llvm::Value *Scalar, llvm::Type *Ty);
   llvm::Value *EmitSVEReinterpret(llvm::Value *Val, llvm::Type *Ty);
-  llvm::Value *EmitSVEPMull(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEPMull(const SVETypeFlags &TypeFlags,
                             llvm::SmallVectorImpl<llvm::Value *> &Ops,
                             unsigned BuiltinID);
-  llvm::Value *EmitSVEMovl(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEMovl(const SVETypeFlags &TypeFlags,
                            llvm::ArrayRef<llvm::Value *> Ops,
                            unsigned BuiltinID);
   llvm::Value *EmitSVEPredicateCast(llvm::Value *Pred,
                                     llvm::ScalableVectorType *VTy);
-  llvm::Value *EmitSVEGatherLoad(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEGatherLoad(const SVETypeFlags &TypeFlags,
                                  llvm::SmallVectorImpl<llvm::Value *> &Ops,
                                  unsigned IntID);
-  llvm::Value *EmitSVEScatterStore(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEScatterStore(const SVETypeFlags &TypeFlags,
                                    llvm::SmallVectorImpl<llvm::Value *> &Ops,
                                    unsigned IntID);
   llvm::Value *EmitSVEMaskedLoad(const CallExpr *, llvm::Type *ReturnTy,
@@ -4158,15 +4162,16 @@ public:
   llvm::Value *EmitSVEMaskedStore(const CallExpr *,
                                   SmallVectorImpl<llvm::Value *> &Ops,
                                   unsigned BuiltinID);
-  llvm::Value *EmitSVEPrefetchLoad(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEPrefetchLoad(const SVETypeFlags &TypeFlags,
                                    SmallVectorImpl<llvm::Value *> &Ops,
                                    unsigned BuiltinID);
-  llvm::Value *EmitSVEGatherPrefetch(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEGatherPrefetch(const SVETypeFlags &TypeFlags,
                                      SmallVectorImpl<llvm::Value *> &Ops,
                                      unsigned IntID);
-  llvm::Value *EmitSVEStructLoad(SVETypeFlags TypeFlags,
-                                 SmallVectorImpl<llvm::Value *> &Ops, unsigned IntID);
-  llvm::Value *EmitSVEStructStore(SVETypeFlags TypeFlags,
+  llvm::Value *EmitSVEStructLoad(const SVETypeFlags &TypeFlags,
+                                 SmallVectorImpl<llvm::Value *> &Ops,
+                                 unsigned IntID);
+  llvm::Value *EmitSVEStructStore(const SVETypeFlags &TypeFlags,
                                   SmallVectorImpl<llvm::Value *> &Ops,
                                   unsigned IntID);
   llvm::Value *EmitAArch64SVEBuiltinExpr(unsigned BuiltinID, const CallExpr *E);
@@ -4367,6 +4372,11 @@ public:
 
   llvm::Function *createAtExitStub(const VarDecl &VD, llvm::FunctionCallee Dtor,
                                    llvm::Constant *Addr);
+
+  llvm::Function *createTLSAtExitStub(const VarDecl &VD,
+                                      llvm::FunctionCallee Dtor,
+                                      llvm::Constant *Addr,
+                                      llvm::FunctionCallee &AtExit);
 
   /// Call atexit() with a function that passes the given argument to
   /// the given function.
@@ -4594,9 +4604,6 @@ public:
   /// point operation, expressed as the maximum relative error in ulp.
   void SetFPAccuracy(llvm::Value *Val, float Accuracy);
 
-  /// SetFPModel - Control floating point behavior via fp-model settings.
-  void SetFPModel();
-
   /// Set the codegen fast-math flags.
   void SetFastMathFlags(FPOptions FPFeatures);
 
@@ -4731,8 +4738,6 @@ public:
   // last (if it exists).
   void EmitMultiVersionResolver(llvm::Function *Resolver,
                                 ArrayRef<MultiVersionResolverOption> Options);
-
-  static uint64_t GetX86CpuSupportsMask(ArrayRef<StringRef> FeatureStrs);
 
 private:
   QualType getVarArgType(const Expr *Arg);

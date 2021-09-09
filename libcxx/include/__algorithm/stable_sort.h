@@ -15,15 +15,13 @@
 #include <__algorithm/inplace_merge.h>
 #include <__algorithm/sort.h>
 #include <__iterator/iterator_traits.h>
+#include <__utility/swap.h>
 #include <memory>
 #include <type_traits> // swap
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
 #endif
-
-_LIBCPP_PUSH_MACROS
-#include <__undef_macros>
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
@@ -228,7 +226,5 @@ stable_sort(_RandomAccessIterator __first, _RandomAccessIterator __last)
 }
 
 _LIBCPP_END_NAMESPACE_STD
-
-_LIBCPP_POP_MACROS
 
 #endif // _LIBCPP___ALGORITHM_STABLE_SORT_H

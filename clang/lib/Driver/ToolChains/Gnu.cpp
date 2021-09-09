@@ -51,9 +51,9 @@ static void normalizeCPUNamesForAssembler(const ArgList &Args,
                                           ArgStringList &CmdArgs) {
   if (Arg *A = Args.getLastArg(options::OPT_mcpu_EQ)) {
     StringRef CPUArg(A->getValue());
-    if (CPUArg.equals_lower("krait"))
+    if (CPUArg.equals_insensitive("krait"))
       CmdArgs.push_back("-mcpu=cortex-a15");
-    else if(CPUArg.equals_lower("kryo"))
+    else if (CPUArg.equals_insensitive("kryo"))
       CmdArgs.push_back("-mcpu=cortex-a57");
     else
       Args.AddLastArg(CmdArgs, options::OPT_mcpu_EQ);
@@ -2120,7 +2120,8 @@ void Generic_GCC::GCCInstallationDetector::AddDefaultGCCPrefixes(
 
   // Non-Solaris is much simpler - most systems just go with "/usr".
   if (SysRoot.empty() && TargetTriple.getOS() == llvm::Triple::Linux) {
-    // Yet, still look for RHEL devtoolsets.
+    // Yet, still look for RHEL/CentOS devtoolsets and gcc-toolsets.
+    Prefixes.push_back("/opt/rh/gcc-toolset-10/root/usr");
     Prefixes.push_back("/opt/rh/devtoolset-10/root/usr");
     Prefixes.push_back("/opt/rh/devtoolset-9/root/usr");
     Prefixes.push_back("/opt/rh/devtoolset-8/root/usr");
@@ -3009,31 +3010,27 @@ bool Generic_GCC::addLibStdCXXIncludePaths(Twine IncludeDir, StringRef Triple,
   if (!getVFS().exists(IncludeDir))
     return false;
 
+  // Debian native gcc uses g++-multiarch-incdir.diff which uses
+  // include/x86_64-linux-gnu/c++/10$IncludeSuffix instead of
+  // include/c++/10/x86_64-linux-gnu$IncludeSuffix.
+  std::string Dir = IncludeDir.str();
+  StringRef Include =
+      llvm::sys::path::parent_path(llvm::sys::path::parent_path(Dir));
+  std::string Path =
+      (Include + "/" + Triple + Dir.substr(Include.size()) + IncludeSuffix)
+          .str();
+  if (DetectDebian && !getVFS().exists(Path))
+    return false;
+
   // GPLUSPLUS_INCLUDE_DIR
   addSystemInclude(DriverArgs, CC1Args, IncludeDir);
   // GPLUSPLUS_TOOL_INCLUDE_DIR. If Triple is not empty, add a target-dependent
   // include directory.
-  if (!Triple.empty()) {
-    if (DetectDebian) {
-      // Debian native gcc has an awful patch g++-multiarch-incdir.diff which
-      // uses include/x86_64-linux-gnu/c++/10$IncludeSuffix instead of
-      // include/c++/10/x86_64-linux-gnu$IncludeSuffix.
-      std::string Dir = IncludeDir.str();
-      StringRef Include =
-          llvm::sys::path::parent_path(llvm::sys::path::parent_path(Dir));
-      std::string Path =
-          (Include + "/" + Triple + Dir.substr(Include.size()) + IncludeSuffix)
-              .str();
-      if (getVFS().exists(Path))
-        addSystemInclude(DriverArgs, CC1Args, Path);
-      else
-        addSystemInclude(DriverArgs, CC1Args,
-                         IncludeDir + "/" + Triple + IncludeSuffix);
-    } else {
-      addSystemInclude(DriverArgs, CC1Args,
-                       IncludeDir + "/" + Triple + IncludeSuffix);
-    }
-  }
+  if (DetectDebian)
+    addSystemInclude(DriverArgs, CC1Args, Path);
+  else if (!Triple.empty())
+    addSystemInclude(DriverArgs, CC1Args,
+                     IncludeDir + "/" + Triple + IncludeSuffix);
   // GPLUSPLUS_BACKWARD_INCLUDE_DIR
   addSystemInclude(DriverArgs, CC1Args, IncludeDir + "/backward");
   return true;
@@ -3053,7 +3050,7 @@ bool Generic_GCC::addGCCLibStdCxxIncludePaths(
   const Multilib &Multilib = GCCInstallation.getMultilib();
   const GCCVersion &Version = GCCInstallation.getVersion();
 
-  // Try /../$triple/include/c++/$version then /../include/c++/$version.
+  // Try /../$triple/include/c++/$version (gcc --print-multiarch is not empty).
   if (addLibStdCXXIncludePaths(
           LibDir.str() + "/../" + TripleStr + "/include/c++/" + Version.Text,
           TripleStr, Multilib.includeSuffix(), DriverArgs, CC1Args))
@@ -3063,6 +3060,12 @@ bool Generic_GCC::addGCCLibStdCxxIncludePaths(
   if (addLibStdCXXIncludePaths(LibDir.str() + "/../include/c++/" + Version.Text,
                                DebianMultiarch, Multilib.includeSuffix(),
                                DriverArgs, CC1Args, /*Debian=*/true))
+    return true;
+
+  // Try /../include/c++/$version (gcc --print-multiarch is empty).
+  if (addLibStdCXXIncludePaths(LibDir.str() + "/../include/c++/" + Version.Text,
+                               TripleStr, Multilib.includeSuffix(), DriverArgs,
+                               CC1Args))
     return true;
 
   // Otherwise, fall back on a bunch of options which don't use multiarch

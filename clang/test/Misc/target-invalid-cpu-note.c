@@ -87,7 +87,7 @@
 // AMDGCN-SAME: gfx802, iceland, tonga, gfx803, fiji, polaris10, polaris11,
 // AMDGCN-SAME: gfx805, tongapro, gfx810, stoney, gfx900, gfx902, gfx904, gfx906,
 // AMDGCN-SAME: gfx908, gfx909, gfx90a, gfx90c, gfx1010, gfx1011, gfx1012, gfx1013, gfx1030, gfx1031,
-// AMDGCN-SAME: gfx1032, gfx1033, gfx1034
+// AMDGCN-SAME: gfx1032, gfx1033, gfx1034, gfx1035
 
 // RUN: not %clang_cc1 -triple wasm64--- -target-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix WEBASM
 // WEBASM: error: unknown target CPU 'not-a-cpu'
@@ -96,7 +96,7 @@
 // RUN: not %clang_cc1 -triple systemz--- -target-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix SYSTEMZ
 // SYSTEMZ: error: unknown target CPU 'not-a-cpu'
 // SYSTEMZ: note: valid target CPU values are: arch8, z10, arch9, z196, arch10,
-// SYSTEMZ-SAME: zEC12, arch11, z13, arch12, z14, arch13, z15
+// SYSTEMZ-SAME: zEC12, arch11, z13, arch12, z14, arch13, z15, arch14
 
 // RUN: not %clang_cc1 -triple sparc--- -target-cpu not-a-cpu -fsyntax-only %s 2>&1 | FileCheck %s --check-prefix SPARC
 // SPARC: error: unknown target CPU 'not-a-cpu'

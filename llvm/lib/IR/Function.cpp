@@ -140,20 +140,20 @@ bool Argument::hasPreallocatedAttr() const {
 bool Argument::hasPassPointeeByValueCopyAttr() const {
   if (!getType()->isPointerTy()) return false;
   AttributeList Attrs = getParent()->getAttributes();
-  return Attrs.hasParamAttribute(getArgNo(), Attribute::ByVal) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::InAlloca) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::Preallocated);
+  return Attrs.hasParamAttr(getArgNo(), Attribute::ByVal) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::InAlloca) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::Preallocated);
 }
 
 bool Argument::hasPointeeInMemoryValueAttr() const {
   if (!getType()->isPointerTy())
     return false;
   AttributeList Attrs = getParent()->getAttributes();
-  return Attrs.hasParamAttribute(getArgNo(), Attribute::ByVal) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::StructRet) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::InAlloca) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::Preallocated) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::ByRef);
+  return Attrs.hasParamAttr(getArgNo(), Attribute::ByVal) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::StructRet) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::InAlloca) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::Preallocated) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::ByRef);
 }
 
 /// For a byval, sret, inalloca, or preallocated parameter, get the in-memory
@@ -177,7 +177,7 @@ static Type *getMemoryParamAllocType(AttributeSet ParamAttrs, Type *ArgTy) {
 
 uint64_t Argument::getPassPointeeByValueCopySize(const DataLayout &DL) const {
   AttributeSet ParamAttrs =
-      getParent()->getAttributes().getParamAttributes(getArgNo());
+      getParent()->getAttributes().getParamAttrs(getArgNo());
   if (Type *MemTy = getMemoryParamAllocType(ParamAttrs, getType()))
     return DL.getTypeAllocSize(MemTy);
   return 0;
@@ -185,7 +185,7 @@ uint64_t Argument::getPassPointeeByValueCopySize(const DataLayout &DL) const {
 
 Type *Argument::getPointeeInMemoryValueType() const {
   AttributeSet ParamAttrs =
-      getParent()->getAttributes().getParamAttributes(getArgNo());
+      getParent()->getAttributes().getParamAttrs(getArgNo());
   return getMemoryParamAllocType(ParamAttrs, getType());
 }
 
@@ -278,8 +278,8 @@ bool Argument::hasSExtAttr() const {
 
 bool Argument::onlyReadsMemory() const {
   AttributeList Attrs = getParent()->getAttributes();
-  return Attrs.hasParamAttribute(getArgNo(), Attribute::ReadOnly) ||
-         Attrs.hasParamAttribute(getArgNo(), Attribute::ReadNone);
+  return Attrs.hasParamAttr(getArgNo(), Attribute::ReadOnly) ||
+         Attrs.hasParamAttr(getArgNo(), Attribute::ReadNone);
 }
 
 void Argument::addAttrs(AttrBuilder &B) {
@@ -354,7 +354,7 @@ Function *Function::createWithDefaultAttr(FunctionType *Ty,
     B.addAttribute("frame-pointer", "all");
     break;
   }
-  F->addAttributes(AttributeList::FunctionIndex, B);
+  F->addFnAttrs(B);
   return F;
 }
 
@@ -529,107 +529,135 @@ void Function::dropAllReferences() {
   clearMetadata();
 }
 
-void Function::addAttribute(unsigned i, Attribute::AttrKind Kind) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addAttribute(getContext(), i, Kind);
-  setAttributes(PAL);
-}
-
 void Function::addAttribute(unsigned i, Attribute Attr) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addAttribute(getContext(), i, Attr);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.addAttribute(getContext(), i, Attr);
 }
 
-void Function::addAttributes(unsigned i, const AttrBuilder &Attrs) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addAttributes(getContext(), i, Attrs);
-  setAttributes(PAL);
+void Function::addFnAttr(Attribute::AttrKind Kind) {
+  AttributeSets = AttributeSets.addFnAttribute(getContext(), Kind);
+}
+
+void Function::addFnAttr(StringRef Kind, StringRef Val) {
+  AttributeSets = AttributeSets.addFnAttribute(getContext(), Kind, Val);
+}
+
+void Function::addFnAttr(Attribute Attr) {
+  AttributeSets = AttributeSets.addFnAttribute(getContext(), Attr);
+}
+
+void Function::addFnAttrs(const AttrBuilder &Attrs) {
+  AttributeSets = AttributeSets.addFnAttributes(getContext(), Attrs);
+}
+
+void Function::addRetAttr(Attribute::AttrKind Kind) {
+  AttributeSets = AttributeSets.addRetAttribute(getContext(), Kind);
 }
 
 void Function::addParamAttr(unsigned ArgNo, Attribute::AttrKind Kind) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addParamAttribute(getContext(), ArgNo, Kind);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.addParamAttribute(getContext(), ArgNo, Kind);
 }
 
 void Function::addParamAttr(unsigned ArgNo, Attribute Attr) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addParamAttribute(getContext(), ArgNo, Attr);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.addParamAttribute(getContext(), ArgNo, Attr);
 }
 
 void Function::addParamAttrs(unsigned ArgNo, const AttrBuilder &Attrs) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addParamAttributes(getContext(), ArgNo, Attrs);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.addParamAttributes(getContext(), ArgNo, Attrs);
 }
 
 void Function::removeAttribute(unsigned i, Attribute::AttrKind Kind) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeAttribute(getContext(), i, Kind);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.removeAttribute(getContext(), i, Kind);
 }
 
 void Function::removeAttribute(unsigned i, StringRef Kind) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeAttribute(getContext(), i, Kind);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.removeAttribute(getContext(), i, Kind);
 }
 
-void Function::removeAttributes(unsigned i, const AttrBuilder &Attrs) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeAttributes(getContext(), i, Attrs);
-  setAttributes(PAL);
+void Function::removeFnAttr(Attribute::AttrKind Kind) {
+  AttributeSets = AttributeSets.removeFnAttribute(getContext(), Kind);
+}
+
+void Function::removeFnAttr(StringRef Kind) {
+  AttributeSets = AttributeSets.removeFnAttribute(getContext(), Kind);
+}
+
+void Function::removeFnAttrs(const AttrBuilder &Attrs) {
+  AttributeSets = AttributeSets.removeFnAttributes(getContext(), Attrs);
+}
+
+void Function::removeRetAttr(Attribute::AttrKind Kind) {
+  AttributeSets = AttributeSets.removeRetAttribute(getContext(), Kind);
+}
+
+void Function::removeRetAttr(StringRef Kind) {
+  AttributeSets = AttributeSets.removeRetAttribute(getContext(), Kind);
+}
+
+void Function::removeRetAttrs(const AttrBuilder &Attrs) {
+  AttributeSets = AttributeSets.removeRetAttributes(getContext(), Attrs);
 }
 
 void Function::removeParamAttr(unsigned ArgNo, Attribute::AttrKind Kind) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeParamAttribute(getContext(), ArgNo, Kind);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.removeParamAttribute(getContext(), ArgNo, Kind);
 }
 
 void Function::removeParamAttr(unsigned ArgNo, StringRef Kind) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeParamAttribute(getContext(), ArgNo, Kind);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.removeParamAttribute(getContext(), ArgNo, Kind);
 }
 
 void Function::removeParamAttrs(unsigned ArgNo, const AttrBuilder &Attrs) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeParamAttributes(getContext(), ArgNo, Attrs);
-  setAttributes(PAL);
-}
-
-void Function::removeParamUndefImplyingAttrs(unsigned ArgNo) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.removeParamUndefImplyingAttributes(getContext(), ArgNo);
-  setAttributes(PAL);
-}
-
-void Function::addDereferenceableAttr(unsigned i, uint64_t Bytes) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addDereferenceableAttr(getContext(), i, Bytes);
-  setAttributes(PAL);
+  AttributeSets =
+      AttributeSets.removeParamAttributes(getContext(), ArgNo, Attrs);
 }
 
 void Function::addDereferenceableParamAttr(unsigned ArgNo, uint64_t Bytes) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addDereferenceableParamAttr(getContext(), ArgNo, Bytes);
-  setAttributes(PAL);
+  AttributeSets =
+      AttributeSets.addDereferenceableParamAttr(getContext(), ArgNo, Bytes);
 }
 
-void Function::addDereferenceableOrNullAttr(unsigned i, uint64_t Bytes) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addDereferenceableOrNullAttr(getContext(), i, Bytes);
-  setAttributes(PAL);
+bool Function::hasFnAttribute(Attribute::AttrKind Kind) const {
+  return AttributeSets.hasFnAttr(Kind);
+}
+
+bool Function::hasFnAttribute(StringRef Kind) const {
+  return AttributeSets.hasFnAttr(Kind);
+}
+
+bool Function::hasRetAttribute(Attribute::AttrKind Kind) const {
+  return AttributeSets.hasRetAttr(Kind);
+}
+
+bool Function::hasParamAttribute(unsigned ArgNo,
+                                 Attribute::AttrKind Kind) const {
+  return AttributeSets.hasParamAttr(ArgNo, Kind);
+}
+
+Attribute Function::getAttribute(unsigned i, Attribute::AttrKind Kind) const {
+  return AttributeSets.getAttribute(i, Kind);
+}
+
+Attribute Function::getAttribute(unsigned i, StringRef Kind) const {
+  return AttributeSets.getAttribute(i, Kind);
+}
+
+Attribute Function::getFnAttribute(Attribute::AttrKind Kind) const {
+  return AttributeSets.getFnAttr(Kind);
+}
+
+Attribute Function::getFnAttribute(StringRef Kind) const {
+  return AttributeSets.getFnAttr(Kind);
+}
+
+/// gets the specified attribute from the list of attributes.
+Attribute Function::getParamAttribute(unsigned ArgNo,
+                                      Attribute::AttrKind Kind) const {
+  return AttributeSets.getParamAttr(ArgNo, Kind);
 }
 
 void Function::addDereferenceableOrNullParamAttr(unsigned ArgNo,
                                                  uint64_t Bytes) {
-  AttributeList PAL = getAttributes();
-  PAL = PAL.addDereferenceableOrNullParamAttr(getContext(), ArgNo, Bytes);
-  setAttributes(PAL);
+  AttributeSets = AttributeSets.addDereferenceableOrNullParamAttr(getContext(),
+                                                                  ArgNo, Bytes);
 }
 
 DenormalMode Function::getDenormalMode(const fltSemantics &FPType) const {
@@ -775,10 +803,13 @@ void Function::recalculateIntrinsicID() {
 /// indicating that extra care must be taken to ensure a unique name.
 static std::string getMangledTypeStr(Type *Ty, bool &HasUnnamedType) {
   std::string Result;
-  if (PointerType* PTyp = dyn_cast<PointerType>(Ty)) {
-    Result += "p" + utostr(PTyp->getAddressSpace()) +
-              getMangledTypeStr(PTyp->getElementType(), HasUnnamedType);
-  } else if (ArrayType* ATyp = dyn_cast<ArrayType>(Ty)) {
+  if (PointerType *PTyp = dyn_cast<PointerType>(Ty)) {
+    Result += "p" + utostr(PTyp->getAddressSpace());
+    // Opaque pointer doesn't have pointee type information, so we just mangle
+    // address space for opaque pointer.
+    if (!PTyp->isOpaque())
+      Result += getMangledTypeStr(PTyp->getElementType(), HasUnnamedType);
+  } else if (ArrayType *ATyp = dyn_cast<ArrayType>(Ty)) {
     Result += "a" + utostr(ATyp->getNumElements()) +
               getMangledTypeStr(ATyp->getElementType(), HasUnnamedType);
   } else if (StructType *STyp = dyn_cast<StructType>(Ty)) {
@@ -803,7 +834,7 @@ static std::string getMangledTypeStr(Type *Ty, bool &HasUnnamedType) {
       Result += "vararg";
     // Ensure nested function types are distinguishable.
     Result += "f";
-  } else if (VectorType* VTy = dyn_cast<VectorType>(Ty)) {
+  } else if (VectorType *VTy = dyn_cast<VectorType>(Ty)) {
     ElementCount EC = VTy->getElementCount();
     if (EC.isScalable())
       Result += "nx";
@@ -1401,9 +1432,21 @@ static bool matchIntrinsicType(
     }
     case IITDescriptor::Pointer: {
       PointerType *PT = dyn_cast<PointerType>(Ty);
-      return !PT || PT->getAddressSpace() != D.Pointer_AddressSpace ||
-             matchIntrinsicType(PT->getElementType(), Infos, ArgTys,
-                                DeferredChecks, IsDeferredCheck);
+      if (!PT || PT->getAddressSpace() != D.Pointer_AddressSpace)
+        return true;
+      if (!PT->isOpaque())
+        return matchIntrinsicType(PT->getElementType(), Infos, ArgTys,
+                                  DeferredChecks, IsDeferredCheck);
+      // If typed pointers are supported, do not allow using opaque pointer in
+      // place of fixed pointer type. This would make the intrinsic signature
+      // non-unique.
+      if (Ty->getContext().supportsTypedPointers())
+        return true;
+      // Consume IIT descriptors relating to the pointer element type.
+      while (Infos.front().Kind == IITDescriptor::Pointer)
+        Infos = Infos.slice(1);
+      Infos = Infos.slice(1);
+      return false;
     }
 
     case IITDescriptor::Struct: {
@@ -1514,8 +1557,13 @@ static bool matchIntrinsicType(
         dyn_cast<VectorType> (ArgTys[D.getArgumentNumber()]);
       PointerType *ThisArgType = dyn_cast<PointerType>(Ty);
 
-      return (!ThisArgType || !ReferenceType ||
-              ThisArgType->getElementType() != ReferenceType->getElementType());
+      if (!ThisArgType || !ReferenceType)
+        return true;
+      if (!ThisArgType->isOpaque())
+        return ThisArgType->getElementType() != ReferenceType->getElementType();
+      // If typed pointers are supported, do not allow opaque pointer to ensure
+      // uniqueness.
+      return Ty->getContext().supportsTypedPointers();
     }
     case IITDescriptor::VecOfAnyPtrsToElt: {
       unsigned RefArgNumber = D.getRefArgNumber();
@@ -1546,7 +1594,8 @@ static bool matchIntrinsicType(
           dyn_cast<PointerType>(ThisArgVecTy->getElementType());
       if (!ThisArgEltTy)
         return true;
-      return ThisArgEltTy->getElementType() != ReferenceType->getElementType();
+      return !ThisArgEltTy->isOpaqueOrPointeeTypeMatches(
+          ReferenceType->getElementType());
     }
     case IITDescriptor::VecElementArgument: {
       if (D.getArgumentNumber() >= ArgTys.size())
@@ -1655,11 +1704,26 @@ Optional<Function *> Intrinsic::remangleIntrinsicFunction(Function *F) {
 
   Intrinsic::ID ID = F->getIntrinsicID();
   StringRef Name = F->getName();
-  if (Name ==
-      Intrinsic::getName(ID, ArgTys, F->getParent(), F->getFunctionType()))
+  std::string WantedName =
+      Intrinsic::getName(ID, ArgTys, F->getParent(), F->getFunctionType());
+  if (Name == WantedName)
     return None;
 
-  auto NewDecl = Intrinsic::getDeclaration(F->getParent(), ID, ArgTys);
+  Function *NewDecl = [&] {
+    if (auto *ExistingGV = F->getParent()->getNamedValue(WantedName)) {
+      if (auto *ExistingF = dyn_cast<Function>(ExistingGV))
+        if (ExistingF->getFunctionType() == F->getFunctionType())
+          return ExistingF;
+
+      // The name already exists, but is not a function or has the wrong
+      // prototype. Make place for the new one by renaming the old version.
+      // Either this old version will be removed later on or the module is
+      // invalid and we'll get an error.
+      ExistingGV->setName(WantedName + ".renamed");
+    }
+    return Intrinsic::getDeclaration(F->getParent(), ID, ArgTys);
+  }();
+
   NewDecl->setCallingConv(F->getCallingConv());
   assert(NewDecl->getFunctionType() == F->getFunctionType() &&
          "Shouldn't change the signature");

@@ -158,9 +158,9 @@ static constexpr OptionEnumValueElement g_dependents_enumaration[] = {
 
 class OptionGroupDependents : public OptionGroup {
 public:
-  OptionGroupDependents() {}
+  OptionGroupDependents() = default;
 
-  ~OptionGroupDependents() override {}
+  ~OptionGroupDependents() override = default;
 
   llvm::ArrayRef<OptionDefinition> GetDefinitions() override {
     return llvm::makeArrayRef(g_target_dependents_options);
@@ -272,7 +272,7 @@ protected:
 
     if (core_file) {
       auto file = FileSystem::Instance().Open(
-          core_file, lldb_private::File::eOpenOptionRead);
+          core_file, lldb_private::File::eOpenOptionReadOnly);
 
       if (!file) {
         result.AppendErrorWithFormatv("Cannot open '{0}': {1}.",
@@ -286,7 +286,7 @@ protected:
       FileSpec symfile(m_symbol_file.GetOptionValue().GetCurrentValue());
       if (symfile) {
         auto file = FileSystem::Instance().Open(
-            symfile, lldb_private::File::eOpenOptionRead);
+            symfile, lldb_private::File::eOpenOptionReadOnly);
 
         if (!file) {
           result.AppendErrorWithFormatv("Cannot open '{0}': {1}.",
@@ -318,7 +318,6 @@ protected:
 
       if (!target_sp) {
         result.AppendError(error.AsCString());
-        result.SetStatus(eReturnStatusFailed);
         return false;
       }
 
@@ -342,7 +341,6 @@ protected:
               Status err = platform_sp->PutFile(file_spec, remote_file);
               if (err.Fail()) {
                 result.AppendError(err.AsCString());
-                result.SetStatus(eReturnStatusFailed);
                 return false;
               }
             }
@@ -357,7 +355,6 @@ protected:
               Status err = platform_sp->GetFile(remote_file, file_spec);
               if (err.Fail()) {
                 result.AppendError(err.AsCString());
-                result.SetStatus(eReturnStatusFailed);
                 return false;
               }
             } else {
@@ -851,9 +848,8 @@ protected:
         }
 
         if (matches == 0) {
-          result.GetErrorStream().Printf(
-              "error: can't find global variable '%s'\n", arg.c_str());
-          result.SetStatus(eReturnStatusFailed);
+          result.AppendErrorWithFormat("can't find global variable '%s'",
+                                       arg.c_str());
           return false;
         } else {
           for (uint32_t global_idx = 0; global_idx < matches; ++global_idx) {
@@ -1574,20 +1570,18 @@ static void DumpSymbolContextList(ExecutionContextScope *exe_scope,
 static size_t LookupFunctionInModule(CommandInterpreter &interpreter,
                                      Stream &strm, Module *module,
                                      const char *name, bool name_is_regex,
-                                     bool include_inlines, bool include_symbols,
+                                     const ModuleFunctionSearchOptions &options,
                                      bool verbose) {
   if (module && name && name[0]) {
     SymbolContextList sc_list;
     size_t num_matches = 0;
     if (name_is_regex) {
       RegularExpression function_name_regex((llvm::StringRef(name)));
-      module->FindFunctions(function_name_regex, include_symbols,
-                            include_inlines, sc_list);
+      module->FindFunctions(function_name_regex, options, sc_list);
     } else {
       ConstString function_name(name);
       module->FindFunctions(function_name, CompilerDeclContext(),
-                            eFunctionNameTypeAuto, include_symbols,
-                            include_inlines, sc_list);
+                            eFunctionNameTypeAuto, options, sc_list);
     }
     num_matches = sc_list.GetSize();
     if (num_matches) {
@@ -2540,7 +2534,6 @@ protected:
             else
               result.AppendErrorWithFormat("unsupported module: %s",
                                            entry.c_str());
-            result.SetStatus(eReturnStatusFailed);
             return false;
           } else {
             flush = true;
@@ -3286,8 +3279,11 @@ protected:
 
     if (m_options.m_type == eLookupTypeFunctionOrSymbol) {
       ConstString function_name(m_options.m_str.c_str());
+      ModuleFunctionSearchOptions function_options;
+      function_options.include_symbols = true;
+      function_options.include_inlines = false;
       target->GetImages().FindFunctions(function_name, eFunctionNameTypeAuto,
-                                        true, false, sc_list);
+                                        function_options, sc_list);
     } else if (m_options.m_type == eLookupTypeAddress && target) {
       Address addr;
       if (target->GetSectionLoadList().ResolveLoadAddress(m_options.m_addr,
@@ -3758,13 +3754,15 @@ public:
     case eLookupTypeFunctionOrSymbol:
     case eLookupTypeFunction:
       if (!m_options.m_str.empty()) {
-        if (LookupFunctionInModule(
-                m_interpreter, result.GetOutputStream(), module,
-                m_options.m_str.c_str(), m_options.m_use_regex,
-                m_options.m_include_inlines,
-                m_options.m_type ==
-                    eLookupTypeFunctionOrSymbol, // include symbols
-                m_options.m_verbose)) {
+        ModuleFunctionSearchOptions function_options;
+        function_options.include_symbols =
+            m_options.m_type == eLookupTypeFunctionOrSymbol;
+        function_options.include_inlines = m_options.m_include_inlines;
+
+        if (LookupFunctionInModule(m_interpreter, result.GetOutputStream(),
+                                   module, m_options.m_str.c_str(),
+                                   m_options.m_use_regex, function_options,
+                                   m_options.m_verbose)) {
           result.SetStatus(eReturnStatusSuccessFinishResult);
           return true;
         }

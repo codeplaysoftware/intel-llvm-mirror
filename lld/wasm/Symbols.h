@@ -172,6 +172,9 @@ public:
   bool isStub : 1;
 
   uint32_t flags;
+
+  llvm::Optional<StringRef> importName;
+  llvm::Optional<StringRef> importModule;
 };
 
 class FunctionSymbol : public Symbol {
@@ -211,6 +214,12 @@ public:
     return s->kind() == DefinedFunctionKind;
   }
 
+  // Get the function index to be used when exporting.  This only applies to
+  // defined functions and can be differ from the regular function index for
+  // weakly defined functions (that are imported and used via one index but
+  // defined and exported via another).
+  uint32_t getExportedFunctionIndex() const;
+
   InputFunction *function;
 };
 
@@ -222,15 +231,15 @@ public:
                     const WasmSignature *type = nullptr,
                     bool isCalledDirectly = true)
       : FunctionSymbol(name, UndefinedFunctionKind, flags, file, type),
-        importName(importName), importModule(importModule),
-        isCalledDirectly(isCalledDirectly) {}
+        isCalledDirectly(isCalledDirectly) {
+    this->importName = importName;
+    this->importModule = importModule;
+  }
 
   static bool classof(const Symbol *s) {
     return s->kind() == UndefinedFunctionKind;
   }
 
-  llvm::Optional<StringRef> importName;
-  llvm::Optional<StringRef> importModule;
   DefinedFunction *stubFunction = nullptr;
   bool isCalledDirectly;
 };
@@ -354,15 +363,14 @@ public:
                   llvm::Optional<StringRef> importModule, uint32_t flags,
                   InputFile *file = nullptr,
                   const WasmGlobalType *type = nullptr)
-      : GlobalSymbol(name, UndefinedGlobalKind, flags, file, type),
-        importName(importName), importModule(importModule) {}
+      : GlobalSymbol(name, UndefinedGlobalKind, flags, file, type) {
+    this->importName = importName;
+    this->importModule = importModule;
+  }
 
   static bool classof(const Symbol *s) {
     return s->kind() == UndefinedGlobalKind;
   }
-
-  llvm::Optional<StringRef> importName;
-  llvm::Optional<StringRef> importModule;
 };
 
 class TableSymbol : public Symbol {
@@ -403,15 +411,14 @@ public:
   UndefinedTable(StringRef name, llvm::Optional<StringRef> importName,
                  llvm::Optional<StringRef> importModule, uint32_t flags,
                  InputFile *file, const WasmTableType *type)
-      : TableSymbol(name, UndefinedTableKind, flags, file, type),
-        importName(importName), importModule(importModule) {}
+      : TableSymbol(name, UndefinedTableKind, flags, file, type) {
+    this->importName = importName;
+    this->importModule = importModule;
+  }
 
   static bool classof(const Symbol *s) {
     return s->kind() == UndefinedTableKind;
   }
-
-  llvm::Optional<StringRef> importName;
-  llvm::Optional<StringRef> importModule;
 };
 
 // A tag is a general format to distinguish typed entities. Each tag has an

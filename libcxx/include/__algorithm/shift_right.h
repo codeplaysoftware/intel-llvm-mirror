@@ -12,15 +12,13 @@
 #include <__config>
 #include <__algorithm/move.h>
 #include <__algorithm/move_backward.h>
+#include <__algorithm/swap_ranges.h>
 #include <__iterator/iterator_traits.h>
 #include <type_traits> // swap
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
 #endif
-
-_LIBCPP_PUSH_MACROS
-#include <__undef_macros>
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
@@ -99,7 +97,5 @@ shift_right(_ForwardIterator __first, _ForwardIterator __last,
 #endif // _LIBCPP_STD_VER > 17
 
 _LIBCPP_END_NAMESPACE_STD
-
-_LIBCPP_POP_MACROS
 
 #endif // _LIBCPP___ALGORITHM_SHIFT_RIGHT_H

@@ -12,9 +12,9 @@
 #include <__config>
 #include <__iterator/iterator_traits.h>
 #include <__random/uniform_int_distribution.h>
+#include <__utility/swap.h>
 #include <cstddef>
 #include <cstdint>
-#include <type_traits> // swap
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
@@ -24,7 +24,6 @@ _LIBCPP_PUSH_MACROS
 #include <__undef_macros>
 
 _LIBCPP_BEGIN_NAMESPACE_STD
-
 
 #if _LIBCPP_STD_VER <= 14 || defined(_LIBCPP_ENABLE_CXX17_REMOVED_RANDOM_SHUFFLE) \
   || defined(_LIBCPP_BUILDING_LIBRARY)

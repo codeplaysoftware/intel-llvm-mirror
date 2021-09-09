@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "CommandObjectMemory.h"
+#include "CommandObjectMemoryTag.h"
 #include "lldb/Core/DumpDataExtractor.h"
 #include "lldb/Core/Section.h"
 #include "lldb/Core/ValueObjectMemory.h"
@@ -753,7 +754,7 @@ protected:
     if (outfile_spec) {
 
       File::OpenOptions open_options =
-          File::eOpenOptionWrite | File::eOpenOptionCanCreate;
+          File::eOpenOptionWriteOnly | File::eOpenOptionCanCreate;
       const bool append = m_outfile_options.GetAppend().GetCurrentValue();
       open_options |=
           append ? File::eOpenOptionAppend : File::eOpenOptionTruncate;
@@ -1736,6 +1737,8 @@ CommandObjectMemory::CommandObjectMemory(CommandInterpreter &interpreter)
                  CommandObjectSP(new CommandObjectMemoryHistory(interpreter)));
   LoadSubCommand("region",
                  CommandObjectSP(new CommandObjectMemoryRegion(interpreter)));
+  LoadSubCommand("tag",
+                 CommandObjectSP(new CommandObjectMemoryTag(interpreter)));
 }
 
 CommandObjectMemory::~CommandObjectMemory() = default;

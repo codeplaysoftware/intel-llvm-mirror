@@ -16,14 +16,11 @@
 #include <__algorithm/sift_down.h>
 #include <__algorithm/sort_heap.h>
 #include <__iterator/iterator_traits.h>
-#include <type_traits> // swap
+#include <__utility/swap.h>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
 #endif
-
-_LIBCPP_PUSH_MACROS
-#include <__undef_macros>
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
@@ -65,7 +62,5 @@ partial_sort(_RandomAccessIterator __first, _RandomAccessIterator __middle, _Ran
 }
 
 _LIBCPP_END_NAMESPACE_STD
-
-_LIBCPP_POP_MACROS
 
 #endif // _LIBCPP___ALGORITHM_PARTIAL_SORT_H

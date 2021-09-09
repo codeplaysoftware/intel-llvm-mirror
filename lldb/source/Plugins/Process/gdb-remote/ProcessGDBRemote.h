@@ -230,10 +230,15 @@ public:
   std::string HarmonizeThreadIdsForProfileData(
       StringExtractorGDBRemote &inputStringExtractor);
 
+  void DidFork(lldb::pid_t child_pid, lldb::tid_t child_tid) override;
+  void DidVFork(lldb::pid_t child_pid, lldb::tid_t child_tid) override;
+
 protected:
   friend class ThreadGDBRemote;
   friend class GDBRemoteCommunicationClient;
   friend class GDBRemoteRegisterContext;
+
+  bool SupportsMemoryTagging() override;
 
   /// Broadcaster event bits definitions.
   enum {
@@ -406,6 +411,12 @@ protected:
 
   bool HasErased(FlashRange range);
 
+  llvm::Expected<std::vector<uint8_t>>
+  DoReadMemoryTags(lldb::addr_t addr, size_t len, int32_t type) override;
+
+  Status DoWriteMemoryTags(lldb::addr_t addr, size_t len, int32_t type,
+                           const std::vector<uint8_t> &tags) override;
+
 private:
   // For ProcessGDBRemote only
   std::string m_partial_profile_data;
@@ -451,6 +462,9 @@ private:
 
   ProcessGDBRemote(const ProcessGDBRemote &) = delete;
   const ProcessGDBRemote &operator=(const ProcessGDBRemote &) = delete;
+
+  // fork helpers
+  void DidForkSwitchSoftwareBreakpoints(bool enable);
 };
 
 } // namespace process_gdb_remote

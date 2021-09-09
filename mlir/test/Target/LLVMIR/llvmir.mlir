@@ -18,6 +18,9 @@ llvm.mlir.global internal constant @i32_const(52: i53) : i53
 // CHECK: @int_global_array = internal global [3 x i32] [i32 62, i32 62, i32 62]
 llvm.mlir.global internal @int_global_array(dense<62> : vector<3xi32>) : !llvm.array<3 x i32>
 
+// CHECK: @int_global_array_zero_elements = internal constant [3 x [0 x [4 x float]]] zeroinitializer
+llvm.mlir.global internal constant @int_global_array_zero_elements(dense<> : tensor<3x0x4xf32>) : !llvm.array<3 x array<0 x array<4 x f32>>>
+
 // CHECK: @i32_global_addr_space = internal addrspace(7) global i32 62
 llvm.mlir.global internal @i32_global_addr_space(62: i32) {addr_space = 7 : i32} : i32
 
@@ -32,6 +35,12 @@ llvm.mlir.global internal constant @string_const("foobar") : !llvm.array<6 x i8>
 
 // CHECK: @int_global_undef = internal global i64 undef
 llvm.mlir.global internal @int_global_undef() : i64
+
+// CHECK: @explicit_undef = global i32 undef
+llvm.mlir.global external @explicit_undef() : i32 {
+  %0 = llvm.mlir.undef : i32
+  llvm.return %0 : i32
+}
 
 // CHECK: @int_gep = internal constant i32* getelementptr (i32, i32* @i32_global, i32 2)
 llvm.mlir.global internal constant @int_gep() : !llvm.ptr<i32> {
@@ -78,6 +87,13 @@ llvm.mlir.global private constant @no_unnamed_addr(42 : i64) : i64
 llvm.mlir.global private local_unnamed_addr constant @local_unnamed_addr(42 : i64) : i64
 // CHECK: @unnamed_addr = private unnamed_addr constant i64 42
 llvm.mlir.global private unnamed_addr constant @unnamed_addr(42 : i64) : i64
+
+//
+// dso_local attribute.
+//
+
+llvm.mlir.global @has_dso_local(42 : i64) {dso_local} : i64
+// CHECK: @has_dso_local = dso_local global i64 42
 
 //
 // Section attribute.
@@ -425,6 +441,15 @@ llvm.func @more_imperfectly_nested_loops() {
 
 // CHECK: define internal void @func_internal
 llvm.func internal @func_internal() {
+  llvm.return
+}
+
+//
+// dso_local attribute.
+//
+
+// CHECK: define dso_local void @dso_local_func
+llvm.func @dso_local_func() attributes {dso_local} {
   llvm.return
 }
 
@@ -1569,4 +1594,39 @@ module {
 // CHECK: ![[PIPELINE_DISABLE_NODE]] = !{!"llvm.loop.pipeline.disable", i1 true}
 // CHECK: ![[II_NODE]] = !{!"llvm.loop.pipeline.initiationinterval", i32 2}
 // CHECK: ![[ACCESS_GROUPS_NODE]] = !{![[GROUP_NODE1]], ![[GROUP_NODE2]]}
+
+// -----
+
+module {
+  llvm.func @aliasScope(%arg1 : !llvm.ptr<i32>, %arg2 : !llvm.ptr<i32>, %arg3 : !llvm.ptr<i32>) {
+      %0 = llvm.mlir.constant(0 : i32) : i32
+      llvm.store %0, %arg1 { alias_scopes = [@metadata::@scope1], noalias_scopes = [@metadata::@scope2, @metadata::@scope3] } : !llvm.ptr<i32>
+      llvm.store %0, %arg2 { alias_scopes = [@metadata::@scope2], noalias_scopes = [@metadata::@scope1, @metadata::@scope3] } : !llvm.ptr<i32>
+      %1 = llvm.load %arg3 { alias_scopes = [@metadata::@scope3], noalias_scopes = [@metadata::@scope1, @metadata::@scope2] } : !llvm.ptr<i32>
+      llvm.return
+  }
+
+  llvm.metadata @metadata {
+    llvm.alias_scope_domain @domain { description = "The domain"}
+    llvm.alias_scope @scope1 { domain = @domain, description = "The first scope" }
+    llvm.alias_scope @scope2 { domain = @domain }
+    llvm.alias_scope @scope3 { domain = @domain }
+    llvm.return
+  }
+}
+
+// Function
+// CHECK-LABEL: aliasScope
+// CHECK:  store {{.*}}, !alias.scope ![[SCOPE1:[0-9]+]], !noalias ![[SCOPES23:[0-9]+]]
+// CHECK:  store {{.*}}, !alias.scope ![[SCOPE2:[0-9]+]], !noalias ![[SCOPES13:[0-9]+]]
+// CHECK:  load {{.*}},  !alias.scope ![[SCOPE3:[0-9]+]], !noalias ![[SCOPES12:[0-9]+]]
+
+// Metadata
+// CHECK-DAG: ![[DOMAIN:[0-9]+]] = distinct !{![[DOMAIN]], !"The domain"}
+// CHECK-DAG: ![[SCOPE1]] = distinct !{![[SCOPE1]], ![[DOMAIN]], !"The first scope"}
+// CHECK-DAG: ![[SCOPE2]] = distinct !{![[SCOPE2]], ![[DOMAIN]]}
+// CHECK-DAG: ![[SCOPE3]] = distinct !{![[SCOPE3]], ![[DOMAIN]]}
+// CHECK-DAG: ![[SCOPES12]] = !{![[SCOPE1]], ![[SCOPE2]]}
+// CHECK-DAG: ![[SCOPES13]] = !{![[SCOPE1]], ![[SCOPE3]]}
+// CHECK-DAG: ![[SCOPES23]] = !{![[SCOPE2]], ![[SCOPE3]]}
 

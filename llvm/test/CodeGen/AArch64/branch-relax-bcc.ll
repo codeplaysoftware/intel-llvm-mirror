@@ -4,24 +4,23 @@
 define i32 @invert_bcc(float %x, float %y) #0 {
 ; CHECK-LABEL: invert_bcc:
 ; CHECK:       ; %bb.0:
+; CHECK-NEXT:    mov w0, wzr
 ; CHECK-NEXT:    fcmp s0, s1
-; CHECK-NEXT:    b.ne LBB0_3
+; CHECK-NEXT:    mov w8, #42
+; CHECK-NEXT:    b.pl LBB0_3
 ; CHECK-NEXT:    b LBB0_2
 ; CHECK-NEXT:  LBB0_3:
-; CHECK-NEXT:    b.vc LBB0_1
-; CHECK-NEXT:    b LBB0_2
-; CHECK-NEXT:  LBB0_1: ; %bb2
-; CHECK-NEXT:    mov w8, #9
+; CHECK-NEXT:    b.gt LBB0_2
+; CHECK-NEXT:  ; %bb.1: ; %common.ret
+; CHECK-NEXT:    str w8, [x8]
+; CHECK-NEXT:    ret
+; CHECK-NEXT:  LBB0_2: ; %bb2
 ; CHECK-NEXT:    mov w0, #1
+; CHECK-NEXT:    mov w8, #9
 ; CHECK-NEXT:    ; InlineAsm Start
 ; CHECK-NEXT:    nop
 ; CHECK-NEXT:    nop
 ; CHECK-NEXT:    ; InlineAsm End
-; CHECK-NEXT:    str w8, [x8]
-; CHECK-NEXT:    ret
-; CHECK-NEXT:  LBB0_2: ; %bb1
-; CHECK-NEXT:    mov w8, #42
-; CHECK-NEXT:    mov w0, wzr
 ; CHECK-NEXT:    str w8, [x8]
 ; CHECK-NEXT:    ret
   %1 = fcmp ueq float %x, %y
@@ -45,14 +44,14 @@ declare i32 @foo() #0
 define i32 @block_split(i32 %a, i32 %b) #0 {
 ; CHECK-LABEL: block_split:
 ; CHECK:       ; %bb.0: ; %entry
-; CHECK-NEXT:    cmp w0, #5 ; =5
+; CHECK-NEXT:    cmp w0, #5
 ; CHECK-NEXT:    b.ne LBB1_1
 ; CHECK-NEXT:    b LBB1_2
 ; CHECK-NEXT:  LBB1_1: ; %lor.lhs.false
 ; CHECK-NEXT:    lsl w8, w1, #1
-; CHECK-NEXT:    cmp w1, #7 ; =7
+; CHECK-NEXT:    cmp w1, #7
 ; CHECK-NEXT:    csinc w8, w8, w1, lt
-; CHECK-NEXT:    cmp w8, #16 ; =16
+; CHECK-NEXT:    cmp w8, #16
 ; CHECK-NEXT:    b.le LBB1_2
 ; CHECK-NEXT:    b LBB1_3
 ; CHECK-NEXT:  LBB1_2: ; %if.then

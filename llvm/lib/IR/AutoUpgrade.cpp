@@ -1421,10 +1421,9 @@ static Value *UpgradeMaskedLoad(IRBuilder<> &Builder,
       return Builder.CreateAlignedLoad(ValTy, Ptr, Alignment);
 
   // Convert the mask from an integer type to a vector of i1.
-  unsigned NumElts =
-      cast<FixedVectorType>(Passthru->getType())->getNumElements();
+  unsigned NumElts = cast<FixedVectorType>(ValTy)->getNumElements();
   Mask = getX86MaskVec(Builder, Mask, NumElts);
-  return Builder.CreateMaskedLoad(Ptr, Alignment, Mask, Passthru);
+  return Builder.CreateMaskedLoad(ValTy, Ptr, Alignment, Mask, Passthru);
 }
 
 static Value *upgradeAbs(IRBuilder<> &Builder, CallInst &CI) {
@@ -4362,8 +4361,8 @@ struct StrictFPUpgradeVisitor : public InstVisitor<StrictFPUpgradeVisitor> {
       return;
     // If we get here, the caller doesn't have the strictfp attribute
     // but this callsite does. Replace the strictfp attribute with nobuiltin.
-    Call.removeAttribute(AttributeList::FunctionIndex, Attribute::StrictFP);
-    Call.addAttribute(AttributeList::FunctionIndex, Attribute::NoBuiltin);
+    Call.removeFnAttr(Attribute::StrictFP);
+    Call.addFnAttr(Attribute::NoBuiltin);
   }
 };
 } // namespace
@@ -4384,8 +4383,7 @@ void llvm::UpgradeFunctionAttributes(Function &F) {
   }
 
   // Remove all incompatibile attributes from function.
-  F.removeAttributes(AttributeList::ReturnIndex,
-                     AttributeFuncs::typeIncompatible(F.getReturnType()));
+  F.removeRetAttrs(AttributeFuncs::typeIncompatible(F.getReturnType()));
   for (auto &Arg : F.args())
     Arg.removeAttrs(AttributeFuncs::typeIncompatible(Arg.getType()));
 }

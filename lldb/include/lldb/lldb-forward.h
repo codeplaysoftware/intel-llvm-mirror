@@ -229,7 +229,8 @@ class ThreadPlanTracer;
 class ThreadSpec;
 class ThreadPostMortemTrace;
 class Trace;
-class TraceSessionFileParser;
+class TraceCursor;
+class TraceExporter;
 class Type;
 class TypeAndOrName;
 class TypeCategoryImpl;
@@ -441,6 +442,8 @@ typedef std::shared_ptr<lldb_private::ThreadPostMortemTrace>
 typedef std::weak_ptr<lldb_private::ThreadPlan> ThreadPlanWP;
 typedef std::shared_ptr<lldb_private::ThreadPlanTracer> ThreadPlanTracerSP;
 typedef std::shared_ptr<lldb_private::Trace> TraceSP;
+typedef std::unique_ptr<lldb_private::TraceExporter> TraceExporterUP;
+typedef std::unique_ptr<lldb_private::TraceCursor> TraceCursorUP;
 typedef std::shared_ptr<lldb_private::Type> TypeSP;
 typedef std::weak_ptr<lldb_private::Type> TypeWP;
 typedef std::shared_ptr<lldb_private::TypeCategoryImpl> TypeCategoryImplSP;

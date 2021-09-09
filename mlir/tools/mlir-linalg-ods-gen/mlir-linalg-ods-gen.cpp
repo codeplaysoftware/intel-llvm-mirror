@@ -1910,7 +1910,8 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
       let skipDefaultBuilders = 1;
       let builders = [
         OpBuilder<
-        (ins "ValueRange":$inputs, "ValueRange":$outputs),
+        (ins "ValueRange":$inputs, "ValueRange":$outputs,
+             CArg<"ArrayRef<NamedAttribute>", "{{}">:$attributes),
         [{{
           $_state.addOperands(inputs);
           $_state.addOperands(outputs);
@@ -1919,15 +1920,17 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
             $_builder.getI32VectorAttr({{
               static_cast<int32_t>(inputs.size()),
               static_cast<int32_t>(outputs.size())}));
+          $_state.addAttributes(attributes);
           createAndFillStructuredOpRegion<{0}>(
             $_builder,
             $_state,
             TypeRange(inputs),
-            TypeRange(outputs)/*, TODO: support captures*/);
+            TypeRange(outputs));
         }]>,
         OpBuilder<
         (ins "TypeRange":$resultTensorTypes, "ValueRange":$inputs,
-             "ValueRange":$outputs),
+             "ValueRange":$outputs,
+             CArg<"ArrayRef<NamedAttribute>", "{{}">:$attributes),
         [{{
           $_state.addOperands(inputs);
           $_state.addOperands(outputs);
@@ -1937,11 +1940,12 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
             $_builder.getI32VectorAttr({{
               static_cast<int32_t>(inputs.size()),
               static_cast<int32_t>(outputs.size())}));
+          $_state.addAttributes(attributes);
           createAndFillStructuredOpRegion<{0}>(
             $_builder,
             $_state,
             TypeRange(inputs),
-            TypeRange(outputs)/*, TODO: support captures*/);
+            TypeRange(outputs));
         }]>,
         OpBuilder<
         (ins "TypeRange":$resultTensorTypes, "ValueRange":$operands,
@@ -1956,7 +1960,7 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
       ];
       let printer = [{{ return ::printNamedStructuredOp(p, *this); }];
       let parser = [{{
-        return ::parseNamedStructuredOp<{0}>(parser, result/*TODO:, captures*/);
+        return ::parseNamedStructuredOp<{0}>(parser, result);
       }];
       let hasFolder = 1;
 
@@ -1964,10 +1968,9 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
         // Auto-generated.
         ArrayAttr iterator_types();
         ArrayAttr indexing_maps();
-        static void regionBuilder(ImplicitLocOpBuilder &b,
-                                  Block &block, ValueRange captures);
-        static std::function<void(ImplicitLocOpBuilder &b,
-                                  Block &, ValueRange)> getRegionBuilder() {{
+        static void regionBuilder(ImplicitLocOpBuilder &b, Block &block);
+        static std::function<void(ImplicitLocOpBuilder &b, Block &)>
+        getRegionBuilder() {{
           return regionBuilder;
         }
 
@@ -2021,7 +2024,8 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
     const char *builderFmt = R"FMT(
       , OpBuilder<
       (ins "TypeRange":$resultTensorTypes, "ValueRange":$inputs,
-           "ValueRange":$outputs, {1}),
+           "ValueRange":$outputs, {1},
+           CArg<"ArrayRef<NamedAttribute>", "{{}">:$attributes),
       [{{
         $_state.addOperands(inputs);
         $_state.addOperands(outputs);
@@ -2031,11 +2035,12 @@ void TCParser::printODS(llvm::raw_ostream &os, StringRef cppOpName,
           $_builder.getI32VectorAttr({{
             static_cast<int32_t>(inputs.size()),
             static_cast<int32_t>(outputs.size())}));
+        $_state.addAttributes(attributes);
         createAndFillStructuredOpRegion<{0}>(
           $_builder,
           $_state,
           TypeRange(inputs),
-          TypeRange(outputs)/*, TODO: support captures*/);
+          TypeRange(outputs));
         {2}
       }]>
     )FMT";
@@ -2354,8 +2359,7 @@ void TCParser::printRegionBuilder(llvm::raw_ostream &os, StringRef cppOpName,
   };
 
   const char *regionBuilderFmt = R"FMT(
-  void {0}::regionBuilder(ImplicitLocOpBuilder &b,
-                          Block &block, ValueRange captures) {
+  void {0}::regionBuilder(ImplicitLocOpBuilder &b, Block &block) {
     auto args = block.getArguments();
     Value {1};
     {2}

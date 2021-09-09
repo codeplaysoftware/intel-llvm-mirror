@@ -47,8 +47,8 @@ NVPTX::Utils::splice(Function *OldFn,
   auto *M = OldFn->getParent();
   const AttributeList &OldAttributes = OldFn->getAttributes();
   auto NewAttributes =
-      AttributeList::get(Context, OldAttributes.getFnAttributes(),
-                         OldAttributes.getRetAttributes(), ArgumentAttributes);
+      AttributeList::get(Context, OldAttributes.getFnAttrs(),
+                         OldAttributes.getRetAttrs(), ArgumentAttributes);
   // Create the new function body and insert it into the module.
   Function *NewFn =
       Function::Create(NewFnTy, OldFn->getLinkage(), OldFn->getAddressSpace(),

@@ -47,6 +47,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/InlineAsm.h"
@@ -566,7 +567,7 @@ bool IRTranslator::translateBr(const User &U, MachineIRBuilder &MIRBuilder) {
 
   if (BrInst.isUnconditional()) {
     // If the unconditional target is the layout successor, fallthrough.
-    if (!CurMBB.isLayoutSuccessor(Succ0MBB))
+    if (OptLevel == CodeGenOpt::None || !CurMBB.isLayoutSuccessor(Succ0MBB))
       MIRBuilder.buildBr(*Succ0MBB);
 
     // Link successors.
@@ -1300,7 +1301,7 @@ bool IRTranslator::translateLoad(const User &U, MachineIRBuilder &MIRBuilder) {
     AAMDNodes AAMetadata;
     LI.getAAMetadata(AAMetadata);
     auto MMO = MF->getMachineMemOperand(
-        Ptr, Flags, MRI->getType(Regs[i]).getSizeInBytes(),
+        Ptr, Flags, MRI->getType(Regs[i]),
         commonAlignment(BaseAlign, Offsets[i] / 8), AAMetadata, Ranges,
         LI.getSyncScopeID(), LI.getOrdering());
     MIRBuilder.buildLoad(Regs[i], Addr, *MMO);
@@ -1342,7 +1343,7 @@ bool IRTranslator::translateStore(const User &U, MachineIRBuilder &MIRBuilder) {
     AAMDNodes AAMetadata;
     SI.getAAMetadata(AAMetadata);
     auto MMO = MF->getMachineMemOperand(
-        Ptr, Flags, MRI->getType(Vals[i]).getSizeInBytes(),
+        Ptr, Flags, MRI->getType(Vals[i]),
         commonAlignment(BaseAlign, Offsets[i] / 8), AAMetadata, nullptr,
         SI.getSyncScopeID(), SI.getOrdering());
     MIRBuilder.buildStore(Vals[i], Addr, *MMO);
@@ -1472,14 +1473,22 @@ bool IRTranslator::translateGetElementPtr(const User &U,
   // Normalize Vector GEP - all scalar operands should be converted to the
   // splat vector.
   unsigned VectorWidth = 0;
-  if (auto *VT = dyn_cast<VectorType>(U.getType()))
+
+  // True if we should use a splat vector; using VectorWidth alone is not
+  // sufficient.
+  bool WantSplatVector = false;
+  if (auto *VT = dyn_cast<VectorType>(U.getType())) {
     VectorWidth = cast<FixedVectorType>(VT)->getNumElements();
+    // We don't produce 1 x N vectors; those are treated as scalars.
+    WantSplatVector = VectorWidth > 1;
+  }
 
   // We might need to splat the base pointer into a vector if the offsets
   // are vectors.
-  if (VectorWidth && !PtrTy.isVector()) {
+  if (WantSplatVector && !PtrTy.isVector()) {
     BaseReg =
-        MIRBuilder.buildSplatVector(LLT::vector(VectorWidth, PtrTy), BaseReg)
+        MIRBuilder
+            .buildSplatVector(LLT::fixed_vector(VectorWidth, PtrTy), BaseReg)
             .getReg(0);
     PtrIRTy = FixedVectorType::get(PtrIRTy, VectorWidth);
     PtrTy = getLLTForType(*PtrIRTy, *DL);
@@ -1515,7 +1524,7 @@ bool IRTranslator::translateGetElementPtr(const User &U,
       Register IdxReg = getOrCreateVReg(*Idx);
       LLT IdxTy = MRI->getType(IdxReg);
       if (IdxTy != OffsetTy) {
-        if (!IdxTy.isVector() && VectorWidth) {
+        if (!IdxTy.isVector() && WantSplatVector) {
           IdxReg = MIRBuilder.buildSplatVector(
             OffsetTy.changeElementType(IdxTy), IdxReg).getReg(0);
         }
@@ -1564,7 +1573,7 @@ bool IRTranslator::translateMemFunc(const CallInst &CI,
     Register SrcReg = getOrCreateVReg(**AI);
     LLT SrcTy = MRI->getType(SrcReg);
     if (SrcTy.isPointer())
-      MinPtrSize = std::min(SrcTy.getSizeInBits(), MinPtrSize);
+      MinPtrSize = std::min<unsigned>(SrcTy.getSizeInBits(), MinPtrSize);
     SrcRegs.push_back(SrcReg);
   }
 
@@ -1588,6 +1597,9 @@ bool IRTranslator::translateMemFunc(const CallInst &CI,
   if (auto *MCI = dyn_cast<MemCpyInst>(&CI)) {
     DstAlign = MCI->getDestAlign().valueOrOne();
     SrcAlign = MCI->getSourceAlign().valueOrOne();
+  } else if (auto *MCI = dyn_cast<MemCpyInlineInst>(&CI)) {
+    DstAlign = MCI->getDestAlign().valueOrOne();
+    SrcAlign = MCI->getSourceAlign().valueOrOne();
   } else if (auto *MMI = dyn_cast<MemMoveInst>(&CI)) {
     DstAlign = MMI->getDestAlign().valueOrOne();
     SrcAlign = MMI->getSourceAlign().valueOrOne();
@@ -1596,10 +1608,12 @@ bool IRTranslator::translateMemFunc(const CallInst &CI,
     DstAlign = MSI->getDestAlign().valueOrOne();
   }
 
-  // We need to propagate the tail call flag from the IR inst as an argument.
-  // Otherwise, we have to pessimize and assume later that we cannot tail call
-  // any memory intrinsics.
-  ICall.addImm(CI.isTailCall() ? 1 : 0);
+  if (Opcode != TargetOpcode::G_MEMCPY_INLINE) {
+    // We need to propagate the tail call flag from the IR inst as an argument.
+    // Otherwise, we have to pessimize and assume later that we cannot tail call
+    // any memory intrinsics.
+    ICall.addImm(CI.isTailCall() ? 1 : 0);
+  }
 
   // Create mem operands to store the alignment and volatile info.
   auto VolFlag = IsVol ? MachineMemOperand::MOVolatile : MachineMemOperand::MONone;
@@ -1626,12 +1640,14 @@ void IRTranslator::getStackGuard(Register DstReg,
   if (!Global)
     return;
 
+  unsigned AddrSpace = Global->getType()->getPointerAddressSpace();
+  LLT PtrTy = LLT::pointer(AddrSpace, DL->getPointerSizeInBits(AddrSpace));
+
   MachinePointerInfo MPInfo(Global);
   auto Flags = MachineMemOperand::MOLoad | MachineMemOperand::MOInvariant |
                MachineMemOperand::MODereferenceable;
-  MachineMemOperand *MemRef =
-      MF->getMachineMemOperand(MPInfo, Flags, DL->getPointerSizeInBits() / 8,
-                               DL->getPointerABIAlignment(0));
+  MachineMemOperand *MemRef = MF->getMachineMemOperand(
+      MPInfo, Flags, PtrTy, DL->getPointerABIAlignment(AddrSpace));
   MIB.setMemRefs({MemRef});
 }
 
@@ -1748,6 +1764,10 @@ unsigned IRTranslator::getSimpleIntrinsicOpcode(Intrinsic::ID ID) {
       return TargetOpcode::G_VECREDUCE_UMAX;
     case Intrinsic::vector_reduce_umin:
       return TargetOpcode::G_VECREDUCE_UMIN;
+    case Intrinsic::lround:
+      return TargetOpcode::G_LROUND;
+    case Intrinsic::llround:
+      return TargetOpcode::G_LLROUND;
   }
   return Intrinsic::not_intrinsic;
 }
@@ -1824,7 +1844,7 @@ bool IRTranslator::translateKnownIntrinsic(const CallInst &CI, Intrinsic::ID ID,
       const Function &F = *MI->getParent()->getParent();
       auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
       if (MemoryOpRemark::canHandle(MI, TLI)) {
-        MemoryOpRemark R(*ORE, "memsize", *DL, TLI);
+        MemoryOpRemark R(*ORE, "gisel-irtranslator-memsize", *DL, TLI);
         R.visit(MI);
       }
     }
@@ -2030,6 +2050,8 @@ bool IRTranslator::translateKnownIntrinsic(const CallInst &CI, Intrinsic::ID ID,
                             getOrCreateVReg(*CI.getArgOperand(0)),
                             MachineInstr::copyFlagsFromInstruction(CI));
     return true;
+  case Intrinsic::memcpy_inline:
+    return translateMemFunc(CI, MIRBuilder, TargetOpcode::G_MEMCPY_INLINE);
   case Intrinsic::memcpy:
     return translateMemFunc(CI, MIRBuilder, TargetOpcode::G_MEMCPY);
   case Intrinsic::memmove:
@@ -2066,7 +2088,7 @@ bool IRTranslator::translateKnownIntrinsic(const CallInst &CI, Intrinsic::ID ID,
         *MF->getMachineMemOperand(MachinePointerInfo::getFixedStack(*MF, FI),
                                   MachineMemOperand::MOStore |
                                       MachineMemOperand::MOVolatile,
-                                  PtrTy.getSizeInBits() / 8, Align(8)));
+                                  PtrTy, Align(8)));
     return true;
   }
   case Intrinsic::stacksave: {
@@ -2211,6 +2233,14 @@ bool IRTranslator::translateKnownIntrinsic(const CallInst &CI, Intrinsic::ID ID,
 
     return true;
   }
+  case Intrinsic::isnan: {
+    Register Src = getOrCreateVReg(*CI.getArgOperand(0));
+    unsigned Flags = MachineInstr::copyFlagsFromInstruction(CI);
+    if (!CI.getFunction()->getAttributes().hasFnAttr(llvm::Attribute::StrictFP))
+      Flags |= MachineInstr::NoFPExcept;
+    MIRBuilder.buildIsNaN(getOrCreateVReg(CI), Src, Flags);
+    return true;
+  }
 #define INSTRUCTION(NAME, NARG, ROUND_MODE, INTRINSIC)  \
   case Intrinsic::INTRINSIC:
 #include "llvm/IR/ConstrainedOps.def"
@@ -2263,7 +2293,7 @@ bool IRTranslator::translateCallBase(const CallBase &CB,
       const Function &F = *CI->getParent()->getParent();
       auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
       if (MemoryOpRemark::canHandle(CI, TLI)) {
-        MemoryOpRemark R(*ORE, "memsize", *DL, TLI);
+        MemoryOpRemark R(*ORE, "gisel-irtranslator-memsize", *DL, TLI);
         R.visit(CI);
       }
     }
@@ -2303,6 +2333,15 @@ bool IRTranslator::translateCall(const User &U, MachineIRBuilder &MIRBuilder) {
 
   if (CI.isInlineAsm())
     return translateInlineAsm(CI, MIRBuilder);
+
+  if (F && F->hasFnAttribute("dontcall")) {
+    unsigned LocCookie = 0;
+    if (MDNode *MD = CI.getMetadata("srcloc"))
+      LocCookie =
+          mdconst::extract<ConstantInt>(MD->getOperand(0))->getZExtValue();
+    DiagnosticInfoDontCall D(F->getName(), LocCookie);
+    F->getContext().diagnose(D);
+  }
 
   Intrinsic::ID ID = Intrinsic::not_intrinsic;
   if (F && F->isIntrinsic()) {
@@ -2363,10 +2402,11 @@ bool IRTranslator::translateCall(const User &U, MachineIRBuilder &MIRBuilder) {
   if (TLI.getTgtMemIntrinsic(Info, CI, *MF, ID)) {
     Align Alignment = Info.align.getValueOr(
         DL->getABITypeAlign(Info.memVT.getTypeForEVT(F->getContext())));
-
-    uint64_t Size = Info.memVT.getStoreSize();
+    LLT MemTy = Info.memVT.isSimple()
+                    ? getLLTForMVT(Info.memVT.getSimpleVT())
+                    : LLT::scalar(Info.memVT.getStoreSizeInBits());
     MIB.addMemOperand(MF->getMachineMemOperand(MachinePointerInfo(Info.ptrVal),
-                                               Info.flags, Size, Alignment));
+                                               Info.flags, MemTy, Alignment));
   }
 
   return true;
@@ -2732,9 +2772,6 @@ bool IRTranslator::translateAtomicCmpXchg(const User &U,
   auto &TLI = *MF->getSubtarget().getTargetLowering();
   auto Flags = TLI.getAtomicMemOperandFlags(I, *DL);
 
-  Type *ResType = I.getType();
-  Type *ValType = ResType->Type::getStructElementType(0);
-
   auto Res = getOrCreateVRegs(I);
   Register OldValRes = Res[0];
   Register SuccessRes = Res[1];
@@ -2748,9 +2785,9 @@ bool IRTranslator::translateAtomicCmpXchg(const User &U,
   MIRBuilder.buildAtomicCmpXchgWithSuccess(
       OldValRes, SuccessRes, Addr, Cmp, NewVal,
       *MF->getMachineMemOperand(
-          MachinePointerInfo(I.getPointerOperand()), Flags,
-          DL->getTypeStoreSize(ValType), getMemOpAlign(I), AAMetadata, nullptr,
-          I.getSyncScopeID(), I.getSuccessOrdering(), I.getFailureOrdering()));
+          MachinePointerInfo(I.getPointerOperand()), Flags, MRI->getType(Cmp),
+          getMemOpAlign(I), AAMetadata, nullptr, I.getSyncScopeID(),
+          I.getSuccessOrdering(), I.getFailureOrdering()));
   return true;
 }
 
@@ -2759,8 +2796,6 @@ bool IRTranslator::translateAtomicRMW(const User &U,
   const AtomicRMWInst &I = cast<AtomicRMWInst>(U);
   auto &TLI = *MF->getSubtarget().getTargetLowering();
   auto Flags = TLI.getAtomicMemOperandFlags(I, *DL);
-
-  Type *ResType = I.getType();
 
   Register Res = getOrCreateVReg(I);
   Register Addr = getOrCreateVReg(*I.getPointerOperand());
@@ -2817,9 +2852,9 @@ bool IRTranslator::translateAtomicRMW(const User &U,
   MIRBuilder.buildAtomicRMW(
       Opcode, Res, Addr, Val,
       *MF->getMachineMemOperand(MachinePointerInfo(I.getPointerOperand()),
-                                Flags, DL->getTypeStoreSize(ResType),
-                                getMemOpAlign(I), AAMetadata, nullptr,
-                                I.getSyncScopeID(), I.getOrdering()));
+                                Flags, MRI->getType(Val), getMemOpAlign(I),
+                                AAMetadata, nullptr, I.getSyncScopeID(),
+                                I.getOrdering()));
   return true;
 }
 
@@ -3075,8 +3110,6 @@ static bool checkForMustTailInVarArgFn(bool IsVarArg, const BasicBlock &BB) {
 bool IRTranslator::runOnMachineFunction(MachineFunction &CurMF) {
   MF = &CurMF;
   const Function &F = MF->getFunction();
-  if (F.empty())
-    return false;
   GISelCSEAnalysisWrapper &Wrapper =
       getAnalysis<GISelCSEAnalysisWrapperPass>().getCSEWrapper();
   // Set the CSEConfig and run the analysis.

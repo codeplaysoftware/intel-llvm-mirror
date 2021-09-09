@@ -14,6 +14,8 @@
 using namespace mlir;
 using namespace mlir::emitc;
 
+#include "mlir/Dialect/EmitC/IR/EmitCDialect.cpp.inc"
+
 //===----------------------------------------------------------------------===//
 // EmitCDialect
 //===----------------------------------------------------------------------===//
@@ -115,6 +117,41 @@ OpFoldResult emitc::ConstantOp::fold(ArrayRef<Attribute> operands) {
 }
 
 //===----------------------------------------------------------------------===//
+// IncludeOp
+//===----------------------------------------------------------------------===//
+
+static void print(OpAsmPrinter &p, IncludeOp &op) {
+  bool standardInclude = op.is_standard_include();
+
+  p << " ";
+  if (standardInclude)
+    p << "<";
+  p << "\"" << op.include() << "\"";
+  if (standardInclude)
+    p << ">";
+}
+
+static ParseResult parseIncludeOp(OpAsmParser &parser, OperationState &result) {
+  bool standardInclude = !parser.parseOptionalLess();
+
+  StringAttr include;
+  OptionalParseResult includeParseResult =
+      parser.parseOptionalAttribute(include, "include", result.attributes);
+  if (!includeParseResult.hasValue())
+    return parser.emitError(parser.getNameLoc()) << "expected string attribute";
+
+  if (standardInclude && parser.parseOptionalGreater())
+    return parser.emitError(parser.getNameLoc())
+           << "expected trailing '>' for standard include";
+
+  if (standardInclude)
+    result.addAttribute("is_standard_include",
+                        UnitAttr::get(parser.getBuilder().getContext()));
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
@@ -132,7 +169,7 @@ Attribute emitc::OpaqueAttr::parse(MLIRContext *context,
                                    DialectAsmParser &parser, Type type) {
   if (parser.parseLess())
     return Attribute();
-  StringRef value;
+  std::string value;
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseOptionalString(&value)) {
     parser.emitError(loc) << "expected string";
@@ -177,7 +214,7 @@ void emitc::OpaqueAttr::print(DialectAsmPrinter &printer) const {
 Type emitc::OpaqueType::parse(MLIRContext *context, DialectAsmParser &parser) {
   if (parser.parseLess())
     return Type();
-  StringRef value;
+  std::string value;
   llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseOptionalString(&value) || value.empty()) {
     parser.emitError(loc) << "expected non empty string";

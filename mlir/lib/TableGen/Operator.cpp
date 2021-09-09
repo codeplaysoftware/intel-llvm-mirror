@@ -458,6 +458,13 @@ void Operator::populateOpStructure() {
     results.push_back({name, TypeConstraint(resultDef)});
     if (!name.empty())
       argumentsAndResultsIndex[name] = resultIndex(i);
+
+    // We currently only support VariadicOfVariadic operands.
+    if (results.back().constraint.isVariadicOfVariadic()) {
+      PrintFatalError(
+          def.getLoc(),
+          "'VariadicOfVariadic' results are currently not supported");
+    }
   }
 
   // Handle successors
@@ -489,11 +496,21 @@ void Operator::populateOpStructure() {
     // This is uniquing based on pointers of the trait.
     SmallPtrSet<const llvm::Init *, 32> traitSet;
     traits.reserve(traitSet.size());
-    for (auto *traitInit : *traitList) {
-      // Keep traits in the same order while skipping over duplicates.
-      if (traitSet.insert(traitInit).second)
-        traits.push_back(Trait::create(traitInit));
-    }
+
+    std::function<void(llvm::ListInit *)> insert;
+    insert = [&](llvm::ListInit *traitList) {
+      for (auto *traitInit : *traitList) {
+        auto *def = cast<DefInit>(traitInit)->getDef();
+        if (def->isSubClassOf("OpTraitList")) {
+          insert(def->getValueAsListInit("traits"));
+          continue;
+        }
+        // Keep traits in the same order while skipping over duplicates.
+        if (traitSet.insert(traitInit).second)
+          traits.push_back(Trait::create(traitInit));
+      }
+    };
+    insert(traitList);
   }
 
   populateTypeInferenceInfo(argumentsAndResultsIndex);
@@ -567,8 +584,7 @@ bool Operator::hasAssemblyFormat() const {
 
 StringRef Operator::getAssemblyFormat() const {
   return TypeSwitch<llvm::Init *, StringRef>(def.getValueInit("assemblyFormat"))
-      .Case<llvm::StringInit>(
-          [&](auto *init) { return init->getValue(); });
+      .Case<llvm::StringInit>([&](auto *init) { return init->getValue(); });
 }
 
 void Operator::print(llvm::raw_ostream &os) const {
