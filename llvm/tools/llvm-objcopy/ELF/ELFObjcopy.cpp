@@ -45,12 +45,12 @@
 #include <system_error>
 #include <utility>
 
-namespace llvm {
-namespace objcopy {
-namespace elf {
+using namespace llvm;
+using namespace llvm::ELF;
+using namespace llvm::objcopy;
+using namespace llvm::objcopy::elf;
+using namespace llvm::object;
 
-using namespace object;
-using namespace ELF;
 using SectionPred = std::function<bool(const SectionBase &Sec)>;
 
 static bool isDebugSection(const SectionBase &Sec) {
@@ -71,7 +71,7 @@ static bool onlyKeepDWOPred(const Object &Obj, const SectionBase &Sec) {
   return !isDWOSection(Sec);
 }
 
-uint64_t getNewShfFlags(SectionFlag AllFlags) {
+static uint64_t getNewShfFlags(SectionFlag AllFlags) {
   uint64_t NewFlags = 0;
   if (AllFlags & SectionFlag::SecAlloc)
     NewFlags |= ELF::SHF_ALLOC;
@@ -204,8 +204,7 @@ static bool isCompressable(const SectionBase &Sec) {
 }
 
 static Error replaceDebugSections(
-    Object &Obj, SectionPred &RemovePred,
-    function_ref<bool(const SectionBase &)> ShouldReplace,
+    Object &Obj, function_ref<bool(const SectionBase &)> ShouldReplace,
     function_ref<Expected<SectionBase *>(const SectionBase *)> AddSection) {
   // Build a list of the debug sections we are going to replace.
   // We can't call `AddSection` while iterating over sections,
@@ -225,17 +224,7 @@ static Error replaceDebugSections(
     FromTo[S] = *NewSection;
   }
 
-  // Now we want to update the target sections of relocation
-  // sections. Also we will update the relocations themselves
-  // to update the symbol references.
-  for (auto &Sec : Obj.sections())
-    Sec.replaceSectionReferences(FromTo);
-
-  RemovePred = [ShouldReplace, RemovePred](const SectionBase &Sec) {
-    return ShouldReplace(Sec) || RemovePred(Sec);
-  };
-
-  return Error::success();
+  return Obj.replaceSections(FromTo);
 }
 
 static bool isUnneededSymbol(const Symbol &Sym) {
@@ -474,9 +463,12 @@ static Error replaceAndRemoveSections(const CommonConfig &Config, Object &Obj) {
     };
   }
 
+  if (Error E = Obj.removeSections(Config.AllowBrokenLinks, RemovePred))
+    return E;
+
   if (Config.CompressionType != DebugCompressionType::None) {
     if (Error Err = replaceDebugSections(
-            Obj, RemovePred, isCompressable,
+            Obj, isCompressable,
             [&Config, &Obj](const SectionBase *S) -> Expected<SectionBase *> {
               Expected<CompressedSection> NewSection =
                   CompressedSection::create(*S, Config.CompressionType);
@@ -488,7 +480,7 @@ static Error replaceAndRemoveSections(const CommonConfig &Config, Object &Obj) {
       return Err;
   } else if (Config.DecompressDebugSections) {
     if (Error Err = replaceDebugSections(
-            Obj, RemovePred,
+            Obj,
             [](const SectionBase &S) { return isa<CompressedSection>(&S); },
             [&Obj](const SectionBase *S) {
               const CompressedSection *CS = cast<CompressedSection>(S);
@@ -497,7 +489,7 @@ static Error replaceAndRemoveSections(const CommonConfig &Config, Object &Obj) {
       return Err;
   }
 
-  return Obj.removeSections(Config.AllowBrokenLinks, RemovePred);
+  return Error::success();
 }
 
 // Add symbol to the Object symbol table with the specified properties.
@@ -719,9 +711,9 @@ static Error writeOutput(const CommonConfig &Config, Object &Obj,
   return Writer->write();
 }
 
-Error executeObjcopyOnIHex(const CommonConfig &Config,
-                           const ELFConfig &ELFConfig, MemoryBuffer &In,
-                           raw_ostream &Out) {
+Error objcopy::elf::executeObjcopyOnIHex(const CommonConfig &Config,
+                                         const ELFConfig &ELFConfig,
+                                         MemoryBuffer &In, raw_ostream &Out) {
   IHexReader Reader(&In);
   Expected<std::unique_ptr<Object>> Obj = Reader.create(true);
   if (!Obj)
@@ -734,9 +726,10 @@ Error executeObjcopyOnIHex(const CommonConfig &Config,
   return writeOutput(Config, **Obj, Out, OutputElfType);
 }
 
-Error executeObjcopyOnRawBinary(const CommonConfig &Config,
-                                const ELFConfig &ELFConfig, MemoryBuffer &In,
-                                raw_ostream &Out) {
+Error objcopy::elf::executeObjcopyOnRawBinary(const CommonConfig &Config,
+                                              const ELFConfig &ELFConfig,
+                                              MemoryBuffer &In,
+                                              raw_ostream &Out) {
   BinaryReader Reader(&In, ELFConfig.NewSymbolVisibility);
   Expected<std::unique_ptr<Object>> Obj = Reader.create(true);
   if (!Obj)
@@ -751,9 +744,10 @@ Error executeObjcopyOnRawBinary(const CommonConfig &Config,
   return writeOutput(Config, **Obj, Out, OutputElfType);
 }
 
-Error executeObjcopyOnBinary(const CommonConfig &Config,
-                             const ELFConfig &ELFConfig,
-                             object::ELFObjectFileBase &In, raw_ostream &Out) {
+Error objcopy::elf::executeObjcopyOnBinary(const CommonConfig &Config,
+                                           const ELFConfig &ELFConfig,
+                                           object::ELFObjectFileBase &In,
+                                           raw_ostream &Out) {
   ELFReader Reader(&In, Config.ExtractPartition);
   Expected<std::unique_ptr<Object>> Obj =
       Reader.create(!Config.SymbolsToAdd.empty());
@@ -772,7 +766,3 @@ Error executeObjcopyOnBinary(const CommonConfig &Config,
 
   return Error::success();
 }
-
-} // end namespace elf
-} // end namespace objcopy
-} // end namespace llvm

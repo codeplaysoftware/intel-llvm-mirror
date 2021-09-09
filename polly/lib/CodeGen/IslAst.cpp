@@ -348,9 +348,9 @@ static isl::ast_expr buildCondition(Scop &S, isl::ast_build Build,
   isl::id Right = BFirst.get_tuple_id(isl::dim::set);
 
   isl::ast_expr True =
-      isl::ast_expr::from_val(isl::val::int_from_ui(Build.get_ctx(), 1));
+      isl::ast_expr::from_val(isl::val::int_from_ui(Build.ctx(), 1));
   isl::ast_expr False =
-      isl::ast_expr::from_val(isl::val::int_from_ui(Build.get_ctx(), 0));
+      isl::ast_expr::from_val(isl::val::int_from_ui(Build.ctx(), 0));
 
   const ScopArrayInfo *BaseLeft =
       ScopArrayInfo::getFromId(Left)->getBasePtrOriginSAI();
@@ -404,7 +404,7 @@ isl::ast_expr IslAst::buildRunCondition(Scop &S, const isl::ast_build &Build) {
   if (S.hasTrivialInvalidContext()) {
     RunCondition = std::move(PosCond);
   } else {
-    auto ZeroV = isl::val::zero(Build.get_ctx());
+    auto ZeroV = isl::val::zero(Build.ctx());
     auto NegCond = Build.expr_from(S.getInvalidContext());
     auto NotNegCond =
         isl::ast_expr::from_val(std::move(ZeroV)).eq(std::move(NegCond));
@@ -678,8 +678,8 @@ static __isl_give isl_printer *cbPrintUser(__isl_take isl_printer *P,
                                            __isl_take isl_ast_print_options *O,
                                            __isl_keep isl_ast_node *Node,
                                            void *User) {
-  isl::ast_node AstNode = isl::manage_copy(Node);
-  isl::ast_expr NodeExpr = AstNode.user_get_expr();
+  isl::ast_node_user AstNode = isl::manage_copy(Node).as<isl::ast_node_user>();
+  isl::ast_expr NodeExpr = AstNode.expr();
   isl::ast_expr CallExpr = NodeExpr.get_op_arg(0);
   isl::id CallExprId = CallExpr.get_id();
   ScopStmt *AccessStmt = (ScopStmt *)CallExprId.get_user();

@@ -102,11 +102,13 @@ extern bool hwasan_init_is_running;
 extern int hwasan_report_count;
 
 bool InitShadow();
-void InitPrctl();
+void InitializeOsSupport();
 void InitThreads();
 void InitializeInterceptors();
 
 void HwasanAllocatorInit();
+void HwasanAllocatorLock();
+void HwasanAllocatorUnlock();
 
 void *hwasan_malloc(uptr size, StackTrace *stack);
 void *hwasan_calloc(uptr nmemb, uptr size, StackTrace *stack);
@@ -139,6 +141,8 @@ void HwasanTSDThreadInit();
 void HwasanAtExit();
 
 void HwasanOnDeadlySignal(int signo, void *info, void *context);
+
+void HwasanInstallAtForkHandler();
 
 void UpdateMemoryUsage();
 

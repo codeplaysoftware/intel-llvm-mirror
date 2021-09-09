@@ -1,8 +1,10 @@
-/*===--------------------------------------------------------------------------
- *              ATMI (Asynchronous Task and Memory Interface)
- *
- * This file is distributed under the MIT License. See LICENSE.txt for details.
- *===------------------------------------------------------------------------*/
+//===--- amdgpu/impl/internal.h ----------------------------------- C++ -*-===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
 #ifndef SRC_RUNTIME_INCLUDE_INTERNAL_H_
 #define SRC_RUNTIME_INCLUDE_INTERNAL_H_
 #include <inttypes.h>
@@ -12,26 +14,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <atomic>
 #include <cstring>
-#include <deque>
 #include <map>
 #include <queue>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "hsa.h"
-#include "hsa_ext_amd.h"
-#include "hsa_ext_finalize.h"
+#include "hsa_api.h"
 
-#include "atmi.h"
-#include "atmi_runtime.h"
+#include "impl_runtime.h"
 #include "rt.h"
 
 #define MAX_NUM_KERNELS (1024 * 16)
 
-typedef struct atmi_implicit_args_s {
+typedef struct impl_implicit_args_s {
   unsigned long offset_x;
   unsigned long offset_y;
   unsigned long offset_z;
@@ -42,11 +39,9 @@ typedef struct atmi_implicit_args_s {
   unsigned long cpu_worker_signals;
   unsigned long cpu_queue_ptr;
   unsigned long kernarg_template_ptr;
-} atmi_implicit_args_t;
+} impl_implicit_args_t;
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 #ifdef DEBUG
 #define DEBUG_PRINT(fmt, ...)                                                  \
@@ -65,9 +60,7 @@ typedef struct hsa_signal_s {
 } hsa_signal_t;
 #endif
 
-#ifdef __cplusplus
 }
-#endif
 
 /* ---------------------------------------------------------------------------------
  * Simulated CPU Data Structures and API
@@ -107,21 +100,7 @@ class KernelImpl;
 } // namespace core
 
 struct SignalPoolT {
-  SignalPoolT() {
-    // If no signals are created, and none can be created later,
-    // will ultimately fail at pop()
-
-    unsigned N = 1024; // default max pool size from atmi
-    for (unsigned i = 0; i < N; i++) {
-      hsa_signal_t new_signal;
-      hsa_status_t err = hsa_signal_create(0, 0, NULL, &new_signal);
-      if (err != HSA_STATUS_SUCCESS) {
-        break;
-      }
-      state.push(new_signal);
-    }
-    DEBUG_PRINT("Signal Pool Initial Size: %lu\n", state.size());
-  }
+  SignalPoolT() {}
   SignalPoolT(const SignalPoolT &) = delete;
   SignalPoolT(SignalPoolT &&) = delete;
   ~SignalPoolT() {
@@ -197,10 +176,7 @@ template <typename T> inline T *alignUp(T *value, size_t alignment) {
       alignDown((intptr_t)(value + alignment - 1), alignment));
 }
 
-hsa_status_t register_allocation(void *addr, size_t size,
-                                 atmi_devtype_t DeviceType);
-
-extern bool atl_is_atmi_initialized();
+extern bool atl_is_impl_initialized();
 
 bool handle_group_signal(hsa_signal_value_t value, void *arg);
 
@@ -208,6 +184,5 @@ hsa_status_t allow_access_to_all_gpu_agents(void *ptr);
 } // namespace core
 
 const char *get_error_string(hsa_status_t err);
-const char *get_atmi_error_string(hsa_status_t err);
 
 #endif // SRC_RUNTIME_INCLUDE_INTERNAL_H_

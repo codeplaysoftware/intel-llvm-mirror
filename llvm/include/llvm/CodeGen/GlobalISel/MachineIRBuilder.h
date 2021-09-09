@@ -205,14 +205,6 @@ private:
   SrcType Ty;
 };
 
-class FlagsOp {
-  Optional<unsigned> Flags;
-
-public:
-  explicit FlagsOp(unsigned F) : Flags(F) {}
-  FlagsOp() : Flags(None) {}
-  Optional<unsigned> getFlags() const { return Flags; }
-};
 /// Helper class to build MachineInstr.
 /// It keeps internally the insertion point and debug location for all
 /// the new instructions we want to create.
@@ -1871,6 +1863,12 @@ public:
   /// Build and insert \p Dst = G_BITREVERSE \p Src
   MachineInstrBuilder buildBitReverse(const DstOp &Dst, const SrcOp &Src) {
     return buildInstr(TargetOpcode::G_BITREVERSE, {Dst}, {Src});
+  }
+
+  /// Build and insert \p Dst = G_ISNAN \p Src
+  MachineInstrBuilder buildIsNaN(const DstOp &Dst, const SrcOp &Src,
+                                 Optional<unsigned> Flags = None) {
+    return buildInstr(TargetOpcode::G_ISNAN, {Dst}, {Src}, Flags);
   }
 
   virtual MachineInstrBuilder buildInstr(unsigned Opc, ArrayRef<DstOp> DstOps,

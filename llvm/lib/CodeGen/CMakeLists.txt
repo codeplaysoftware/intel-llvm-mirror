@@ -108,6 +108,7 @@ add_llvm_component_library(LLVMCodeGen
   MachineTraceMetrics.cpp
   MachineVerifier.cpp
   MIRFSDiscriminator.cpp
+  MIRSampleProfile.cpp
   MIRYamlMapping.cpp
   ModuloSchedule.cpp
   MultiHazardRecognizer.cpp
@@ -142,6 +143,7 @@ add_llvm_component_library(LLVMCodeGen
   RegisterCoalescer.cpp
   RegisterPressure.cpp
   RegisterScavenging.cpp
+  RemoveRedundantDebugValues.cpp
   RenameIndependentSubregs.cpp
   MachineStableHash.cpp
   MIRVRegNamerUtils.cpp

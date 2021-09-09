@@ -45,11 +45,13 @@ class Configuration(LibcxxConfiguration):
         self.cxx.compile_flags += ['-funwind-tables']
         # Make symbols available in the tests.
         triple = self.get_lit_conf('target_triple', None)
-        if 'linux' in triple:
+        if triple is not None and 'linux' in triple:
             self.cxx.link_flags += ['-Wl,--export-dynamic']
         if not self.get_lit_bool('enable_threads', True):
             self.cxx.compile_flags += ['-D_LIBUNWIND_HAS_NO_THREADS']
             self.config.available_features.add('libunwind-no-threads')
+        if self.get_lit_bool('x86_cet', False):
+            self.cxx.compile_flags += ['-fcf-protection=full']
         super(Configuration, self).configure_compile_flags()
 
     def configure_compile_flags_header_includes(self):

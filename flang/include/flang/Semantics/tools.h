@@ -113,6 +113,8 @@ bool IsStaticallyInitialized(const Symbol &, bool ignoreDATAstatements = false);
 // Is the symbol explicitly or implicitly initialized in any way?
 bool IsInitialized(const Symbol &, bool ignoreDATAstatements = false,
     const Symbol *derivedType = nullptr);
+// Is the symbol a component subject to deallocation or finalization?
+bool IsDestructible(const Symbol &, const Symbol *derivedType = nullptr);
 bool HasIntrinsicTypeName(const Symbol &);
 bool IsSeparateModuleProcedureInterface(const Symbol *);
 bool IsAutomatic(const Symbol &);
@@ -164,8 +166,10 @@ inline bool IsProtected(const Symbol &symbol) {
 inline bool IsImpliedDoIndex(const Symbol &symbol) {
   return symbol.owner().kind() == Scope::Kind::ImpliedDos;
 }
-bool IsFinalizable(const Symbol &);
-bool IsFinalizable(const DerivedTypeSpec &);
+bool IsFinalizable(
+    const Symbol &, std::set<const DerivedTypeSpec *> * = nullptr);
+bool IsFinalizable(
+    const DerivedTypeSpec &, std::set<const DerivedTypeSpec *> * = nullptr);
 bool HasImpureFinal(const DerivedTypeSpec &);
 bool IsCoarray(const Symbol &);
 bool IsInBlankCommon(const Symbol &);
@@ -251,6 +255,10 @@ const Symbol *FindExternallyVisibleObject(
       [&](const auto &x) { return FindExternallyVisibleObject(x, scope); },
       expr.u);
 }
+
+// Apply GetUltimate(), then if the symbol is a generic procedure shadowing a
+// specific procedure of the same name, return it instead.
+const Symbol &BypassGeneric(const Symbol &);
 
 using SomeExpr = evaluate::Expr<evaluate::SomeType>;
 

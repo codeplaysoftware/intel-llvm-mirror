@@ -103,7 +103,7 @@ struct WasmGlobal {
 
 struct WasmTagType {
   // Kind of tag. Currently only WASM_TAG_ATTRIBUTE_EXCEPTION is possible.
-  uint32_t Attribute;
+  uint8_t Attribute;
   uint32_t SigIndex;
 };
 
@@ -363,7 +363,7 @@ enum WasmSegmentFlag : unsigned {
 };
 
 // Kinds of tag attributes.
-enum WasmTagAttribute : unsigned {
+enum WasmTagAttribute : uint8_t {
   WASM_TAG_ATTRIBUTE_EXCEPTION = 0x0,
 };
 
@@ -427,6 +427,16 @@ inline bool operator==(const WasmGlobalType &LHS, const WasmGlobalType &RHS) {
 
 inline bool operator!=(const WasmGlobalType &LHS, const WasmGlobalType &RHS) {
   return !(LHS == RHS);
+}
+
+inline bool operator==(const WasmLimits &LHS, const WasmLimits &RHS) {
+  return LHS.Flags == RHS.Flags && LHS.Minimum == RHS.Minimum &&
+         (LHS.Flags & WASM_LIMITS_FLAG_HAS_MAX ? LHS.Maximum == RHS.Maximum
+                                               : true);
+}
+
+inline bool operator==(const WasmTableType &LHS, const WasmTableType &RHS) {
+  return LHS.ElemType == RHS.ElemType && LHS.Limits == RHS.Limits;
 }
 
 std::string toString(WasmSymbolType type);

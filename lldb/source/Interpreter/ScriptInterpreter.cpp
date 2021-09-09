@@ -47,7 +47,7 @@ void ScriptInterpreter::CollectDataForWatchpointCommandCallback(
 }
 
 bool ScriptInterpreter::LoadScriptingModule(const char *filename,
-                                            bool init_session,
+                                            const LoadScriptOptions &options,
                                             lldb_private::Status &error,
                                             StructuredData::ObjectSP *module_sp,
                                             FileSpec extra_search_dir) {
@@ -85,11 +85,11 @@ ScriptInterpreter::GetStatusFromSBError(const lldb::SBError &error) const {
 
 lldb::ScriptLanguage
 ScriptInterpreter::StringToLanguage(const llvm::StringRef &language) {
-  if (language.equals_lower(LanguageToString(eScriptLanguageNone)))
+  if (language.equals_insensitive(LanguageToString(eScriptLanguageNone)))
     return eScriptLanguageNone;
-  if (language.equals_lower(LanguageToString(eScriptLanguagePython)))
+  if (language.equals_insensitive(LanguageToString(eScriptLanguagePython)))
     return eScriptLanguagePython;
-  if (language.equals_lower(LanguageToString(eScriptLanguageLua)))
+  if (language.equals_insensitive(LanguageToString(eScriptLanguageLua)))
     return eScriptLanguageLua;
   return eScriptLanguageUnknown;
 }
@@ -141,12 +141,12 @@ ScriptInterpreterIORedirect::Create(bool enable_io, Debugger &debugger,
         new ScriptInterpreterIORedirect(debugger, result));
 
   auto nullin = FileSystem::Instance().Open(FileSpec(FileSystem::DEV_NULL),
-                                            File::eOpenOptionRead);
+                                            File::eOpenOptionReadOnly);
   if (!nullin)
     return nullin.takeError();
 
   auto nullout = FileSystem::Instance().Open(FileSpec(FileSystem::DEV_NULL),
-                                             File::eOpenOptionWrite);
+                                             File::eOpenOptionWriteOnly);
   if (!nullout)
     return nullin.takeError();
 

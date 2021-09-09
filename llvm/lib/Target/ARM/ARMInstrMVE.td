@@ -97,7 +97,7 @@ def VecList2QAsmOperand : AsmOperandClass {
                          "q-registers in range [q0,q7]";
 }
 
-def VecList2Q : RegisterOperand<QQPR, "printMVEVectorListTwoQ"> {
+def VecList2Q : RegisterOperand<MQQPR, "printMVEVectorListTwoQ"> {
   let ParserMatchClass = VecList2QAsmOperand;
   let PrintMethod = "printMVEVectorList<2>";
 }
@@ -110,7 +110,7 @@ def VecList4QAsmOperand : AsmOperandClass {
                          "q-registers in range [q0,q7]";
 }
 
-def VecList4Q : RegisterOperand<QQQQPR, "printMVEVectorListFourQ"> {
+def VecList4Q : RegisterOperand<MQQQQPR, "printMVEVectorListFourQ"> {
   let ParserMatchClass = VecList4QAsmOperand;
   let PrintMethod = "printMVEVectorList<4>";
 }
@@ -1440,6 +1440,7 @@ class MVE_VMINMAXNM<string iname, string suffix, bit sz, bit bit_21,
   let Inst{4} = 0b1;
 
   let Predicates = [HasMVEFloat];
+  let validForTailPredication = 1;
 }
 
 multiclass MVE_VMINMAXNM_m<string iname, bit bit_4, MVEVectorVTInfo VTI, SDNode Op, Intrinsic PredInt> {
@@ -2131,36 +2132,31 @@ class MVE_VABD_int<string suffix, bit U, bits<2> size,
   let validForTailPredication = 1;
 }
 
-multiclass MVE_VABD_m<MVEVectorVTInfo VTI,
-                      Intrinsic unpred_int, Intrinsic pred_int> {
+multiclass MVE_VABD_m<MVEVectorVTInfo VTI, SDNode Op,
+                      Intrinsic unpred_int, Intrinsic PredInt> {
   def "" : MVE_VABD_int<VTI.Suffix, VTI.Unsigned, VTI.Size>;
   defvar Inst = !cast<Instruction>(NAME);
 
   let Predicates = [HasMVEInt] in {
+    defm : MVE_TwoOpPattern<VTI, Op, PredInt, (? (i32 VTI.Unsigned)),
+                            !cast<Instruction>(NAME)>;
+
     // Unpredicated absolute difference
     def : Pat<(VTI.Vec (unpred_int (VTI.Vec MQPR:$Qm), (VTI.Vec MQPR:$Qn),
                             (i32 VTI.Unsigned))),
               (VTI.Vec (Inst (VTI.Vec MQPR:$Qm), (VTI.Vec MQPR:$Qn)))>;
-
-    // Predicated absolute difference
-    def : Pat<(VTI.Vec (pred_int (VTI.Vec MQPR:$Qm), (VTI.Vec MQPR:$Qn),
-                            (i32 VTI.Unsigned), (VTI.Pred VCCR:$mask),
-                            (VTI.Vec MQPR:$inactive))),
-              (VTI.Vec (Inst (VTI.Vec MQPR:$Qm), (VTI.Vec MQPR:$Qn),
-                             ARMVCCThen, (VTI.Pred VCCR:$mask),
-                             (VTI.Vec MQPR:$inactive)))>;
   }
 }
 
-multiclass MVE_VABD<MVEVectorVTInfo VTI>
-  : MVE_VABD_m<VTI, int_arm_mve_vabd, int_arm_mve_abd_predicated>;
+multiclass MVE_VABD<MVEVectorVTInfo VTI, SDNode Op>
+  : MVE_VABD_m<VTI, Op, int_arm_mve_vabd, int_arm_mve_abd_predicated>;
 
-defm MVE_VABDs8  : MVE_VABD<MVE_v16s8>;
-defm MVE_VABDs16 : MVE_VABD<MVE_v8s16>;
-defm MVE_VABDs32 : MVE_VABD<MVE_v4s32>;
-defm MVE_VABDu8  : MVE_VABD<MVE_v16u8>;
-defm MVE_VABDu16 : MVE_VABD<MVE_v8u16>;
-defm MVE_VABDu32 : MVE_VABD<MVE_v4u32>;
+defm MVE_VABDs8  : MVE_VABD<MVE_v16s8, abds>;
+defm MVE_VABDs16 : MVE_VABD<MVE_v8s16, abds>;
+defm MVE_VABDs32 : MVE_VABD<MVE_v4s32, abds>;
+defm MVE_VABDu8  : MVE_VABD<MVE_v16u8, abdu>;
+defm MVE_VABDu16 : MVE_VABD<MVE_v8u16, abdu>;
+defm MVE_VABDu32 : MVE_VABD<MVE_v4u32, abdu>;
 
 class MVE_VRHADD_Base<string suffix, bit U, bits<2> size, list<dag> pattern=[]>
   : MVE_int<"vrhadd", suffix, size, pattern> {
@@ -4116,6 +4112,7 @@ class MVE_VMAXMINNMA<string iname, string suffix, bit size, bit bit_12,
   let Inst{0} = 0b1;
 
   let isCommutable = 1;
+  let validForTailPredication = 1;
 }
 
 multiclass MVE_VMAXMINNMA_m<string iname, MVEVectorVTInfo VTI,
@@ -6042,13 +6039,13 @@ multiclass MVE_vst24_patterns<int lanesize, ValueType VT> {
     def : Pat<(int_arm_mve_vst2q i32:$addr,
                 (VT MQPR:$v0), (VT MQPR:$v1), (i32 stage)),
               (!cast<Instruction>("MVE_VST2"#stage#"_"#lanesize)
-                (REG_SEQUENCE QQPR, VT:$v0, qsub_0, VT:$v1, qsub_1),
+                (REG_SEQUENCE MQQPR, VT:$v0, qsub_0, VT:$v1, qsub_1),
                 t2_addr_offset_none:$addr)>;
   foreach stage = [0,1] in
     def : Pat<(i32 (MVEVST2UPD i32:$addr, (i32 32),
                 (VT MQPR:$v0), (VT MQPR:$v1), (i32 stage))),
               (i32 (!cast<Instruction>("MVE_VST2"#stage#"_"#lanesize#_wb)
-                (REG_SEQUENCE QQPR, VT:$v0, qsub_0, VT:$v1, qsub_1),
+                (REG_SEQUENCE MQQPR, VT:$v0, qsub_0, VT:$v1, qsub_1),
                 t2_addr_offset_none:$addr))>;
 
   foreach stage = [0,1,2,3] in
@@ -6056,16 +6053,16 @@ multiclass MVE_vst24_patterns<int lanesize, ValueType VT> {
                 (VT MQPR:$v0), (VT MQPR:$v1),
                 (VT MQPR:$v2), (VT MQPR:$v3), (i32 stage)),
               (!cast<Instruction>("MVE_VST4"#stage#"_"#lanesize)
-                (REG_SEQUENCE QQQQPR, VT:$v0, qsub_0, VT:$v1, qsub_1,
-                                      VT:$v2, qsub_2, VT:$v3, qsub_3),
+                (REG_SEQUENCE MQQQQPR, VT:$v0, qsub_0, VT:$v1, qsub_1,
+                                       VT:$v2, qsub_2, VT:$v3, qsub_3),
                 t2_addr_offset_none:$addr)>;
   foreach stage = [0,1,2,3] in
     def : Pat<(i32 (MVEVST4UPD i32:$addr, (i32 64),
                 (VT MQPR:$v0), (VT MQPR:$v1),
                 (VT MQPR:$v2), (VT MQPR:$v3), (i32 stage))),
               (i32 (!cast<Instruction>("MVE_VST4"#stage#"_"#lanesize#_wb)
-                (REG_SEQUENCE QQQQPR, VT:$v0, qsub_0, VT:$v1, qsub_1,
-                                      VT:$v2, qsub_2, VT:$v3, qsub_3),
+                (REG_SEQUENCE MQQQQPR, VT:$v0, qsub_0, VT:$v1, qsub_1,
+                                       VT:$v2, qsub_2, VT:$v3, qsub_3),
                 t2_addr_offset_none:$addr))>;
 }
 defm : MVE_vst24_patterns<8, v16i8>;
@@ -6932,6 +6929,26 @@ def MVE_LCTP : MVE_loltp_end<(outs), (ins pred:$p), "lctp${p}", ""> {
   let Inst{11-1} = 0b00000000000;
   let Unpredictable{21-20} = 0b11;
   let Unpredictable{11-1} = 0b11111111111;
+}
+
+
+// Pseudo instructions for lowering MQQPR and MQQQQPR stack spills and reloads.
+// They are equivalent to VLDMDIA/VSTMDIA with a single reg, as opposed to multiple
+// dreg subregs.
+
+let Predicates = [HasMVEInt], AM = AddrMode4 in {
+let mayStore = 1, hasSideEffects = 0 in {
+  def MQQPRStore : t2PseudoInst<(outs), (ins MQQPR:$val, GPRnopc:$ptr),
+                                4, NoItinerary, []>;
+  def MQQQQPRStore : t2PseudoInst<(outs), (ins MQQQQPR:$val, GPRnopc:$ptr),
+                                  4, NoItinerary, []>;
+}
+let mayLoad = 1, hasSideEffects = 0 in {
+  def MQQPRLoad : t2PseudoInst<(outs MQQPR:$val), (ins GPRnopc:$ptr),
+                               4, NoItinerary, []>;
+  def MQQQQPRLoad : t2PseudoInst<(outs MQQQQPR:$val), (ins GPRnopc:$ptr),
+                                 4, NoItinerary, []>;
+}
 }
 
 

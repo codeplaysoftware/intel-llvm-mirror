@@ -12,18 +12,23 @@
 
 #include <__availability>
 #include <__config>
-#include <__functional_base> // std::less, std::binary_function
+#include <__functional_base>
+#include <__functional/binary_function.h>
+#include <__functional/operations.h>
+#include <__functional/reference_wrapper.h>
 #include <__memory/addressof.h>
 #include <__memory/allocation_guard.h>
-#include <__memory/allocator.h>
 #include <__memory/allocator_traits.h>
+#include <__memory/allocator.h>
 #include <__memory/compressed_pair.h>
 #include <__memory/pointer_traits.h>
 #include <__memory/unique_ptr.h>
+#include <__utility/forward.h>
 #include <cstddef>
 #include <cstdlib> // abort
 #include <iosfwd>
 #include <stdexcept>
+#include <typeinfo>
 #include <type_traits>
 #include <utility>
 #if !defined(_LIBCPP_HAS_NO_ATOMIC_HEADER)
@@ -37,9 +42,6 @@
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
 #endif
-
-_LIBCPP_PUSH_MACROS
-#include <__undef_macros>
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
@@ -588,7 +590,7 @@ public:
     _LIBCPP_INLINE_VISIBILITY
     bool unique() const _NOEXCEPT {return use_count() == 1;}
     _LIBCPP_INLINE_VISIBILITY
-    _LIBCPP_EXPLICIT operator bool() const _NOEXCEPT {return get() != nullptr;}
+    explicit operator bool() const _NOEXCEPT {return get() != nullptr;}
     template <class _Up>
         _LIBCPP_INLINE_VISIBILITY
         bool owner_before(shared_ptr<_Up> const& __p) const _NOEXCEPT
@@ -681,7 +683,7 @@ private:
     template <class _Up> friend class _LIBCPP_TEMPLATE_VIS weak_ptr;
 };
 
-#ifndef _LIBCPP_HAS_NO_DEDUCTION_GUIDES
+#if _LIBCPP_STD_VER >= 17
 template<class _Tp>
 shared_ptr(weak_ptr<_Tp>) -> shared_ptr<_Tp>;
 template<class _Tp, class _Dp>
@@ -1401,7 +1403,7 @@ public:
     template <class _Up> friend class _LIBCPP_TEMPLATE_VIS shared_ptr;
 };
 
-#ifndef _LIBCPP_HAS_NO_DEDUCTION_GUIDES
+#if _LIBCPP_STD_VER >= 17
 template<class _Tp>
 weak_ptr(shared_ptr<_Tp>) -> weak_ptr<_Tp>;
 #endif
@@ -1868,7 +1870,5 @@ atomic_compare_exchange_weak_explicit(shared_ptr<_Tp>* __p, shared_ptr<_Tp>* __v
 #endif // !defined(_LIBCPP_HAS_NO_ATOMIC_HEADER)
 
 _LIBCPP_END_NAMESPACE_STD
-
-_LIBCPP_POP_MACROS
 
 #endif // _LIBCPP___MEMORY_SHARED_PTR_H
