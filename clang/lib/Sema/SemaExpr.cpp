@@ -235,9 +235,9 @@ bool Sema::DiagnoseUseOfDecl(NamedDecl *D, ArrayRef<SourceLocation> Locs,
       // Non-const globals are not allowed in SYCL except for ESIMD or with the
       // SYCLGlobalVar attribute.
       else if (IsRuntimeEvaluated && !IsEsimdPrivateGlobal && !IsConst &&
-               VD->hasGlobalStorage() && !VD->hasAttr<SYCLGlobalVarAttr>())
-        SYCLDiagIfDeviceCode(*Locs.begin(), diag::err_sycl_restrict)
-            << Sema::KernelGlobalVariable;
+               VD->hasGlobalStorage() && !VD->hasAttr<SYCLGlobalVarAttr>()){}
+        // SYCLDiagIfDeviceCode(*Locs.begin(), diag::err_sycl_restrict)
+        //     << Sema::KernelGlobalVariable;
       // ESIMD globals cannot be used in a SYCL context.
       else if (IsRuntimeEvaluated && IsEsimdPrivateGlobal &&
                VD->hasGlobalStorage())
