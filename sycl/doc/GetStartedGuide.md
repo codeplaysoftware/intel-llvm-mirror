@@ -196,13 +196,16 @@ Enabling this flag requires an installation of
 ROCm 4.2.0 on the system, refer to
 [AMD ROCm Installation Guide for Linux](https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html).
 
-Currently, the only combination tested is Ubuntu 18.04 with ROCm 4.2.0 using a Vega20 gfx906.
+Currently, the only combinations which have been tested are Ubuntu 18.04 and
+Ubuntu 20.04 with ROCm 4.2.0 and ROCm 4.3.0 using the Vega20 (gfx906), MI50
+(gfx906) and MI100 (gfx908) devices and architectures respectively.
 
-[LLD](https://llvm.org/docs/AMDGPUUsage.html) is necessary for the AMD GPU compilation chain. 
-The AMDGPU backend generates a standard ELF [ELF] relocatable code object that can be linked by lld to 
-produce a standard ELF shared code object which can be loaded and executed on an AMDGPU target. 
-So if you want to support HIP AMD, you should also build the lld project.
-[LLD Build Guide](https://lld.llvm.org/)
+[LLD](https://llvm.org/docs/AMDGPUUsage.html) is necessary for the AMDGPU
+compilation chain. The AMDGPU backend generates a standard ELF [ELF]
+relocatable code object that can be linked by lld to produce a standard ELF
+shared code object which can be loaded and executed on an AMDGPU target. The
+LLD project is enabled by default when configuring for HIP. For more details
+on building LLD refer to [LLD Build Guide](https://lld.llvm.org/).
 
 The following CMake variables can be updated to change where CMake is looking
 for the HIP installation:
@@ -230,8 +233,8 @@ Enabling this flag requires HIP to be installed, more specifically
 as well as CUDA to be installed, see
 [NVIDIA CUDA Installation Guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
 
-Currently this was only tested on Linux with ROCm 4.2, CUDA 11 and a GeForce GTX
-1060 card.
+Currently this was has only been tested on Linux with ROCm 4.2.0, CUDA 11 and
+a GeForce GTX 1060 device.
 
 ### Build DPC++ toolchain with support for ESIMD CPU Emulation
 
@@ -810,13 +813,15 @@ which contains all the symbols required.
 
 ### HIP back-end limitations
 
-* For supported Operating Systems, please refer to the [Supported Operating Systems](https://github.com/RadeonOpenCompute/ROCm#supported-operating-systems)
-* The only combination tested is Ubuntu 18.04 with ROCm 4.2 using a Vega20 gfx906.
-* Judging from the current [test](https://github.com/zjin-lcf/oneAPI-DirectProgramming) results, 
-  there is still a lot of room for improvement in HIP back-end support. The current problems include three aspects. 
-  The first one is at compile time: the `barrier` and `atomic` keywords are not supported. 
-  The second is at runtime: when calling `hipMemcpyDtoHAsync` HIP API, the program will cause an exception if the input data size is too large.
-  The third is calculation accuracy: the HIP backend has obvious errors in the calculation results of some float type operators
+* Only support on Linux.
+* Only tested on Ubuntu 18.04 and Ubuntu 20.04, however, for full details of
+  supported Operating Systems for ROCm, please refer to the
+  [ROCm Supported Operating Systems](https://github.com/RadeonOpenCompute/ROCm#supported-operating-systems)
+* Only combinations which have been tested are Ubuntu 18.04 and Ubuntu 20.04
+  with ROCm 4.2.0 and ROCm 4.3.0 using the Vega20 (gfx906), MI50 (gfx906) and
+  MI100 (gfx908) devices and architectures respectively.
+* Support is still experimental so not all of the tests are currently passing
+  and many of the built-in function are not yet implemented.
 
 ## Find More
 
