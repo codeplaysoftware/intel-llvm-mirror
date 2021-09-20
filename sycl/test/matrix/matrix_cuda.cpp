@@ -104,8 +104,8 @@ range<2> sGroup = {1, N_THREADS_PER_MATRIX_OP};
           joint_matrix<sub_group, matrix_type::a, matrix_layout::row_major, N, K>
           sub_a;
 
-          joint_matrix<sub_group, matrix_type::b, matrix_layout::row_major, K, M>
-          sub_b; // actually the backend currently sets matrix_layout::col_major but calling matrix_layout::col_major here leads to a problem.
+          joint_matrix<sub_group, matrix_type::b, matrix_layout::col_major, K, M>
+          sub_b;
 
          //calls e.g. __imma_m16n16k16_ld_c(sub_c.data, accC.get_pointer() + ..., 0, 0);
          // Third argument should be the number of elements to skip from beginning of BIG matrix to start of sub matrix represented by group.
@@ -116,7 +116,7 @@ range<2> sGroup = {1, N_THREADS_PER_MATRIX_OP};
             joint_matrix_load(sg, sub_a, accA.get_pointer() + (k * K) + (n * N * BIG_K), STRIDE_A);
 
             // stride in memory also will depend on the row/comumn major
-            joint_matrix_load(sg, sub_b, accB.get_pointer() + (k * K) + (m * M * BIG_K), STRIDE_B); // works as normal matrix multiplication in this case.
+            joint_matrix_load(sg, sub_b, accB.get_pointer() + (k * K) + (m * M * BIG_K), STRIDE_B, matrix_layout::col_major); // works as normal matrix multiplication in this case.
 	          //joint_matrix_load(sg, sub_b, accB.get_pointer() + (k * K * BIG_M) + (m * M), STRIDE_B); //row major: using this returns C + the transpose of A*B which is a bit weird.
             //__imma_m16n16k16_ld_b_s8(sub_b.data, accB.get_pointer() + ..., 16, 0);
 

@@ -86,9 +86,9 @@ struct joint_matrix_load_impl<sub_group, matrix::matrix_type::b, 4, 8, Layout,
             multi_ptr<double, Space> src, size_t stride) {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-/*if (Layout == matrix::matrix_layout::row_major)
+if (Layout == matrix::matrix_layout::row_major)
  __dmma_m8n8k4_ld_b(res.data, src.get(), stride, 0);
- else*/
+ else
     __dmma_m8n8k4_ld_b(res.data, src.get(), stride, 1);
 #endif
 #endif  
@@ -183,8 +183,8 @@ struct joint_matrix_mma_impl<sub_group, 8, 4, 8, LayoutA, LayoutB, LayoutC> {
     if (LayoutA == matrix::matrix_layout::row_major)
     {
       if(LayoutB == matrix::matrix_layout::row_major)
-   /* __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 0, 0);
-    else*/
+    __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 0, 0);
+    else
     __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 1, 0);
     }
     else
@@ -224,7 +224,7 @@ void joint_matrix_store(
     multi_ptr<double, Space> dst, size_t stride,
     matrix_layout layout = matrix_layout::row_major) {
   // Should be a requirement for the CUDA backend
-  assert(layout == Layout);
+  assert(layout == Layout); //todo: improve error message!!
   detail::joint_matrix_store_impl<Group, NumRows, NumCols, Layout, Space>{}
       .store(src, dst, stride);
 }
