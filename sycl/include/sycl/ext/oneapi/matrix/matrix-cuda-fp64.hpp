@@ -29,9 +29,7 @@ __SYCL_INLINE_NAMESPACE(cl)
                         col_major,
                         packed
                     };
-
-                    // TODO deal with Conditional enable_ifs for each case if appropriate: packed type is fundamentally different.
-                    // Note that the Group typename is never used (it is only used in the JIT AMX implementation)
+                    // Note that the Group typename is never used here (it is only used in the JIT AMX implementation)
                     template <typename Group, matrix_type MT, matrix_layout Layout, size_t Rows = sycl::dynamic_extent,
                               size_t Cols = sycl::dynamic_extent, typename Cond = void>
                     struct joint_matrix
@@ -39,7 +37,6 @@ __SYCL_INLINE_NAMESPACE(cl)
                         joint_matrix(Group g) {}
                     };
 
-                    // TODO need to assert layout is col or row type.
                     template <matrix_layout Layout>
                     struct joint_matrix<sub_group, matrix_type::a, Layout, 8, 4, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
                     {
@@ -73,7 +70,7 @@ __SYCL_INLINE_NAMESPACE(cl)
                                   multi_ptr<double, Space> src, size_t stride);
                     };
 
-                    // Helper (currently cannot use it!)
+                    // Helper (Would be good to use something similar- currently cannot use it!)
                     template <matrix::matrix_layout Layout>
                     const int get_layout_int()
                     {
@@ -109,7 +106,6 @@ __SYCL_INLINE_NAMESPACE(cl)
                         {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-                            // const int r = get_layout_int<Layout>();
                             if (Layout == matrix::matrix_layout::row_major)
                                 __dmma_m8n8k4_ld_b(res.data, src.get(), stride, 0);
                             else
@@ -119,7 +115,6 @@ __SYCL_INLINE_NAMESPACE(cl)
                         }
                     };
 
-                    // todo: probably don't need Layout because it is also a template argument of joint_matrix: check this! Compare with interface of AMX
                     template <matrix::matrix_layout Layout, access::address_space Space>
                     struct joint_matrix_load_impl<sub_group, matrix::matrix_type::accumulator, 8, 8, Layout,
                                                   Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
@@ -148,7 +143,6 @@ __SYCL_INLINE_NAMESPACE(cl)
                                    multi_ptr<double, Space> dst, size_t stride);
                     };
 
-                    // TODO currently assuming row order.
                     template <matrix::matrix_layout Layout, access::address_space Space>
                     struct joint_matrix_store_impl<sub_group, 8, 8, Layout, Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
                     {
@@ -178,7 +172,7 @@ __SYCL_INLINE_NAMESPACE(cl)
                             matrix::joint_matrix<Group, matrix::matrix_type::accumulator, LayoutC, M, N> C);
                     };
 
-                    // Helper
+                    // Helper (currently cannot be used)
                     template <matrix::matrix_layout LayoutA, matrix::matrix_layout LayoutB>
                     int get_layout_comb_int()
                     {
@@ -192,7 +186,7 @@ __SYCL_INLINE_NAMESPACE(cl)
                         return LayoutB == matrix::matrix_layout::row_major ? 2 : 3;
                     }
 
-                    // TODO: COndition for LayoutC also or is this unnecessary?
+                    // TODO: Condition for LayoutC also or is this unnecessary?
                     template <matrix::matrix_layout LayoutA, matrix::matrix_layout LayoutB,
                               matrix::matrix_layout LayoutC>
                     struct joint_matrix_mma_impl<sub_group, 8, 4, 8, LayoutA, LayoutB, LayoutC, typename std::enable_if_t<(LayoutA == experimental::matrix::matrix_layout::row_major || LayoutA == experimental::matrix::matrix_layout::col_major) && (LayoutB == experimental::matrix::matrix_layout::row_major || LayoutB == experimental::matrix::matrix_layout::col_major)>>
@@ -240,11 +234,8 @@ __SYCL_INLINE_NAMESPACE(cl)
                               matrix_layout Layout, access::address_space Space>
                     void joint_matrix_load(Group sg,
                                            joint_matrix<Group, MT, Layout, NumRows, NumCols> &res,
-                                           multi_ptr<double, Space> src, size_t stride,
-                                           matrix_layout layout = matrix_layout::row_major)
+                                           multi_ptr<double, Space> src, size_t stride)
                     {
-                        // Should be a requirement for the CUDA backend
-                        assert(layout == Layout);
                         detail::joint_matrix_load_impl<Group, MT, NumRows, NumCols, Layout, Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>{}
                             .load(res, src, stride);
                     }
@@ -254,11 +245,8 @@ __SYCL_INLINE_NAMESPACE(cl)
                     void joint_matrix_store(
                         Group sg,
                         joint_matrix<Group, matrix_type::accumulator, Layout, NumRows, NumCols> &src,
-                        multi_ptr<double, Space> dst, size_t stride,
-                        matrix_layout layout = matrix_layout::row_major)
+                        multi_ptr<double, Space> dst, size_t stride)
                     {
-                        // Should be a requirement for the CUDA backend
-                        assert(layout == Layout); // todo: improve error message!!
                         detail::joint_matrix_store_impl<Group, NumRows, NumCols, Layout, Space>{}
                             .store(src, dst, stride);
                     }

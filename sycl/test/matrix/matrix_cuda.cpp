@@ -14,23 +14,19 @@ constexpr int K = 4; // number of cols of A/number of rows of B sub-matrices
 
 constexpr int N_THREADS_PER_MATRIX_OP = 32; // the number of threads per MMA subgroup is always 32 for cuda
 
-// This matrix size currently set only requires a single subgroup operation: The "big matrix"
-// matches the size of a subtile "sub matrix" for A,B,C: i.e. N=M=K=n=m=k=16.
-
-// TODO: think about why SUB_TILES_M needs to equal SUB_TILES_N and if this is correct.
 constexpr int SUB_TILES_M = 2; // number of submatrices per row of C/D matrices
 constexpr int SUB_TILES_N = 2; // number of submatrices per col of C/D matrices
-constexpr int SUB_TILES_K = 3; // number of submatrices per col of A/per row of B, matrices
+constexpr int SUB_TILES_K = 5; // number of submatrices per col of A/per row of B, matrices
 
 constexpr int BIG_M = SUB_TILES_M * M; // total number of M dimension matrix elements
 constexpr int BIG_N = SUB_TILES_N * N; // total number of N dimension matrix elements
-constexpr int BIG_K = SUB_TILES_K * K; // total number of N dimension matrix elements
+constexpr int BIG_K = SUB_TILES_K * K; // total number of K dimension matrix elements
 
-// The stride should equal the number of elements between consecutive rows of the "big matrix". Assuming all matrices are indexed row major.
+// The stride should equal the number of elements between consecutive leading dimensions of the "big matrix". e.g. number of elements per row if matrix is indexed row major.
 // The stride tells the implementation how many elements to skip in memory matrix row/column multiplications.
-constexpr int STRIDE_A = BIG_K; // row major
-constexpr int STRIDE_B = BIG_N; // col major: BIG_K e.g. if row major should equal BIG_N.
-constexpr int STRIDE_C = BIG_N; // row major
+constexpr int STRIDE_A = BIG_K; // row major. If col major should equal BIG_M.
+constexpr int STRIDE_B = BIG_N; // row_major. If col major should equal BIG_K.
+constexpr int STRIDE_C = BIG_N; // row major. If col major should equal BIG_M.
 
 // function that returns correct mn element of matrix D.
 double matrix_mn(double *_A, double *_B, double *_C, int m, int n)
@@ -40,14 +36,13 @@ double matrix_mn(double *_A, double *_B, double *_C, int m, int n)
 
     for (int k = 0; k < BIG_K; k++)
         res += _A[m * BIG_K + k] * _B[k * BIG_M + n]; // b row leading
-                                                      // res += _A[n * BIG_K + k] * _B[m * BIG_K + k]; // b column leading
+        // res += _A[n * BIG_K + k] * _B[m * BIG_K + k]; // b column leading
 
     return res;
 }
 
 int main()
 {
-
     double C[BIG_M * BIG_N];
     double D[BIG_M * BIG_N];
 
@@ -94,7 +89,7 @@ range<2> sGroup = {1, N_THREADS_PER_MATRIX_OP};
         [=](nd_item<2> item)
 
         {
-          // this guy does nothing but has to be past to matrix interfaces (following AMX implementation).
+          // this guy does nothing but has to be passed to matrix interfaces (following AMX implementation).
           sub_group sg = item.get_sub_group();
 
           const auto m = item.get_group().get_id()[0]; // row id of current submatrix of BIG C matrix
@@ -115,13 +110,11 @@ range<2> sGroup = {1, N_THREADS_PER_MATRIX_OP};
 
           for (int k = 0; k < SUB_TILES_K; k += 1) // row/col id of current submatrix of BIG A/B matrices
           {
-            //joint_matrix_load(sg, sub_a, accA.get_pointer() + (k * K) + (n * N * BIG_K), STRIDE_A);
             joint_matrix_load(sg, sub_a, accA.get_pointer() + (k * K) + (m * M * BIG_K), STRIDE_A);
 
-            // stride in memory also will depend on the row/comumn major
-            //joint_matrix_load(sg, sub_b, accB.get_pointer() + (k * K) + (m * M * BIG_K), STRIDE_B, matrix_layout::col_major); // works as normal matrix multiplication in this case.
+            //calls e.g. //__imma_m16n16k16_ld_b_s8(sub_b.data, accB.get_pointer() + ..., 16, 0);
 	          joint_matrix_load(sg, sub_b, accB.get_pointer() + (k * K * BIG_N) + (n * N), STRIDE_B);
-            //__imma_m16n16k16_ld_b_s8(sub_b.data, accB.get_pointer() + ..., 16, 0);
+            //joint_matrix_load(sg, sub_b, accB.get_pointer() + (k * K) + (m * M * BIG_K), STRIDE_B); // e.g. if B is col_major
 
             sub_c = joint_matrix_mad(sg, sub_a, sub_b, sub_c);
 }
