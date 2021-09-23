@@ -551,6 +551,9 @@ TARGET_BUILTIN(__nvvm_atom_add_gen_d, "ddD*d", "n", SM_60)
 TARGET_BUILTIN(__nvvm_atom_cta_add_gen_d, "ddD*d", "n", SM_60)
 TARGET_BUILTIN(__nvvm_atom_sys_add_gen_d, "ddD*d", "n", SM_60)
 
+//TARGET_BUILTIN(__nvvm_atom_sys_add_global_f, "ffD*f", "n", SM_60)
+BUILTIN(__nvvm_atom_sys_add_global_f, "ffD*f", "n")
+
 BUILTIN(__nvvm_atom_sub_gen_i, "iiD*i", "n")
 BUILTIN(__nvvm_atom_sub_gen_l, "LiLiD*Li", "n")
 BUILTIN(__nvvm_atom_sub_gen_ll, "LLiLLiD*LLi", "n")

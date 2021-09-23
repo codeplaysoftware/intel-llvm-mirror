@@ -1791,8 +1791,12 @@ multiclass ATOM3N_impl<string OpStr, string IntTypeStr, string TypeStr,
 multiclass ATOM2A_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, NVPTXRegClass regclass, Operand ImmType,
                        SDNode Imm, ValueType ImmTy, list<Predicate> Preds> {
-   defm _gen_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen",
+   //defm _gen_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen",
+   //                         regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _global_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "global",
                             regclass, ImmType, Imm, ImmTy, Preds>;
+   //defm _shared_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "shared",
+   //                         regclass, ImmType, Imm, ImmTy, Preds>;
 }
 multiclass ATOM3A_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, NVPTXRegClass regclass, Operand ImmType,

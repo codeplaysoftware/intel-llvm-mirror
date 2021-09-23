@@ -65,19 +65,42 @@ float __clc__atomic_fetch_add_float_local_seq_cst(__local float *, float) __asm(
 __CLC_ATOMICFADDEXT(float, global)
 __CLC_ATOMICFADDEXT(float, local)
 
+/*
+float __nvvm_atomic_add_global_f_sys(
+    __global float *,
+    float) __asm("__nvvm_atomic_add_global_f_sys");
+float __nvvm_atomic_add_shared_f_sys(
+    __local float *,
+    float) __asm("__nvvm_atomic_add_shared_f_sys");
+*/
+
 _CLC_DECL float
 _Z21__spirv_AtomicFAddEXTPU3AS1fN5__spv5Scope4FlagENS1_19MemorySemanticsMask4FlagEf(
     __global float *pointer, unsigned int scope, unsigned int semantics,
     float value) {
-  return __spirv_AtomicFAddEXT(pointer, scope, semantics, value);
+		//float dst;
+		//__asm("atom.acq.sys.global.add.f32 %0, %1, %2;"
+        //     : "=r" (dst)
+        //     : "r" (pointer), "r" (value));
+		//return dst;
+		return __nvvm_atom_sys_add_global_f(pointer, value);
+		//__asm("nvvm_atomic_add_gen_f_ctadfgsda");
+  //return __spirv_AtomicFAddEXT(pointer, scope, semantics, value);
 }
-
+/*
 _CLC_DECL float
 _Z21__spirv_AtomicFAddEXTPU3AS3fN5__spv5Scope4FlagENS1_19MemorySemanticsMask4FlagEf(
     __local float *pointer, unsigned int scope, unsigned int semantics,
     float value) {
+		float dst;
+		//__asm("atom.acq.sys.global.add.f32 %0, %1, %2;"
+        //     : "=r" (dst)
+        //     : "r" (pointer), "r" (value));
+		//return dst;
+		//return nvvm_atomic_add_shared_f_sys(pointer, value);
+		//nvvm_atomic_add_gen_f_cta(pointer, value);
   return __spirv_AtomicFAddEXT(pointer, scope, semantics, value);
-}
+}*/
 
 // FP64 atomics - require cl_khr_fp64 extension
 #ifdef cl_khr_fp64
