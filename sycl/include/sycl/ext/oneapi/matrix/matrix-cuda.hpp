@@ -226,20 +226,7 @@ namespace detail {
 
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-            if (LayoutA == matrix::matrix_layout::row_major)
-            {
-                if (LayoutB == matrix::matrix_layout::row_major)
-                    __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 0, 0);
-                else
-                    __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 1, 0);
-            }
-            else
-            {
-                if (LayoutB == matrix::matrix_layout::row_major)
-                    __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 2, 0);
-                else
-                    __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, 3, 0);
-            }
+    __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data, get_layout_comb_int<LayoutA, LayoutB>(), 0);
 #endif
 #endif
 
