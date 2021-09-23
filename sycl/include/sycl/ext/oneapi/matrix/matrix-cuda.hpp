@@ -62,23 +62,23 @@ namespace detail {
                   multi_ptr<double, Space> src, size_t stride);
     };
 
-    // Helper (Would be good to use something similar- currently cannot use it!)
+    // Helper
     template <matrix::matrix_layout Layout>
-    int get_layout_int();
+    constexpr int get_layout_int();
 
     template <>
-    int get_layout_int<experimental::matrix::matrix_layout::row_major>()
+    constexpr int get_layout_int<matrix::matrix_layout::row_major>()
     {
         return 0;
     }
 
     template <>
-    int get_layout_int<experimental::matrix::matrix_layout::col_major>()
+    constexpr int get_layout_int<matrix::matrix_layout::col_major>()
     {
         return 1;
     }
 
-    // Helper (Would be good to use something similar- currently cannot use it!)
+    // Helper alternative is something like this
     /*template <matrix::matrix_layout Layout, typename Cond = void>
     struct get_layout_int
     {
@@ -103,18 +103,14 @@ namespace detail {
 
     template <matrix::matrix_layout Layout, access::address_space Space>
     struct joint_matrix_load_impl<sub_group, matrix::matrix_type::a, 8, 4, Layout,
-                                  Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
+                                  Space, typename std::enable_if_t<Layout == matrix::matrix_layout::row_major || Layout == matrix::matrix_layout::col_major>>
     {
         void load(matrix::joint_matrix<sub_group, matrix::matrix_type::a, Layout, 8, 4> &res,
                   multi_ptr<double, Space> src, size_t stride)
         {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-//const int rr = get_layout_int<Layout>();
-             if (Layout == matrix::matrix_layout::row_major)
-                 __dmma_m8n8k4_ld_a(res.data, src.get(), stride, 0);
-             else
-                 __dmma_m8n8k4_ld_a(res.data, src.get(), stride, 1);
+                 __dmma_m8n8k4_ld_a(res.data, src.get(), stride, get_layout_int<Layout>());
 #endif
 #endif
         }
@@ -122,17 +118,14 @@ namespace detail {
 
     template <matrix::matrix_layout Layout, access::address_space Space>
     struct joint_matrix_load_impl<sub_group, matrix::matrix_type::b, 4, 8, Layout,
-                                  Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
+                                  Space, typename std::enable_if_t<Layout == matrix::matrix_layout::row_major || Layout == matrix::matrix_layout::col_major>>
     {
         void load(matrix::joint_matrix<sub_group, matrix::matrix_type::b, Layout, 4, 8> &res,
                   multi_ptr<double, Space> src, size_t stride)
         {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-            if (Layout == matrix::matrix_layout::row_major)
-                __dmma_m8n8k4_ld_b(res.data, src.get(), stride, 0);
-            else
-                __dmma_m8n8k4_ld_b(res.data, src.get(), stride, 1);
+                __dmma_m8n8k4_ld_b(res.data, src.get(), stride, get_layout_int<Layout>());
 #endif
 #endif
         }
@@ -140,7 +133,7 @@ namespace detail {
 
     template <matrix::matrix_layout Layout, access::address_space Space>
     struct joint_matrix_load_impl<sub_group, matrix::matrix_type::accumulator, 8, 8, Layout,
-                                  Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
+                                  Space, typename std::enable_if_t<Layout == matrix::matrix_layout::row_major || Layout == matrix::matrix_layout::col_major>>
     {
         void load(matrix::joint_matrix<sub_group, matrix::matrix_type::accumulator, Layout, 8, 8> &res,
                   multi_ptr<double, Space> src, size_t stride)
@@ -148,10 +141,7 @@ namespace detail {
 
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-            if (Layout == matrix::matrix_layout::row_major)
-                __dmma_m8n8k4_ld_c(res.data, src.get(), stride, 0);
-            else
-                __dmma_m8n8k4_ld_c(res.data, src.get(), stride, 1);
+                __dmma_m8n8k4_ld_c(res.data, src.get(), stride, get_layout_int<Layout>());
 #endif
 #endif
         }
@@ -167,7 +157,7 @@ namespace detail {
     };
 
     template <matrix::matrix_layout Layout, access::address_space Space>
-    struct joint_matrix_store_impl<sub_group, 8, 8, Layout, Space, typename std::enable_if_t<Layout == experimental::matrix::matrix_layout::row_major || Layout == experimental::matrix::matrix_layout::col_major>>
+    struct joint_matrix_store_impl<sub_group, 8, 8, Layout, Space, typename std::enable_if_t<Layout == matrix::matrix_layout::row_major || Layout == matrix::matrix_layout::col_major>>
     {
         void store(matrix::joint_matrix<sub_group, matrix::matrix_type::accumulator, Layout, 8, 8> &src,
                    multi_ptr<double, Space> dst, size_t stride)
@@ -175,10 +165,7 @@ namespace detail {
 
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
-            if (Layout == matrix::matrix_layout::row_major)
-                __dmma_m8n8k4_st_c_f64(dst.get(), src.data, stride, 0);
-            else
-                __dmma_m8n8k4_st_c_f64(dst.get(), src.data, stride, 1);
+                __dmma_m8n8k4_st_c_f64(dst.get(), src.data, stride, get_layout_int<Layout>());
 #endif
 #endif
         }
@@ -195,23 +182,36 @@ namespace detail {
             matrix::joint_matrix<Group, matrix::matrix_type::accumulator, LayoutC, M, N> C);
     };
 
-    // Helper (currently cannot be used)
     template <matrix::matrix_layout LayoutA, matrix::matrix_layout LayoutB>
-    int get_layout_comb_int()
-    {
-        static_assert(LayoutA == matrix::matrix_layout::row_major ||
-                      LayoutA == matrix::matrix_layout::col_major);
-        static_assert(LayoutB == matrix::matrix_layout::row_major ||
-                      LayoutB == matrix::matrix_layout::col_major);
-        if (LayoutA == matrix::matrix_layout::row_major)
-            return LayoutB == matrix::matrix_layout::row_major ? 0 : 1;
+    constexpr int get_layout_comb_int();
 
-        return LayoutB == matrix::matrix_layout::row_major ? 2 : 3;
+    template <>
+    constexpr int get_layout_comb_int<matrix::matrix_layout::row_major, matrix::matrix_layout::row_major>()
+    {
+        return 0;
+    }
+
+    template <>
+    constexpr int get_layout_comb_int<matrix::matrix_layout::row_major, matrix::matrix_layout::col_major>()
+    {
+        return 1;
+    }
+
+    template <>
+    constexpr int get_layout_comb_int<matrix::matrix_layout::col_major, matrix::matrix_layout::row_major>()
+    {
+        return 2;
+    }
+
+    template <>
+    constexpr int get_layout_comb_int<matrix::matrix_layout::col_major, matrix::matrix_layout::col_major>()
+    {
+        return 3;
     }
 
     template <matrix::matrix_layout LayoutA, matrix::matrix_layout LayoutB,
               matrix::matrix_layout LayoutC>
-    struct joint_matrix_mma_impl<sub_group, 8, 4, 8, LayoutA, LayoutB, LayoutC, typename std::enable_if_t<(LayoutA == experimental::matrix::matrix_layout::row_major || LayoutA == experimental::matrix::matrix_layout::col_major) && (LayoutB == experimental::matrix::matrix_layout::row_major || LayoutB == experimental::matrix::matrix_layout::col_major)&& (LayoutC == experimental::matrix::matrix_layout::row_major || LayoutC == experimental::matrix::matrix_layout::col_major)>>
+    struct joint_matrix_mma_impl<sub_group, 8, 4, 8, LayoutA, LayoutB, LayoutC, typename std::enable_if_t<(LayoutA == matrix::matrix_layout::row_major || LayoutA == matrix::matrix_layout::col_major) && (LayoutB == experimental::matrix::matrix_layout::row_major || LayoutB == experimental::matrix::matrix_layout::col_major)&& (LayoutC == experimental::matrix::matrix_layout::row_major || LayoutC == experimental::matrix::matrix_layout::col_major)>>
     {
         matrix::joint_matrix<sub_group, matrix::matrix_type::accumulator, LayoutC, 8, 8>
         mma(sub_group sg,
