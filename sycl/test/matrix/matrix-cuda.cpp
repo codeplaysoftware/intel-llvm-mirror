@@ -85,18 +85,18 @@ cgh.parallel_for<class imatrix>(
     [=](nd_item<2> item)
         [[intel::reqd_sub_group_size(32)]] // TODO: I think this is meant to restrict the subgroup size but it doesn't do anything.
     {
-        sub_group sg = item.get_sub_group();
+        sycl::sub_group sg = item.get_sub_group();
 
         const auto m = item.get_group().get_id()[0]; // row id of current submatrix of BIG C matrix
         const auto n = item.get_group().get_id()[1]; // column id of current submatrix of BIG C matrix
 
-        joint_matrix<sub_group, matrix_type::accumulator, matrix_layout::row_major, M, N>
+        joint_matrix<sub_group, double, matrix_type::accumulator, M, N, matrix_layout::row_major>
             sub_c;
 
-        joint_matrix<sub_group, matrix_type::a, matrix_layout::row_major, M, K>
+        joint_matrix<sub_group, double, matrix_type::a, M, K, matrix_layout::row_major>
             sub_a;
 
-        joint_matrix<sub_group, matrix_type::b, matrix_layout::row_major, K, N>
+        joint_matrix<sub_group, double, matrix_type::b, K, N, matrix_layout::row_major>
             sub_b;
 
         joint_matrix_load(sg, sub_c, accC.get_pointer() + (m * M) * BIG_N + n * N, STRIDE_C);
