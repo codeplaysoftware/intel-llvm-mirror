@@ -92,11 +92,8 @@ int main() {
     range<2> GlobalRange = {SUB_TILES_M, SUB_TILES_N * N_THREADS_PER_MATRIX_OP};
 
     cgh.parallel_for<class imatrix>(
-        nd_range<2>(GlobalRange, LocalRange),
-        [=](nd_item<2> item) [[intel::reqd_sub_group_size(
-            32)]] // TODO: I think this is meant to restrict the subgroup size
-                  // but it doesn't do anything.
-        {
+        nd_range<2>(GlobalRange, LocalRange), [=
+    ](nd_item<2> item) [[sycl::reqd_work_group_size(1, 1, 32)]] {
           sycl::sub_group sg = item.get_sub_group();
 
           const auto m =
