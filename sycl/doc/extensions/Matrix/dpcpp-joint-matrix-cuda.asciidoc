@@ -125,7 +125,7 @@ joint_matrix<sub_group, T, K, N, matrix_layout::col_major> tB;
 
 where currently only `T = double` is supported.
 
-**_NOTE:_** _The CUDA backend does not require any other sub-group size than 32, which is the size of a warp which acts as the sub-groups. The requirement that kernels make use of the `[[sycl::reqd_sub_group_size]]` decorator is only for specific backends._
+**_NOTE:_** _The CUDA backend does not require any other sub-group size than 32, which is the size of a warp which acts as the sub-groups. The requirement that kernels make use of the `sycl::reqd_sub_group_size` decorator is only for specific backends._
 
 To be aligned with the SYCL 2020 group algorithms, an additional group argument is added to the matrix operations to designate that these functions are collective operations. The {dpcpp} syntax is the following: 
 
