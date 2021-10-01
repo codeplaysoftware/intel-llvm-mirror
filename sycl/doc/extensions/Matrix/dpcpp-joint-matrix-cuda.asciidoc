@@ -39,7 +39,7 @@ This document presents an ongoing work towards defining a unified matrix interfa
 
 **_NOTE:_** _Any necessary adaptations to the extension aim to ensure compatibility with a suitable AMX matrix implementation; any necessary adaptations to the existing AMX implementation resulting from changes introduced in this proposal should be small._
 
-The initial implementation of this extension uses Warp Matrix Multiply Accumulate https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#warp-level-matrix-instructions-wmma[(wmma) PTX instructions] which can be generally used with Volta, Turing, and Ampere architecture generations.  These instructions are also expected to be forward compatible with future Nvidia generations.  A future implementation may additionally make use of Nvidia PTX mma instructions which are architecture generation specific, and may increase performance with respect to corresponding wmma instructions.  It is possible to implement mma ptx instructions without additional changes to this extension proposal.
+The initial implementation of this extension uses Warp Matrix Multiply Accumulate https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#warp-level-matrix-instructions-wmma[(wmma) PTX instructions] which can be generally used with Volta (sm_70, sm_72), Turing (sm_75), and Ampere (sm_80, sm_86) architecture generations.  These instructions are also expected to be forward compatible with future Nvidia generations.  A future implementation may additionally make use of Nvidia PTX mma instructions which are architecture generation specific, and may increase performance with respect to corresponding wmma instructions.  It is possible to implement mma ptx instructions without additional changes to this extension proposal.
 
 ## Feature test macro
 
@@ -115,9 +115,9 @@ struct joint_matrix {
 
 We define the three functions needed to perform the main and common operations on matrices namely, load, store, and the actual Multiply And Add operation. This set of functions can be easily extended if the Nvidia Tensorcore hardware implements new features.
 
-Since the matrix functions are group operations (as defined in Section 4.17.3 of the SYCL specification), the matrix API has to be accessed by all the work-items in the group in a convergent control flow.  As described in the AMX extension, `joint_matrix` is shared across a number of work-items that is hardware dependent.  For the case of Nvidia the number of work-items (cuda threads) is equal to the warp size (32).
+Since the matrix functions are group operations (as defined in Section 4.17.3 of the SYCL specification), the matrix API has to be accessed by all the work-items in the group in a convergent control flow.  As described in the AMX extension, `joint_matrix` is shared across a number of work-items that is hardware dependent.  For the case of Nvidia the number of work-items (CUDA threads) is equal to the warp size (32).
 
-For the cuda backend the work-items that share a `joint_matrix` instance belong to the same sub-group. The group template parameter provided to `joint_matrix` is always a `sycl::sub_group`.  For example a column major matrix must be declared as follows:
+For the CUDA backend the work-items that share a `joint_matrix` instance belong to the same sub-group. The group template parameter provided to `joint_matrix` is always a `sycl::sub_group`.  For example a column major matrix must be declared as follows:
 
 ```c++
 joint_matrix<sub_group, T, K, N, matrix_layout::col_major> tB;
@@ -147,7 +147,7 @@ This function loads data from memory to the Nvidia matrix "fragments".
 
 The base pointer, `src`, determines the starting address of the sub-matrix to be loaded/stored. `layout` determines whether the data are being read/written with leading dimension `row_major` or `column_major`. `stride` describes the number of elements between consecutive rows for row major and packed layout, or columns for column major layout.
 
-IMPORTANT: For the cuda backend the layout in the load of matrices A B and C must be either `row_major` or `col_major`, and the layout in the store of matrix C must also be either `row_major` or `col_major`.
+IMPORTANT: For the CUDA backend the layout in the load of matrices A B and C must be either `row_major` or `col_major`, and the layout in the store of matrix C must also be either `row_major` or `col_major`.
 
 **_NOTE:_** _The Layout argument has been removed with respect to the AMX extension in both `joint_matrix_load` and `joint_matrix_store`, since the Layout may be determined from the `joint_matrix`.  The addition of the `matrix_type` enumerator may also simplify the AMX implementation so that the Layout argument in `joint_matrix_load` and `joint_matrix_store` can be similarly removed for that case._
 
@@ -232,8 +232,8 @@ clang++ -fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-g
 
 ### Dealing with tf32 and bf16 matrix element types
 
-Alternative cuda floating point types, bf16 and tf32, use the same number of bits for the exponent as fp32, so that these data types can cover the same range of numbers as float using lower precision.  For this reason a DPC++ programmer will be able to use these more efficient low precision data types in matrix operations by providing a matrix array consisting of fp32 elements as an argument to `joint_matrix_load` or `joint_matrix_store`.
-We will introduce a new enum, `matrix::precision`, that must be provided to the `joint_matrix` interface as an additional argument when the user desires bf16 or tf32 to be used as the A, B matrix element data type.  A future implementation will make use of the https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-cvt[cvt PTX instruction] to cast the fp32 elements to either the tf32 or bf32 type.
+Alternative CUDA floating point types, bf16 and tf32, use the same number of bits for the exponent as fp32, so that these data types can cover the same range of numbers as float using lower precision.  For this reason a DPC++ programmer will be able to use these more efficient low precision data types in matrix operations by providing a matrix array consisting of fp32 elements as an argument to `joint_matrix_load` or `joint_matrix_store`.
+We will introduce a new enum, `matrix::precision`, that must be provided to the `joint_matrix` interface as an additional argument when the user desires bf16 or tf32 to be used as the A, B matrix element data type.  A future implementation will make use of the https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#data-movement-and-conversion-instructions-cvt[cvt PTX instruction] to cast the fp32 elements to either the tf32 or bf16 type.
 
 ```c++
 namespace sycl::ext::intel::experimental::matrix {
@@ -264,7 +264,7 @@ However even this case is not reliable and requires more testing.
 
 ### Ensuring that non-portable cases provide intelligible error messages to users.
 
-This extension proposal is intended to be compatible with a hypothetical AMX implementation.  However this requirement necessitates the inclusion of `matrix_layout::packed` which is incompatible with the cuda implementations of `joint_matrix`, `joint_matrix_load`, `joint_matrix_store`, and `joint_matrix_mad`.  Similar portability issues would occur in the other direction once cases dealing with the alternative cuda floating point types, tf32 and bf16, are implemented.  In addition, more backends are expected to support the matrix extension in the future.  This means that a common means of reporting errors that result from users attempting to e.g. port code written for AMX using the packed format to cuda, needs to be defined in a more mature version of the matrix extension.
+This extension proposal is intended to be compatible with a hypothetical AMX implementation.  However this requirement necessitates the inclusion of `matrix_layout::packed` which is incompatible with the CUDA implementations of `joint_matrix`, `joint_matrix_load`, `joint_matrix_store`, and `joint_matrix_mad`.  Similar portability issues would occur in the other direction once cases dealing with the alternative CUDA floating point types, tf32 and bf16, are implemented.  In addition, more backends are expected to support the matrix extension in the future.  This means that a common means of reporting errors that result from users attempting to e.g. port code written for AMX using the packed format to CUDA, needs to be defined in a more mature version of the matrix extension.
 
 ### Implementation of hardware generation specific mma ptx instructions
 
