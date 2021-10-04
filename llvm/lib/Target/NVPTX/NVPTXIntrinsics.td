@@ -1807,13 +1807,13 @@ multiclass ATOM2A_impl<string OpStr, string IntTypeStr, string TypeStr,
 multiclass ATOM3A_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, NVPTXRegClass regclass, Operand ImmType,
                        SDNode Imm, ValueType ImmTy, list<Predicate> Preds> {
-   defm _gen_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "relaxed",
+   defm _gen_relaxed_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "relaxed",
                             regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acquire",
+   defm _gen_acquire_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acquire",
                             regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "release",
+   defm _gen_release_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "release",
                             regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acq_rel",
+   defm _gen_acq_rel_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acq_rel",
                             regclass, ImmType, Imm, ImmTy, Preds>;
 }
 

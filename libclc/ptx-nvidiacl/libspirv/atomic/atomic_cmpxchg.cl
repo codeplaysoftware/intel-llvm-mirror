@@ -24,7 +24,7 @@ switch(scope){ \
 #define __CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, ADDR_SPACE, ADDR_SPACE_MANGLED) \
 _CLC_DECL TYPE _Z29__spirv_Atomic##OP_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MANGLED##N5__spv5Scope4FlagENS1_19MemorySemanticsMask4FlagES5_##TYPE_MANGLED##TYPE_MANGLED( \
     volatile ADDR_SPACE TYPE *pointer, enum Scope scope, enum MemorySemanticsMask semantics1, enum MemorySemanticsMask semantics2, \
-    TYPE value, TYPE cmp) { \
+    TYPE cmp, TYPE value) { \
 		/* Semantics mask may include memory order, storage class and other info   \
           Memory order is stored in the lowest 5 bits */                          \
         unsigned int order = (semantics1 | semantics2) & 0x1F; \

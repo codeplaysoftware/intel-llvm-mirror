@@ -11,7 +11,9 @@
 #include <atomic_helpers.h>
 
 __CLC_NVVM_ATOMIC(int, i, int, i, add, _Z18__spirv_AtomicIAdd)
+__CLC_NVVM_ATOMIC(uint, j, int, i, add, _Z18__spirv_AtomicIAdd)
 __CLC_NVVM_ATOMIC(long, l, long, l, add, _Z18__spirv_AtomicIAdd)
+__CLC_NVVM_ATOMIC(ulong, m, long, l, add, _Z18__spirv_AtomicIAdd)
 
 __CLC_NVVM_ATOMIC(float, f, float, f, add, _Z21__spirv_AtomicFAddEXT)
 #ifdef cl_khr_int64_base_atomics
