@@ -359,84 +359,84 @@ __device__ void nvvm_atom(float *fp, float f, double *dfp, double df, int *ip,
   // CHECK: call i32 @llvm.nvvm.atomic.max.gen.i.cta.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_max_gen_i' needs target feature sm_60}}
   __nvvm_atom_cta_max_gen_i(ip, i);
-  // CHECK: call i32 @llvm.nvvm.atomic.max.gen.i.cta.i32.p0i32
+  // CHECK: call i32 @llvm.nvvm.atomic.max.gen.ui.cta.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_max_gen_ui' needs target feature sm_60}}
   __nvvm_atom_cta_max_gen_ui((unsigned int *)ip, i);
   // LP32: call i32 @llvm.nvvm.atomic.max.gen.i.cta.i32.p0i32
   // LP64: call i64 @llvm.nvvm.atomic.max.gen.i.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_max_gen_l' needs target feature sm_60}}
   __nvvm_atom_cta_max_gen_l(&dl, l);
-  // LP32: call i32 @llvm.nvvm.atomic.max.gen.i.cta.i32.p0i32
-  // LP64: call i64 @llvm.nvvm.atomic.max.gen.i.cta.i64.p0i64
+  // LP32: call i32 @llvm.nvvm.atomic.max.gen.ui.cta.i32.p0i32
+  // LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_max_gen_ul' needs target feature sm_60}}
   __nvvm_atom_cta_max_gen_ul((unsigned long *)lp, l);
   // CHECK: call i64 @llvm.nvvm.atomic.max.gen.i.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_max_gen_ll' needs target feature sm_60}}
   __nvvm_atom_cta_max_gen_ll(&sll, ll);
-  // CHECK: call i64 @llvm.nvvm.atomic.max.gen.i.cta.i64.p0i64
+  // CHECK: call i64 @llvm.nvvm.atomic.max.gen.ui.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_max_gen_ull' needs target feature sm_60}}
   __nvvm_atom_cta_max_gen_ull((unsigned long long *)llp, ll);
 
   // CHECK: call i32 @llvm.nvvm.atomic.max.gen.i.sys.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_max_gen_i' needs target feature sm_60}}
   __nvvm_atom_sys_max_gen_i(ip, i);
-  // CHECK: call i32 @llvm.nvvm.atomic.max.gen.i.sys.i32.p0i32
+  // CHECK: call i32 @llvm.nvvm.atomic.max.gen.ui.sys.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_max_gen_ui' needs target feature sm_60}}
   __nvvm_atom_sys_max_gen_ui((unsigned int *)ip, i);
   // LP32: call i32 @llvm.nvvm.atomic.max.gen.i.sys.i32.p0i32
   // LP64: call i64 @llvm.nvvm.atomic.max.gen.i.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_max_gen_l' needs target feature sm_60}}
   __nvvm_atom_sys_max_gen_l(&dl, l);
-  // LP32: call i32 @llvm.nvvm.atomic.max.gen.i.sys.i32.p0i32
-  // LP64: call i64 @llvm.nvvm.atomic.max.gen.i.sys.i64.p0i64
+  // LP32: call i32 @llvm.nvvm.atomic.max.gen.ui.sys.i32.p0i32
+  // LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_max_gen_ul' needs target feature sm_60}}
   __nvvm_atom_sys_max_gen_ul((unsigned long *)lp, l);
   // CHECK: call i64 @llvm.nvvm.atomic.max.gen.i.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_max_gen_ll' needs target feature sm_60}}
   __nvvm_atom_sys_max_gen_ll(&sll, ll);
-  // CHECK: call i64 @llvm.nvvm.atomic.max.gen.i.sys.i64.p0i64
+  // CHECK: call i64 @llvm.nvvm.atomic.max.gen.ui.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_max_gen_ull' needs target feature sm_60}}
   __nvvm_atom_sys_max_gen_ull((unsigned long long *)llp, ll);
 
   // CHECK: call i32 @llvm.nvvm.atomic.min.gen.i.cta.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_min_gen_i' needs target feature sm_60}}
   __nvvm_atom_cta_min_gen_i(ip, i);
-  // CHECK: call i32 @llvm.nvvm.atomic.min.gen.i.cta.i32.p0i32
+  // CHECK: call i32 @llvm.nvvm.atomic.min.gen.ui.cta.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_min_gen_ui' needs target feature sm_60}}
   __nvvm_atom_cta_min_gen_ui((unsigned int *)ip, i);
   // LP32: call i32 @llvm.nvvm.atomic.min.gen.i.cta.i32.p0i32
   // LP64: call i64 @llvm.nvvm.atomic.min.gen.i.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_min_gen_l' needs target feature sm_60}}
   __nvvm_atom_cta_min_gen_l(&dl, l);
-  // LP32: call i32 @llvm.nvvm.atomic.min.gen.i.cta.i32.p0i32
-  // LP64: call i64 @llvm.nvvm.atomic.min.gen.i.cta.i64.p0i64
+  // LP32: call i32 @llvm.nvvm.atomic.min.gen.ui.cta.i32.p0i32
+  // LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_min_gen_ul' needs target feature sm_60}}
   __nvvm_atom_cta_min_gen_ul((unsigned long *)lp, l);
   // CHECK: call i64 @llvm.nvvm.atomic.min.gen.i.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_min_gen_ll' needs target feature sm_60}}
   __nvvm_atom_cta_min_gen_ll(&sll, ll);
-  // CHECK: call i64 @llvm.nvvm.atomic.min.gen.i.cta.i64.p0i64
+  // CHECK: call i64 @llvm.nvvm.atomic.min.gen.ui.cta.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_min_gen_ull' needs target feature sm_60}}
   __nvvm_atom_cta_min_gen_ull((unsigned long long *)llp, ll);
 
   // CHECK: call i32 @llvm.nvvm.atomic.min.gen.i.sys.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_min_gen_i' needs target feature sm_60}}
   __nvvm_atom_sys_min_gen_i(ip, i);
-  // CHECK: call i32 @llvm.nvvm.atomic.min.gen.i.sys.i32.p0i32
+  // CHECK: call i32 @llvm.nvvm.atomic.min.gen.ui.sys.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_min_gen_ui' needs target feature sm_60}}
   __nvvm_atom_sys_min_gen_ui((unsigned int *)ip, i);
   // LP32: call i32 @llvm.nvvm.atomic.min.gen.i.sys.i32.p0i32
   // LP64: call i64 @llvm.nvvm.atomic.min.gen.i.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_min_gen_l' needs target feature sm_60}}
   __nvvm_atom_sys_min_gen_l(&dl, l);
-  // LP32: call i32 @llvm.nvvm.atomic.min.gen.i.sys.i32.p0i32
-  // LP64: call i64 @llvm.nvvm.atomic.min.gen.i.sys.i64.p0i64
+  // LP32: call i32 @llvm.nvvm.atomic.min.gen.ui.sys.i32.p0i32
+  // LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_min_gen_ul' needs target feature sm_60}}
   __nvvm_atom_sys_min_gen_ul((unsigned long *)lp, l);
   // CHECK: call i64 @llvm.nvvm.atomic.min.gen.i.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_min_gen_ll' needs target feature sm_60}}
   __nvvm_atom_sys_min_gen_ll(&sll, ll);
-  // CHECK: call i64 @llvm.nvvm.atomic.min.gen.i.sys.i64.p0i64
+  // CHECK: call i64 @llvm.nvvm.atomic.min.gen.ui.sys.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_min_gen_ull' needs target feature sm_60}}
   __nvvm_atom_sys_min_gen_ull((unsigned long long *)llp, ll);
 
@@ -547,7 +547,6 @@ __device__ void nvvm_atom(float *fp, float f, double *dfp, double df, int *ip,
   // Atomics with semantics (only supported on sm_70+).
 
 #if ERROR_CHECK || __CUDA_ARCH__ >= 700
-
 
   // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.add.gen.i.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_acquire_add_gen_i' needs target feature sm_70}}
@@ -845,76 +844,76 @@ __device__ void nvvm_atom(float *fp, float f, double *dfp, double df, int *ip,
   __nvvm_atom_cta_acq_rel_max_gen_l(&dl, l);
 
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.acquire.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_acquire_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_acquire_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.release.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.release.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_release_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_release_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.acq.rel.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.acq.rel.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_acq_rel_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_acq_rel_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.sys.acquire.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.sys.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_acquire_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_sys_acquire_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.sys.release.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.sys.release.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_release_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_sys_release_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.sys.acq.rel.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.sys.acq.rel.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_acq_rel_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_sys_acq_rel_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.cta.acquire.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.cta.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_acquire_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_cta_acquire_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.cta.release.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.cta.release.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_release_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_cta_release_max_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.i.cta.acq.rel.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.max.gen.ui.cta.acq.rel.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_acq_rel_max_gen_ui' needs target feature sm_70}}
   __nvvm_atom_cta_acq_rel_max_gen_ui((unsigned int *)ip, i);
 
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.acquire.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.acquire.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_acquire_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_acquire_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.release.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.release.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_release_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_release_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.acq.rel.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.acq.rel.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_acq_rel_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_acq_rel_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.sys.acquire.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.sys.acquire.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_acquire_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_sys_acquire_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.sys.release.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.sys.release.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_release_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_sys_release_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.sys.acq.rel.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.sys.acq.rel.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_acq_rel_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_sys_acq_rel_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.cta.acquire.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.cta.acquire.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_acquire_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_cta_acquire_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.cta.release.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.cta.release.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_release_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_cta_release_max_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.i.cta.acq.rel.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.max.gen.ui.cta.acq.rel.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_acq_rel_max_gen_ul' needs target feature sm_70}}
   __nvvm_atom_cta_acq_rel_max_gen_ul((unsigned long *)lp, l);
 
@@ -993,76 +992,76 @@ __device__ void nvvm_atom(float *fp, float f, double *dfp, double df, int *ip,
   __nvvm_atom_cta_acq_rel_min_gen_l(&dl, l);
 
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.acquire.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_acquire_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_acquire_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.release.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.release.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_release_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_release_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.acq.rel.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.acq.rel.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_acq_rel_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_acq_rel_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.sys.acquire.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.sys.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_acquire_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_sys_acquire_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.sys.release.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.sys.release.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_release_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_sys_release_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.sys.acq.rel.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.sys.acq.rel.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_sys_acq_rel_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_sys_acq_rel_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.cta.acquire.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.cta.acquire.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_acquire_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_cta_acquire_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.cta.release.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.cta.release.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_release_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_cta_release_min_gen_ui((unsigned int *)ip, i);
 
-  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.i.cta.acq.rel.i32.p0i32
+  // CHECK_SM70_LP64: call i32 @llvm.nvvm.atomic.min.gen.ui.cta.acq.rel.i32.p0i32
   // expected-error@+1 {{'__nvvm_atom_cta_acq_rel_min_gen_ui' needs target feature sm_70}}
   __nvvm_atom_cta_acq_rel_min_gen_ui((unsigned int *)ip, i);
 
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.acquire.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.acquire.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_acquire_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_acquire_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.release.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.release.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_release_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_release_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.acq.rel.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.acq.rel.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_acq_rel_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_acq_rel_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.sys.acquire.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.sys.acquire.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_acquire_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_sys_acquire_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.sys.release.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.sys.release.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_release_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_sys_release_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.sys.acq.rel.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.sys.acq.rel.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_sys_acq_rel_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_sys_acq_rel_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.cta.acquire.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.cta.acquire.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_acquire_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_cta_acquire_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.cta.release.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.cta.release.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_release_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_cta_release_min_gen_ul((unsigned long *)lp, l);
 
-  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.i.cta.acq.rel.i64.p0i64
+  // CHECK_SM70_LP64: call i64 @llvm.nvvm.atomic.min.gen.ui.cta.acq.rel.i64.p0i64
   // expected-error@+1 {{'__nvvm_atom_cta_acq_rel_min_gen_ul' needs target feature sm_70}}
   __nvvm_atom_cta_acq_rel_min_gen_ul((unsigned long *)lp, l);
 
