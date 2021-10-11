@@ -1255,7 +1255,9 @@ let TargetPrefix = "nvvm" in {
   defm int_nvvm_atomic_exch_gen_i: PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_xor_gen_i : PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_max_gen_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_max_gen_ui: PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_min_gen_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_min_gen_ui: PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_or_gen_i  : PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_and_gen_i : PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_cas_gen_i : PTXAtomicWithScope3<llvm_anyint_ty>;

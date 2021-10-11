@@ -1762,8 +1762,8 @@ multiclass ATOM2N_impl<string OpStr, string IntTypeStr, string TypeStr,
                        NVPTXRegClass regclass, Operand ImmType, SDNode Imm,
                        ValueType ImmTy, list<Predicate> Preds> {
   defm : ATOM2P_impl<"atom" # !if(!eq(SpaceStr, "gen"), "", "." # SpaceStr)
-                            # !if(!eq(ScopeStr, "gpu"), "", "." # ScopeStr)
                             # !if(!eq(SemStr, "relaxed"), "", "." # SemStr)
+                            # !if(!eq(ScopeStr, "gpu"), "", "." # ScopeStr)
                             # "." # OpStr # "." # TypeStr
                             # " \t$result, [$src], $b;",
                      !cast<Intrinsic>(
@@ -1778,8 +1778,8 @@ multiclass ATOM3N_impl<string OpStr, string IntTypeStr, string TypeStr,
                        NVPTXRegClass regclass, Operand ImmType, SDNode Imm,
                        ValueType ImmTy, list<Predicate> Preds> {
   defm : ATOM3P_impl<"atom" # !if(!eq(SpaceStr, "gen"), "", "." # SpaceStr)
-                            # !if(!eq(ScopeStr, "gpu"), "", "." # ScopeStr)
                             # !if(!eq(SemStr, "relaxed"), "", "." # SemStr)
+                            # !if(!eq(ScopeStr, "gpu"), "", "." # ScopeStr)
                             # "." # OpStr # "." # TypeStr
                             # " \t$result, [$src], $b, $c;",
                      !cast<Intrinsic>(
@@ -1872,10 +1872,10 @@ multiclass ATOM2_exch_impl<string OpStr> {
 // atom.{min,max}
 multiclass ATOM2_minmax_impl<string OpStr> {
    defm _s32  : ATOM2S_impl<OpStr, "i", "s32", Int32Regs, i32imm, imm, i32, []>;
-   defm _u32  : ATOM2S_impl<OpStr, "i", "u32", Int32Regs, i32imm, imm, i32, []>;
+   defm _u32  : ATOM2S_impl<OpStr, "ui", "u32", Int32Regs, i32imm, imm, i32, []>;
    defm _s64  : ATOM2S_impl<OpStr, "i", "s64", Int64Regs, i64imm, imm, i64,
                             [hasAtomMinMax64]>;
-   defm _u64  : ATOM2S_impl<OpStr, "i", "u64", Int64Regs, i64imm, imm, i64,
+   defm _u64  : ATOM2S_impl<OpStr, "ui", "u64", Int64Regs, i64imm, imm, i64,
                             [hasAtomMinMax64]>;
 }
 
