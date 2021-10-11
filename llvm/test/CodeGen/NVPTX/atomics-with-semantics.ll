@@ -717,21 +717,6 @@ entry:
   ret void
 }
 
-; Make sure we use constants as operands to our scoped atomic calls, where appropriate.
-; CHECK-LABEL: .func test_atomics_scope_imm(
-define void @test_atomics_scope_imm(float* %fp, float %f,
-                                    double* %dfp, double %df,
-                                    i32* %ip, i32 %i,
-                                    i32* %uip, i32 %ui,
-                                    i64* %llp, i64 %ll) #0 {
-
-
-
-  ; CHECK: ret
-  ret void
-}
-
-
 declare i32 @llvm.nvvm.atomic.add.gen.i.acquire.i32.p0i32(i32* nocapture, i32) #1
 declare i32 @llvm.nvvm.atomic.add.gen.i.release.i32.p0i32(i32* nocapture, i32) #1
 declare i32 @llvm.nvvm.atomic.add.gen.i.acq.rel.i32.p0i32(i32* nocapture, i32) #1
