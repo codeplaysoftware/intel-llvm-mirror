@@ -12,8 +12,8 @@
 
 __CLC_NVVM_ATOMIC(int, i, int, i, min, _Z18__spirv_AtomicSMin)
 __CLC_NVVM_ATOMIC(long, l, long, l, min, _Z18__spirv_AtomicSMin)
-__CLC_NVVM_ATOMIC(unsigned int, j, unsigned int, ui, min, _Z18__spirv_AtomicUMin)
-__CLC_NVVM_ATOMIC(unsigned long, m, unsigned long, ul, min, _Z18__spirv_AtomicUMin)
+__CLC_NVVM_ATOMIC(uint, j, uint, ui, min, _Z18__spirv_AtomicUMin)
+__CLC_NVVM_ATOMIC(ulong, m, ulong, ul, min, _Z18__spirv_AtomicUMin)
 
 #undef __CLC_NVVM_ATOMIC_TYPES
 #undef __CLC_NVVM_ATOMIC
