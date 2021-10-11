@@ -17752,11 +17752,11 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
   case NVPTX::BI__nvvm_atom_cta_release_min_gen_i:
   case NVPTX::BI__nvvm_atom_cta_release_min_gen_l:
   case NVPTX::BI__nvvm_atom_cta_release_min_gen_ll:
-    return MakeScopedAtomic(Intrinsic::nvvm_atomic_min_gen_ui_cta_release);
+    return MakeScopedAtomic(Intrinsic::nvvm_atomic_min_gen_i_cta_release);
   case NVPTX::BI__nvvm_atom_cta_release_min_gen_ui:
   case NVPTX::BI__nvvm_atom_cta_release_min_gen_ul:
   case NVPTX::BI__nvvm_atom_cta_release_min_gen_ull:
-    return MakeScopedAtomic(Intrinsic::nvvm_atomic_min_gen_i_cta_release);
+    return MakeScopedAtomic(Intrinsic::nvvm_atomic_min_gen_ui_cta_release);
   case NVPTX::BI__nvvm_atom_sys_release_min_gen_i:
   case NVPTX::BI__nvvm_atom_sys_release_min_gen_l:
   case NVPTX::BI__nvvm_atom_sys_release_min_gen_ll:
