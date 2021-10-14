@@ -9,19 +9,25 @@
 #include <spirv/spirv.h>
 #include <spirv/spirv_types.h>
 
-#define __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ORDER) \
+#define __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, ORDER) \
 switch(scope){ \
 	case Subgroup: \
-	case Workgroup: \
-		  return __nvvm_atom_cta##ORDER##_##OP##_gen_##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, (TYPE_NV)value, cmp);  \
-	case Device: \
-		  return __nvvm_atom##ORDER##_##OP##_gen_##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, (TYPE_NV)value, cmp);  \
+	case Workgroup: { \
+		  TYPE_NV res = __nvvm_atom_cta##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value, cmp);  \
+		  return *(TYPE*)&res; \
+	} \
+	case Device: { \
+		  TYPE_NV res = __nvvm_atom##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value, cmp);  \
+		  return *(TYPE*)&res; \
+	} \
 	case CrossDevice: \
-	default: \
-		  return __nvvm_atom_sys##ORDER##_##OP##_gen_##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, (TYPE_NV)value, cmp);  \
+	default: { \
+		  TYPE_NV res = __nvvm_atom_sys##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value, cmp);  \
+		  return *(TYPE*)&res; \
+	} \
 }
 
-#define __CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, ADDR_SPACE, ADDR_SPACE_MANGLED) \
+#define __CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, ADDR_SPACE, ADDR_SPACE_MANGLED, ADDR_SPACE_NV) \
 _CLC_DECL TYPE _Z29__spirv_Atomic##OP_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MANGLED##N5__spv5Scope4FlagENS1_19MemorySemanticsMask4FlagES5_##TYPE_MANGLED##TYPE_MANGLED( \
     volatile ADDR_SPACE TYPE *pointer, enum Scope scope, enum MemorySemanticsMask semantics1, enum MemorySemanticsMask semantics2, \
     TYPE cmp, TYPE value) { \
@@ -30,20 +36,20 @@ _CLC_DECL TYPE _Z29__spirv_Atomic##OP_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MAN
         unsigned int order = (semantics1 | semantics2) & 0x1F; \
 		switch (order) {                                                           \
 			case None:                                                                 \
-			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, )  \
+			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, )  \
 			case Acquire:                                                              \
-			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, _acquire)  \
+			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _acquire)  \
 			case Release:                                                              \
-			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, _release)  \
+			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _release)  \
 			default: \
 			case AcquireRelease:                                                       \
-			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, _acq_rel)  \
+			  __CLC_NVVM_ATOMIC_CAS_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _acq_rel)  \
 			}                                                                          \
 }
 
 #define __CLC_NVVM_ATOMIC_CAS(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED) \
-__CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, __global, AS1) \
-__CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, __local, AS3)
+__CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, __global, AS1, _global_) \
+__CLC_NVVM_ATOMIC_CAS_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, OP_MANGLED, __local, AS3, _shared_)
 
 __CLC_NVVM_ATOMIC_CAS(int, i, int, i, cas, CompareExchange)
 __CLC_NVVM_ATOMIC_CAS(long, l, long, l, cas, CompareExchange)

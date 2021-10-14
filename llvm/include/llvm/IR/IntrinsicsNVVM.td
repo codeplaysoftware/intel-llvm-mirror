@@ -1262,6 +1262,32 @@ let TargetPrefix = "nvvm" in {
   defm int_nvvm_atomic_and_gen_i : PTXAtomicWithScope2<llvm_anyint_ty>;
   defm int_nvvm_atomic_cas_gen_i : PTXAtomicWithScope3<llvm_anyint_ty>;
 
+  defm int_nvvm_atomic_add_shared   : PTXAtomicWithScope2_fi;
+  defm int_nvvm_atomic_inc_shared_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_dec_shared_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_exch_shared_i: PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_xor_shared_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_max_shared_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_max_shared_ui: PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_min_shared_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_min_shared_ui: PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_or_shared_i  : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_and_shared_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_cas_shared_i : PTXAtomicWithScope3<llvm_anyint_ty>;
+  
+  defm int_nvvm_atomic_add_global   : PTXAtomicWithScope2_fi;
+  defm int_nvvm_atomic_inc_global_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_dec_global_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_exch_global_i: PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_xor_global_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_max_global_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_max_global_ui: PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_min_global_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_min_global_ui: PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_or_global_i  : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_and_global_i : PTXAtomicWithScope2<llvm_anyint_ty>;
+  defm int_nvvm_atomic_cas_global_i : PTXAtomicWithScope3<llvm_anyint_ty>;
+
 // Bar.Sync
 
   // The builtin for "bar.sync 0" is called __syncthreads.  Unlike most of the

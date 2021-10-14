@@ -9,19 +9,32 @@
 #include <spirv/spirv.h>
 #include <spirv/spirv_types.h>
 
-#define __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ORDER) \
+
+int __nvvm_reflect(const char __constant *);
+
+#define __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, ORDER) \
 switch(scope){ \
 	case Subgroup: \
-	case Workgroup: \
-		  return __nvvm_atom_cta##ORDER##_##OP##_gen_##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, (TYPE_NV)value);  \
-	case Device: \
-		  return __nvvm_atom##ORDER##_##OP##_gen_##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, (TYPE_NV)value);  \
-	case CrossDevice: \
-	default: \
-		  return __nvvm_atom_sys##ORDER##_##OP##_gen_##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, (TYPE_NV)value);  \
+	case Workgroup: {\
+		if(__nvvm_reflect("__CUDA_ARCH") >= 600) { \
+		  TYPE_NV res =  __nvvm_atom_cta##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value);  \
+		  return *(TYPE*)&res; \
+		} \
+	}\
+	case Device: { \
+		  TYPE_NV res =  __nvvm_atom##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value);  \
+		  return *(TYPE*)&res; \
+	}\
+	case CrossDevice:  \
+	default: { \
+		if(__nvvm_reflect("__CUDA_ARCH") >= 600) { \
+		  TYPE_NV res =  __nvvm_atom_sys##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value);  \
+		  return *(TYPE*)&res; \
+		} \
+	}\
 }
 
-#define __CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, ADDR_SPACE, ADDR_SPACE_MANGLED) \
+#define __CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, ADDR_SPACE, ADDR_SPACE_MANGLED, ADDR_SPACE_NV) \
 _CLC_DECL TYPE NAME_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MANGLED##N5__spv5Scope4FlagENS1_19MemorySemanticsMask4FlagE##TYPE_MANGLED( \
     volatile ADDR_SPACE TYPE *pointer, enum Scope scope, enum MemorySemanticsMask semantics, \
     TYPE value) { \
@@ -30,17 +43,25 @@ _CLC_DECL TYPE NAME_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MANGLED##N5__spv5Scop
         unsigned int order = semantics & 0x1F; \
 		switch (order) {                                                           \
 			case None:                                                                 \
-			  __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, )  \
+			  __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, )  \
 			case Acquire:                                                              \
-			  __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, _acquire)  \
+				if(__nvvm_reflect("__CUDA_ARCH") >= 700) { \
+					__CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _acquire)  \
+				} \
 			case Release:                                                              \
-			  __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, _release)  \
+				if(__nvvm_reflect("__CUDA_ARCH") >= 700) { \
+					__CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _release)  \
+				} \
 			default: \
 			case AcquireRelease:                                                       \
-			  __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, _acq_rel)  \
-			}                                                                          \
+				if(__nvvm_reflect("__CUDA_ARCH") >= 700) { \
+					__CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _acq_rel)  \
+				} \
+			}                                                                           \
+			return -1; /* for now do nothing if appropriate atomic is not supported */\
 }
 
 #define __CLC_NVVM_ATOMIC(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED) \
-__CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, __global, AS1) \
-__CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, __local, AS3)
+__CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, __global, AS1, _global_) \
+__CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, __local, AS3, _shared_)
+

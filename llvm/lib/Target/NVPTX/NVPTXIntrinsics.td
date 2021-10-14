@@ -1761,9 +1761,9 @@ multiclass ATOM2N_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, string SpaceStr, string SemStr,
                        NVPTXRegClass regclass, Operand ImmType, SDNode Imm,
                        ValueType ImmTy, list<Predicate> Preds> {
-  defm : ATOM2P_impl<"atom" # !if(!eq(SpaceStr, "gen"), "", "." # SpaceStr)
-                            # !if(!eq(SemStr, "relaxed"), "", "." # SemStr)
+  defm : ATOM2P_impl<"atom" # !if(!eq(SemStr, "relaxed"), "", "." # SemStr)
                             # !if(!eq(ScopeStr, "gpu"), "", "." # ScopeStr)
+                            # !if(!eq(SpaceStr, "gen"), "", "." # SpaceStr)
                             # "." # OpStr # "." # TypeStr
                             # " \t$result, [$src], $b;",
                      !cast<Intrinsic>(
@@ -1777,9 +1777,9 @@ multiclass ATOM3N_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, string SpaceStr, string SemStr,
                        NVPTXRegClass regclass, Operand ImmType, SDNode Imm,
                        ValueType ImmTy, list<Predicate> Preds> {
-  defm : ATOM3P_impl<"atom" # !if(!eq(SpaceStr, "gen"), "", "." # SpaceStr)
-                            # !if(!eq(SemStr, "relaxed"), "", "." # SemStr)
+  defm : ATOM3P_impl<"atom" # !if(!eq(SemStr, "relaxed"), "", "." # SemStr)
                             # !if(!eq(ScopeStr, "gpu"), "", "." # ScopeStr)
+                            # !if(!eq(SpaceStr, "gen"), "", "." # SpaceStr)
                             # "." # OpStr # "." # TypeStr
                             # " \t$result, [$src], $b, $c;",
                      !cast<Intrinsic>(
@@ -1790,31 +1790,54 @@ multiclass ATOM3N_impl<string OpStr, string IntTypeStr, string TypeStr,
                      regclass, ImmType, Imm, ImmTy, Preds>;
 }
 
+
+multiclass ATOM2N_spaces_impl<string OpStr, string IntTypeStr, string TypeStr,
+                       string ScopeStr, string SemStr,
+                       NVPTXRegClass regclass, Operand ImmType, SDNode Imm,
+                       ValueType ImmTy, list<Predicate> Preds> {
+   defm _gen : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", SemStr,
+                            regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _global : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "global", SemStr,
+                            regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _shared : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "shared", SemStr,
+                            regclass, ImmType, Imm, ImmTy, Preds>;
+}
+multiclass ATOM3N_spaces_impl<string OpStr, string IntTypeStr, string TypeStr,
+                       string ScopeStr, string SemStr,
+                       NVPTXRegClass regclass, Operand ImmType, SDNode Imm,
+                       ValueType ImmTy, list<Predicate> Preds> {
+   defm _gen : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", SemStr,
+                            regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _global : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "global", SemStr,
+                            regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _shared : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "shared", SemStr,
+                            regclass, ImmType, Imm, ImmTy, Preds>;
+}
+
 // Constructs variants for different address spaces.
-// For now we only need variants for generic space pointers.
 multiclass ATOM2A_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, NVPTXRegClass regclass, Operand ImmType,
                        SDNode Imm, ValueType ImmTy, list<Predicate> Preds> {
-   defm _gen_relaxed_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "relaxed",
+   defm _relaxed_ : ATOM2N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "relaxed",
                             regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_acquire_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acquire",
-                            regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_release_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "release",
-                            regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_acq_rel_ : ATOM2N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acq_rel",
-                            regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _acquire_ : ATOM2N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "acquire",
+                            regclass, ImmType, Imm, ImmTy, !listconcat(Preds,[hasAtomSemantics])>;
+   defm _release_ : ATOM2N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "release",
+                            regclass, ImmType, Imm, ImmTy, !listconcat(Preds,[hasAtomSemantics])>;
+   defm _acq_rel_ : ATOM2N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "acq_rel",
+                            regclass, ImmType, Imm, ImmTy, !listconcat(Preds,[hasAtomSemantics])>;
 }
 multiclass ATOM3A_impl<string OpStr, string IntTypeStr, string TypeStr,
                        string ScopeStr, NVPTXRegClass regclass, Operand ImmType,
                        SDNode Imm, ValueType ImmTy, list<Predicate> Preds> {
-   defm _gen_relaxed_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "relaxed",
+   defm _relaxed_ : ATOM3N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "relaxed",
                             regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_acquire_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acquire",
-                            regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_release_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "release",
-                            regclass, ImmType, Imm, ImmTy, Preds>;
-   defm _gen_acq_rel_ : ATOM3N_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "gen", "acq_rel",
-                            regclass, ImmType, Imm, ImmTy, Preds>;
+   defm _acquire_ : ATOM3N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "acquire",
+                            regclass, ImmType, Imm, ImmTy, !listconcat(Preds,[hasAtomSemantics])>;
+   defm _release_ : ATOM3N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "release",
+                            regclass, ImmType, Imm, ImmTy, !listconcat(Preds,[hasAtomSemantics])>;
+   defm _acq_rel_ : ATOM3N_spaces_impl<OpStr, IntTypeStr, TypeStr, ScopeStr, "acq_rel",
+                            regclass, ImmType, Imm, ImmTy, !listconcat(Preds,[hasAtomSemantics])>;
 }
 
 // Constructs variants for different scopes of atomic op.
@@ -1823,7 +1846,7 @@ multiclass ATOM2S_impl<string OpStr, string IntTypeStr, string TypeStr,
                        ValueType ImmTy, list<Predicate> Preds> {
    defm "" : ATOM2A_impl<OpStr, IntTypeStr, TypeStr, "gpu",
                            regclass, ImmType, Imm, ImmTy,
-                           !listconcat(Preds,[hasAtomScope])>;
+                           Preds>;
    defm _cta : ATOM2A_impl<OpStr, IntTypeStr, TypeStr, "cta",
                            regclass, ImmType, Imm, ImmTy,
                            !listconcat(Preds,[hasAtomScope])>;
@@ -1836,7 +1859,7 @@ multiclass ATOM3S_impl<string OpStr, string IntTypeStr, string TypeStr,
            list<Predicate> Preds> {
    defm "" : ATOM3A_impl<OpStr, IntTypeStr, TypeStr, "gpu",
                            regclass, ImmType, Imm, ImmTy,
-                           !listconcat(Preds,[hasAtomScope])>;
+                           Preds>;
    defm _cta : ATOM3A_impl<OpStr, IntTypeStr, TypeStr, "cta",
                            regclass, ImmType, Imm, ImmTy,
                            !listconcat(Preds,[hasAtomScope])>;
