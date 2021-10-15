@@ -16,10 +16,8 @@ int __nvvm_reflect(const char __constant *);
 switch(scope){ \
 	case Subgroup: \
 	case Workgroup: {\
-		if(__nvvm_reflect("__CUDA_ARCH") >= 600) { \
 		  TYPE_NV res =  __nvvm_atom_cta##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value);  \
 		  return *(TYPE*)&res; \
-		} \
 	}\
 	case Device: { \
 		  TYPE_NV res =  __nvvm_atom##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value);  \
@@ -27,10 +25,8 @@ switch(scope){ \
 	}\
 	case CrossDevice:  \
 	default: { \
-		if(__nvvm_reflect("__CUDA_ARCH") >= 600) { \
 		  TYPE_NV res =  __nvvm_atom_sys##ORDER##_##OP##ADDR_SPACE_NV##TYPE_MANGLED_NV((ADDR_SPACE TYPE_NV*)pointer, *(TYPE_NV*)&value);  \
 		  return *(TYPE*)&res; \
-		} \
 	}\
 }
 
@@ -44,21 +40,14 @@ _CLC_DECL TYPE NAME_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MANGLED##N5__spv5Scop
 		switch (order) {                                                           \
 			case None:                                                                 \
 			  __CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, )  \
-			case Acquire:                                                              \
-				if(__nvvm_reflect("__CUDA_ARCH") >= 700) { \
+			case Acquire:    \
 					__CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _acquire)  \
-				} \
 			case Release:                                                              \
-				if(__nvvm_reflect("__CUDA_ARCH") >= 700) { \
 					__CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _release)  \
-				} \
 			default: \
 			case AcquireRelease:                                                       \
-				if(__nvvm_reflect("__CUDA_ARCH") >= 700) { \
 					__CLC_NVVM_ATOMIC_IMPL_ORDER(TYPE, TYPE_NV, TYPE_MANGLED_NV, OP, ADDR_SPACE, ADDR_SPACE_NV, _acq_rel)  \
-				} \
 			}                                                                           \
-			return -1; /* for now do nothing if appropriate atomic is not supported */\
 }
 
 #define __CLC_NVVM_ATOMIC(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED) \
