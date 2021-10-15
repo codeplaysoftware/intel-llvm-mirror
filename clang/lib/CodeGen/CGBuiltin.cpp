@@ -17376,7 +17376,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
   }
 
   case NVPTX::BI__nvvm_atom_inc_gen_ui:
-  case NVPTX::BI__nvvm_atom_inc_gen_ul:{
+  case NVPTX::BI__nvvm_atom_inc_gen_ul: {
     Value *Ptr = EmitScalarExpr(E->getArg(0));
     Value *Val = EmitScalarExpr(E->getArg(1));
     Function *FnALI32 =
@@ -17542,8 +17542,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-    case NVPTX::BI__nvvm_atom_acquire_add_gen_i:
+
+  case NVPTX::BI__nvvm_atom_acquire_add_gen_i:
   case NVPTX::BI__nvvm_atom_acquire_add_gen_l:
   case NVPTX::BI__nvvm_atom_acquire_add_gen_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_gen_i_acquire);
@@ -17600,7 +17600,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_acquire_add_gen_i:
+  case NVPTX::BI__nvvm_atom_cta_acquire_add_gen_i:
   case NVPTX::BI__nvvm_atom_cta_acquire_add_gen_l:
   case NVPTX::BI__nvvm_atom_cta_acquire_add_gen_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_gen_i_cta_acquire);
@@ -17714,8 +17714,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-      case NVPTX::BI__nvvm_atom_release_add_gen_i:
+
+  case NVPTX::BI__nvvm_atom_release_add_gen_i:
   case NVPTX::BI__nvvm_atom_release_add_gen_l:
   case NVPTX::BI__nvvm_atom_release_add_gen_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_gen_i_release);
@@ -17772,7 +17772,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_release_add_gen_i:
+  case NVPTX::BI__nvvm_atom_cta_release_add_gen_i:
   case NVPTX::BI__nvvm_atom_cta_release_add_gen_l:
   case NVPTX::BI__nvvm_atom_cta_release_add_gen_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_gen_i_cta_release);
@@ -17886,8 +17886,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-      case NVPTX::BI__nvvm_atom_acq_rel_add_gen_i:
+
+  case NVPTX::BI__nvvm_atom_acq_rel_add_gen_i:
   case NVPTX::BI__nvvm_atom_acq_rel_add_gen_l:
   case NVPTX::BI__nvvm_atom_acq_rel_add_gen_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_gen_i_acq_rel);
@@ -17944,7 +17944,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_acq_rel_add_gen_i:
+  case NVPTX::BI__nvvm_atom_cta_acq_rel_add_gen_i:
   case NVPTX::BI__nvvm_atom_cta_acq_rel_add_gen_l:
   case NVPTX::BI__nvvm_atom_cta_acq_rel_add_gen_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_gen_i_cta_acq_rel);
@@ -18058,8 +18058,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-    case NVPTX::BI__nvvm_atom_add_global_i:
+
+  case NVPTX::BI__nvvm_atom_add_global_i:
   case NVPTX::BI__nvvm_atom_add_global_l:
   case NVPTX::BI__nvvm_atom_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i);
@@ -18116,7 +18116,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
+
   case NVPTX::BI__nvvm_atom_cta_add_global_i:
   case NVPTX::BI__nvvm_atom_cta_add_global_l:
   case NVPTX::BI__nvvm_atom_cta_add_global_ll:
@@ -18231,8 +18231,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-    case NVPTX::BI__nvvm_atom_acquire_add_global_i:
+
+  case NVPTX::BI__nvvm_atom_acquire_add_global_i:
   case NVPTX::BI__nvvm_atom_acquire_add_global_l:
   case NVPTX::BI__nvvm_atom_acquire_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i_acquire);
@@ -18289,7 +18289,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_acquire_add_global_i:
+  case NVPTX::BI__nvvm_atom_cta_acquire_add_global_i:
   case NVPTX::BI__nvvm_atom_cta_acquire_add_global_l:
   case NVPTX::BI__nvvm_atom_cta_acquire_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i_cta_acquire);
@@ -18403,8 +18403,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-      case NVPTX::BI__nvvm_atom_release_add_global_i:
+
+  case NVPTX::BI__nvvm_atom_release_add_global_i:
   case NVPTX::BI__nvvm_atom_release_add_global_l:
   case NVPTX::BI__nvvm_atom_release_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i_release);
@@ -18461,7 +18461,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_release_add_global_i:
+  case NVPTX::BI__nvvm_atom_cta_release_add_global_i:
   case NVPTX::BI__nvvm_atom_cta_release_add_global_l:
   case NVPTX::BI__nvvm_atom_cta_release_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i_cta_release);
@@ -18575,8 +18575,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-      case NVPTX::BI__nvvm_atom_acq_rel_add_global_i:
+
+  case NVPTX::BI__nvvm_atom_acq_rel_add_global_i:
   case NVPTX::BI__nvvm_atom_acq_rel_add_global_l:
   case NVPTX::BI__nvvm_atom_acq_rel_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i_acq_rel);
@@ -18633,7 +18633,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_acq_rel_add_global_i:
+  case NVPTX::BI__nvvm_atom_cta_acq_rel_add_global_i:
   case NVPTX::BI__nvvm_atom_cta_acq_rel_add_global_l:
   case NVPTX::BI__nvvm_atom_cta_acq_rel_add_global_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_global_i_cta_acq_rel);
@@ -18747,7 +18747,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
+
   case NVPTX::BI__nvvm_atom_add_shared_i:
   case NVPTX::BI__nvvm_atom_add_shared_l:
   case NVPTX::BI__nvvm_atom_add_shared_ll:
@@ -18805,7 +18805,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
+
   case NVPTX::BI__nvvm_atom_cta_add_shared_i:
   case NVPTX::BI__nvvm_atom_cta_add_shared_l:
   case NVPTX::BI__nvvm_atom_cta_add_shared_ll:
@@ -18920,8 +18920,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-    case NVPTX::BI__nvvm_atom_acquire_add_shared_i:
+
+  case NVPTX::BI__nvvm_atom_acquire_add_shared_i:
   case NVPTX::BI__nvvm_atom_acquire_add_shared_l:
   case NVPTX::BI__nvvm_atom_acquire_add_shared_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_shared_i_acquire);
@@ -18978,7 +18978,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_acquire_add_shared_i:
+  case NVPTX::BI__nvvm_atom_cta_acquire_add_shared_i:
   case NVPTX::BI__nvvm_atom_cta_acquire_add_shared_l:
   case NVPTX::BI__nvvm_atom_cta_acquire_add_shared_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_shared_i_cta_acquire);
@@ -19092,8 +19092,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-      case NVPTX::BI__nvvm_atom_release_add_shared_i:
+
+  case NVPTX::BI__nvvm_atom_release_add_shared_i:
   case NVPTX::BI__nvvm_atom_release_add_shared_l:
   case NVPTX::BI__nvvm_atom_release_add_shared_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_shared_i_release);
@@ -19150,7 +19150,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_release_add_shared_i:
+  case NVPTX::BI__nvvm_atom_cta_release_add_shared_i:
   case NVPTX::BI__nvvm_atom_cta_release_add_shared_l:
   case NVPTX::BI__nvvm_atom_cta_release_add_shared_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_shared_i_cta_release);
@@ -19264,8 +19264,8 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
-      case NVPTX::BI__nvvm_atom_acq_rel_add_shared_i:
+
+  case NVPTX::BI__nvvm_atom_acq_rel_add_shared_i:
   case NVPTX::BI__nvvm_atom_acq_rel_add_shared_l:
   case NVPTX::BI__nvvm_atom_acq_rel_add_shared_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_shared_i_acq_rel);
@@ -19322,7 +19322,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-    case NVPTX::BI__nvvm_atom_cta_acq_rel_add_shared_i:
+  case NVPTX::BI__nvvm_atom_cta_acq_rel_add_shared_i:
   case NVPTX::BI__nvvm_atom_cta_acq_rel_add_shared_l:
   case NVPTX::BI__nvvm_atom_cta_acq_rel_add_shared_ll:
     return MakeScopedAtomic(Intrinsic::nvvm_atomic_add_shared_i_cta_acq_rel);
@@ -19436,7 +19436,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
             {Ptr->getType()->getPointerElementType(), Ptr->getType()}),
         {Ptr, EmitScalarExpr(E->getArg(1)), EmitScalarExpr(E->getArg(2))});
   }
-  
+
   case NVPTX::BI__nvvm_match_all_sync_i32p:
   case NVPTX::BI__nvvm_match_all_sync_i64p: {
     Value *Mask = EmitScalarExpr(E->getArg(0));
