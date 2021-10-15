@@ -6,6 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#ifndef __CLC_ATOMIC_HELPERS_H
+#define __CLC_ATOMIC_HELPERS_H
+
 #include <spirv/spirv.h>
 #include <spirv/spirv_types.h>
 
@@ -54,3 +57,4 @@ _CLC_DECL TYPE NAME_MANGLED##PU3##ADDR_SPACE_MANGLED##TYPE_MANGLED##N5__spv5Scop
 __CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, __global, AS1, _global_) \
 __CLC_NVVM_ATOMIC_IMPL(TYPE, TYPE_MANGLED, TYPE_NV, TYPE_MANGLED_NV, OP, NAME_MANGLED, __local, AS3, _shared_)
 
+#endif

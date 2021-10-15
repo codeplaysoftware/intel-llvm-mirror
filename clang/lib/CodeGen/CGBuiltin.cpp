@@ -17313,8 +17313,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
   }
 
   case NVPTX::BI__nvvm_atom_inc_gen_ui:
-  case NVPTX::BI__nvvm_atom_inc_gen_ul:
-  case NVPTX::BI__nvvm_atom_inc_gen_ull: {
+  case NVPTX::BI__nvvm_atom_inc_gen_ul:{
     Value *Ptr = EmitScalarExpr(E->getArg(0));
     Value *Val = EmitScalarExpr(E->getArg(1));
     Function *FnALI32 =
@@ -17323,8 +17322,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
   }
 
   case NVPTX::BI__nvvm_atom_dec_gen_ui:
-  case NVPTX::BI__nvvm_atom_dec_gen_ul:
-  case NVPTX::BI__nvvm_atom_dec_gen_ull: {
+  case NVPTX::BI__nvvm_atom_dec_gen_ul: {
     Value *Ptr = EmitScalarExpr(E->getArg(0));
     Value *Val = EmitScalarExpr(E->getArg(1));
     Function *FnALD32 =
