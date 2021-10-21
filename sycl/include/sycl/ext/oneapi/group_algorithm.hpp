@@ -171,7 +171,13 @@ device_event async_group_copy(Group g, global_ptr<dataT> dest,
   return async_group_copy(g, dest, src, numElements, 1);
 }
 
-template <typename Group, typename... eventTN> void wait_for(Group g,eventTN... Events) const {
+template <typename Group, typename... eventTN>
+void wait_for(Group g, eventTN... Events) const {
+  // Events.wait() calls __spirv_GroupWaitEvents
+  // __spirv_GroupWaitEvents ignores event_list and calls __spirv_ControlBarrier
+  // https://github.com/intel/llvm/blob/sycl/libclc/generic/libspirv/async/wait_group_events.cl
+  // __spirv_ControlBarrier calls __syncthreads or __nvvm_bar_warp_sync
+  // https://github.com/intel/llvm/blob/sycl/libclc/ptx-nvidiacl/libspirv/synchronization/barrier.cl
   (Events.wait(g), ...);
 }
 
