@@ -159,6 +159,9 @@ def IntrSpeculatable : IntrinsicProperty;
 // defined by the hasSideEffects property of the TableGen Instruction class.
 def IntrHasSideEffects : IntrinsicProperty;
 
+// TODO: JKB: Document.
+def IntrDisjointAgents : IntrinsicProperty;
+
 //===----------------------------------------------------------------------===//
 // Types used by intrinsics.
 //===----------------------------------------------------------------------===//

@@ -76,6 +76,9 @@ def Cold : EnumAttr<"cold", [FnAttr]>;
 /// Can only be moved to control-equivalent blocks.
 def Convergent : EnumAttr<"convergent", [FnAttr]>;
 
+/// TODO: JKB: Document
+def DisjointAgents : EnumAttr<"disjoint_agents", [FnAttr]>;
+
 /// Marks function as being in a hot path and frequently called.
 def Hot: EnumAttr<"hot", [FnAttr]>;
 

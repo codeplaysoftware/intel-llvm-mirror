@@ -148,6 +148,9 @@ struct CodeGenIntrinsic {
   // True if the intrinsic is marked as speculatable.
   bool isSpeculatable;
 
+  // TODO: JKB: Document.
+  bool isDisjointAgents;
+
   enum ArgAttrKind {
     NoCapture,
     NoAlias,

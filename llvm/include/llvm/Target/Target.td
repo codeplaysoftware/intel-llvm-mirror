@@ -550,6 +550,7 @@ class Instruction : InstructionEncoding {
   bit hasCtrlDep   = false;     // Does this instruction r/w ctrl-flow chains?
   bit isNotDuplicable = false;  // Is it unsafe to duplicate this instruction?
   bit isConvergent = false;     // Is this instruction convergent?
+  bit isDisjointAgents = false; // TODO: JKB: Document.
   bit isAuthenticated = false;  // Does this instruction authenticate a pointer?
   bit isAsCheapAsAMove = false; // As cheap (or cheaper) than a move instruction.
   bit hasExtraSrcRegAllocReq = false; // Sources have special regalloc requirement?
