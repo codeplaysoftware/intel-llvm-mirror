@@ -172,8 +172,8 @@ device_event async_group_copy(Group g, global_ptr<dataT> dest,
   return async_group_copy(g, dest, src, numElements, 1);
 }
 
-template <typename... eventTN> void wait_for(eventTN... Events) const {
-  (Events.wait(), ...);
+template <typename Group, typename... eventTN> void wait_for(Group g,eventTN... Events) const {
+  (Events.wait(g), ...);
 }
 
 template <typename Group>
