@@ -400,7 +400,7 @@ private:
   void waitForHelper() const {}
 
   void waitForHelper(device_event Event) const {
-    Event.wait();
+    Event.wait(this);
   }
 
   template <typename T, typename... Ts>

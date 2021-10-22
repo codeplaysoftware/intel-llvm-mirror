@@ -68,7 +68,7 @@ using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
 
 namespace detail {
 template <typename G> struct group_execution_scope {};
-template <> struct group_execution_scope<sycl::sub_group> {
+template <> struct group_execution_scope<sycl::ext::oneapi::sub_group> {
   constexpr static auto Scope = __spv::Scope::Subgroup;
 };
 template <int D> struct group_execution_scope<sycl::group<D>> {
@@ -85,7 +85,7 @@ template <typename Group, typename dataT>
 detail::enable_if_t<is_group_v<Group> && !detail::is_bool<dataT>::value,
                     device_event>
 async_group_copy(Group, local_ptr<dataT> dest, global_ptr<dataT> src,
-                 size_t numElements, size_t srcStride) const {
+                 size_t numElements, size_t srcStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
@@ -103,7 +103,7 @@ async_group_copy(Group, local_ptr<dataT> dest, global_ptr<dataT> src,
 template <typename Group, typename dataT>
 detail::enable_if_t<is_group_v<Group> && !detail::is_bool<dataT>::value, device_event>
 async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
-                 size_t numElements, size_t destStride) const {
+                 size_t numElements, size_t destStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
@@ -122,7 +122,7 @@ template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
 detail::enable_if_t<is_group_v<Group> && detail::is_scalar_bool<T>::value, device_event>
 async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
-                 size_t NumElements, size_t Stride) const {
+                 size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   auto DestP =
@@ -140,7 +140,7 @@ template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
 detail::enable_if_t<is_group_v<Group> && detail::is_vector_bool<T>::value, device_event>
 async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
-                 size_t NumElements, size_t Stride) const {
+                 size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   using VecT = detail::change_base_type_t<T, uint8_t>;
@@ -157,7 +157,7 @@ async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
 template <typename Group, typename dataT>
 detail::enable_if_t<is_group_v<Group>, device_event>
 async_group_copy(Group g, local_ptr<dataT> dest, global_ptr<dataT> src,
-                 size_t numElements) const {
+                 size_t numElements) {
   return async_group_copy(g, dest, src, numElements, 1);
 }
 
@@ -168,12 +168,12 @@ async_group_copy(Group g, local_ptr<dataT> dest, global_ptr<dataT> src,
 /// Permitted types for dataT are all scalar and vector types.
 template <typename Group, typename dataT>
 device_event async_group_copy(Group g, global_ptr<dataT> dest,
-                              local_ptr<dataT> src, size_t numElements) const {
+                              local_ptr<dataT> src, size_t numElements) {
   return async_group_copy(g, dest, src, numElements, 1);
 }
 
 template <typename Group, typename... eventTN>
-void wait_for(Group g, eventTN... Events) const {
+void wait_for(Group g, eventTN... Events) {
   // Events.wait() calls __spirv_GroupWaitEvents
   // __spirv_GroupWaitEvents ignores event_list and calls __spirv_ControlBarrier
   // https://github.com/intel/llvm/blob/sycl/libclc/generic/libspirv/async/wait_group_events.cl
