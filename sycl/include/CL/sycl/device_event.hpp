@@ -16,7 +16,7 @@ namespace sycl {
 
 namespace detail {
 template <typename G> struct group_execution_scope {};
-template <> struct group_execution_scope<sycl::sub_group> {
+template <> struct group_execution_scope<sycl::ext::oneapi::sub_group> {
   constexpr static auto Scope = __spv::Scope::Subgroup;
 };
 template <int D> struct group_execution_scope<sycl::group<D>> {
@@ -41,6 +41,7 @@ public:
 
   device_event(__ocl_event_t *Event) : m_Event(Event) {}
 
+  template <typename Group>
   void wait(Group) {
     __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1, m_Event);
   }
