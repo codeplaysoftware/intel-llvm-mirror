@@ -893,10 +893,14 @@ public:
     auto Ref = dyn_cast<DeclaratorDecl>(DRE->getDecl());
     if (Ref && Ref == MappingPair.first) {
       auto NewDecl = MappingPair.second;
+      QualType ExprType = NewDecl->getType();
+      if (ExprType->isReferenceType()) {
+        ExprType = ExprType->getPointeeType();
+      }
       return DeclRefExpr::Create(
           SemaRef.getASTContext(), DRE->getQualifierLoc(),
           DRE->getTemplateKeywordLoc(), NewDecl, false, DRE->getNameInfo(),
-          NewDecl->getType(), DRE->getValueKind());
+          ExprType, DRE->getValueKind());
     }
     return DRE;
   }
@@ -2500,7 +2504,9 @@ class SyclKernelBodyCreator : public SyclKernelFieldHandler {
   // current element being worked on, which is updated every time we visit
   // nextElement.
   llvm::SmallVector<std::pair<InitializedEntity, uint64_t>, 8> ArrayInfos;
+  const CXXRecordDecl *WrappingUnion;
   VarDecl *KernelObjClone;
+  VarDecl *KernelObjRef;
   InitializedEntity VarEntity;
   const CXXRecordDecl *KernelObj;
   llvm::SmallVector<Expr *, 16> MemberExprBases;
@@ -2531,14 +2537,14 @@ class SyclKernelBodyCreator : public SyclKernelFieldHandler {
     SemaRef.PushFunctionScope();
 
     // Initialize kernel object local clone
-    assert(CollectionInitExprs.size() == 1 &&
-           "Should have been popped down to just the first one");
-    KernelObjClone->setInit(CollectionInitExprs.back());
+    assert(CollectionInitExprs.size() == 2 &&
+           "Should have been popped down to just the 2 first ones");
+    KernelObjClone->setInit(CollectionInitExprs.front());
 
     // Replace references to the kernel object in kernel body, to use the
     // compiler generated local clone
     Stmt *NewBody =
-        replaceWithLocalClone(KernelCallerFunc->getParamDecl(0), KernelObjClone,
+        replaceWithLocalClone(KernelCallerFunc->getParamDecl(0), KernelObjRef,
                               KernelCallerFunc->getBody());
 
     // If kernel_handler argument is passed by SYCL kernel, replace references
@@ -2809,6 +2815,139 @@ class SyclKernelBodyCreator : public SyclKernelFieldHandler {
     CollectionInitExprs.push_back(ILE);
   }
 
+  static void setupSpecialMemberType(ASTContext &Ctx, CXXMethodDecl *SpecialMem,
+                                     QualType ResultTy,
+                                     ArrayRef<QualType> Args) {
+    FunctionProtoType::ExtProtoInfo EPI;
+
+    EPI.ExceptionSpec.Type = EST_Unevaluated;
+    EPI.ExceptionSpec.SourceDecl = SpecialMem;
+
+    // Set the calling convention to the default for C++ instance methods.
+    EPI.ExtInfo = EPI.ExtInfo.withCallingConv(
+        Ctx.getDefaultCallingConvention(/*IsVariadic=*/false,
+                                        /*IsCXXMethod=*/true));
+
+    auto QT = Ctx.getFunctionType(ResultTy, Args, EPI);
+    SpecialMem->setType(QT);
+  }
+
+  // Build an anonymous union class around the kernel object.
+  static CXXRecordDecl *getWrappingUnion(Sema &SemaRef, QualType KernelObj) {
+    ASTContext &Ctx = SemaRef.Context;
+
+    CanQualType CanClassType = Ctx.getCanonicalType(KernelObj);
+
+    CXXRecordDecl *WrapperClass = cast<CXXRecordDecl>(
+        Ctx.buildImplicitRecord("__wrapper_union", TTK_Union));
+    WrapperClass->startDefinition();
+    FieldDecl *KernelField = FieldDecl::Create(
+        Ctx, WrapperClass, SourceLocation(), SourceLocation(), /*Id=*/nullptr,
+        KernelObj, Ctx.getTrivialTypeSourceInfo(KernelObj, SourceLocation()),
+        /*BW=*/nullptr, /*Mutable=*/false, /*InitStyle=*/ICIS_NoInit);
+    KernelField->setAccess(AS_public);
+    WrapperClass->addDecl(KernelField);
+#if 0
+    // Build an empty Ctor
+    {
+      TemplateTypeParmDecl *InventedTemplateParam =
+          TemplateTypeParmDecl::Create(Ctx, WrapperClass,
+                                       /*KeyLoc=*/SourceLocation(),
+                                       /*NameLoc=*/SourceLocation(), 0, 0,
+                                       /*Id=*/nullptr, false,
+                                       /*ParameterPack=*/true);
+      QualType TemplateParamType(InventedTemplateParam->getTypeForDecl(), 0);
+
+      DeclarationName Name =
+          Ctx.DeclarationNames.getCXXConstructorName(CanClassType);
+      DeclarationNameInfo NameInfo(Name, SourceLocation());
+      CXXConstructorDecl *CTor = CXXConstructorDecl::Create(
+          Ctx, WrapperClass, SourceLocation(), NameInfo, /*Type*/ QualType(),
+          /*TInfo=*/nullptr, ExplicitSpecifier(), false,
+          /*isInline=*/true, /*isImplicitlyDeclared=*/false,
+          ConstexprSpecKind::Constexpr);
+      CTor->setAccess(AS_public);
+      CTor->setTrivial(true);
+      setupSpecialMemberType(Ctx, CTor, Ctx.VoidTy, {TemplateParamType});
+      ParmVarDecl *ForwardParams =
+        ParmVarDecl::Create(Ctx, CTor, SourceLocation(), SourceLocation(),
+                            /*IdentifierInfo=*/nullptr, TemplateParamType,
+                            /*TInfo=*/nullptr, SC_None, nullptr);
+      CTor->setParams(ForwardParams);
+
+      InitListExpr *InitExpr = new (Ctx)
+          InitListExpr(Ctx, SourceLocation(),
+                       new (Ctx) PackExpansionExpr(
+                           Ctx.DependentTy,
+                           DeclRefExpr::Create(Ctx, NestedNameSpecifierLoc(),
+                                               SourceLocation(), ForwardParams,
+                                               false, DeclarationNameInfo(),
+                                               TemplateParamType, VK_LValue),
+                           SourceLocation(), {}),
+                       SourceLocation());
+      InitExpr->setType(Ctx.VoidTy);
+
+      CTor->setNumCtorInitializers(1);
+      CXXCtorInitializer *MemberInitializers =
+          new (Ctx) CXXCtorInitializer(Ctx, KernelField, SourceLocation(),
+                                           SourceLocation(), /*Init=*/InitExpr,
+                                           SourceLocation());
+      CTor->setCtorInitializers(new (Ctx) CXXCtorInitializer*{MemberInitializers});
+
+      // Make an empty body
+      CTor->setBody(CompoundStmt::Create(Ctx, {}, {}, {}));
+  
+      FunctionTemplateDecl *TemplatedCTor = FunctionTemplateDecl::Create(
+          Ctx, WrapperClass, SourceLocation(), CTor->getDeclName(),
+          TemplateParameterList::Create(
+              Ctx, SourceLocation(), SourceLocation(), {InventedTemplateParam},
+              SourceLocation(), /*RequiresClause=*/nullptr),
+          CTor);
+      WrapperClass->addDecl(TemplatedCTor);
+    }
+#endif
+    // Build an empty DTor
+    {
+      DeclarationName Name =
+          Ctx.DeclarationNames.getCXXDestructorName(CanClassType);
+      DeclarationNameInfo NameInfo(Name, SourceLocation());
+      CXXDestructorDecl *DTor = CXXDestructorDecl::Create(
+          Ctx, WrapperClass, SourceLocation(), NameInfo, /*Type*/ QualType(),
+          /*TInfo=*/nullptr, /*isFPConstrained=*/false,
+          /*isInline=*/true, /*isImplicitlyDeclared=*/false,
+          ConstexprSpecKind::Constexpr);
+      DTor->setAccess(AS_public);
+      DTor->setTrivial(true);
+      setupSpecialMemberType(Ctx, DTor, Ctx.VoidTy, None);
+      // Make an empty body
+      DTor->setBody(CompoundStmt::Create(Ctx, {}, {}, {}));
+      WrapperClass->addDecl(DTor);
+    }
+    WrapperClass->completeDefinition();
+
+    return WrapperClass;
+  }
+
+  static CXXRecordDecl *
+  createInUnionKernelWrapper(Sema &S, DeclContext *,
+                             const CXXRecordDecl *KernelObj) {
+    return getWrappingUnion(S, QualType(KernelObj->getTypeForDecl(), 0));
+  }
+
+  static VarDecl *
+  createInUnionKernelObjClone(Sema &S, DeclContext *DC,
+                              const CXXRecordDecl *WrappingUnion) {
+    ASTContext &Ctx = S.Context;
+
+    VarDecl *VD = VarDecl::Create(Ctx, DC, SourceLocation(), SourceLocation(),
+                                  WrappingUnion->getIdentifier(),
+                                  QualType(WrappingUnion->getTypeForDecl(), 0),
+                                  nullptr, SC_None);
+    VD->setIsUsed();
+
+    return VD;
+  }
+
   static VarDecl *createKernelObjClone(ASTContext &Ctx, DeclContext *DC,
                                        const CXXRecordDecl *KernelObj) {
     TypeSourceInfo *TSInfo =
@@ -2892,22 +3031,48 @@ public:
                         const CXXRecordDecl *KernelObj,
                         FunctionDecl *KernelCallerFunc)
       : SyclKernelFieldHandler(S), DeclCreator(DC),
-        KernelObjClone(createKernelObjClone(S.getASTContext(),
-                                            DC.getKernelDecl(), KernelObj)),
+        WrappingUnion(
+            createInUnionKernelWrapper(S, DC.getKernelDecl(), KernelObj)),
+        // KernelObjClone(createKernelObjClone(S.getASTContext(),
+        //                                     DC.getKernelDecl(), KernelObj)),
+        // InUnionKernelObjClone(
+        //     createInUnionKernelObjClone(S, DC.getKernelDecl(), KernelObj)),
+        KernelObjClone(
+            createInUnionKernelObjClone(S, DC.getKernelDecl(), WrappingUnion)),
         VarEntity(InitializedEntity::InitializeVariable(KernelObjClone)),
         KernelObj(KernelObj), KernelCallerFunc(KernelCallerFunc),
         KernelCallerSrcLoc(KernelCallerFunc->getLocation()) {
+    FieldDecl *WrappedField = *WrappingUnion->field_begin();
+    CollectionInitExprs.push_back(createInitListExpr(WrappingUnion));
+    CollectionInitExprs.back()->setInitializedFieldInUnion(WrappedField);
     CollectionInitExprs.push_back(createInitListExpr(KernelObj));
+    CollectionInitExprs.front()->updateInit(S.Context, 0,
+                                            CollectionInitExprs.back());
     markParallelWorkItemCalls();
 
     Stmt *DS = new (S.Context) DeclStmt(DeclGroupRef(KernelObjClone),
                                         KernelCallerSrcLoc, KernelCallerSrcLoc);
     BodyStmts.push_back(DS);
+
     DeclRefExpr *KernelObjCloneRef = DeclRefExpr::Create(
         S.Context, NestedNameSpecifierLoc(), KernelCallerSrcLoc, KernelObjClone,
+        false, DeclarationNameInfo(),
+        QualType(WrappingUnion->getTypeForDecl(), 0), VK_LValue);
+
+    KernelObjRef = VarDecl::Create(
+        S.Context, DC.getKernelDecl(), SourceLocation(), SourceLocation(),
+        WrappedField->getIdentifier(),
+        S.Context.getLValueReferenceType(WrappedField->getType()), nullptr,
+        SC_None);
+    KernelObjRef->setInit(buildMemberExpr(KernelObjCloneRef, WrappedField));
+    DeclRefExpr *KernelObjRefRefExpr = DeclRefExpr::Create(
+        S.Context, NestedNameSpecifierLoc(), KernelCallerSrcLoc, KernelObjRef,
         false, DeclarationNameInfo(), QualType(KernelObj->getTypeForDecl(), 0),
         VK_LValue);
-    MemberExprBases.push_back(KernelObjCloneRef);
+    MemberExprBases.push_back(KernelObjRefRefExpr);
+    DS = new (S.Context) DeclStmt(DeclGroupRef(KernelObjRef),
+                                  KernelCallerSrcLoc, KernelCallerSrcLoc);
+    BodyStmts.push_back(DS);
   }
 
   ~SyclKernelBodyCreator() {
