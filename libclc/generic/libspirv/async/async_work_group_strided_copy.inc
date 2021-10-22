@@ -27,10 +27,10 @@ __spirv_GroupAsyncCopy(unsigned int scope, global __CLC_GENTYPE *dst,
   return event;
 }
 
-_CLC_OVERLOAD _CLC_DEF event_t
+/*_CLC_OVERLOAD _CLC_DEF event_t
 __spirv_GroupAsyncCopy(unsigned int scope, local __CLC_GENTYPE *dst,
                        const global __CLC_GENTYPE *src, size_t num_gentypes,
                        size_t stride, event_t event) {
   STRIDED_COPY(local, global, 1, stride);
   return event;
-}
+}*/

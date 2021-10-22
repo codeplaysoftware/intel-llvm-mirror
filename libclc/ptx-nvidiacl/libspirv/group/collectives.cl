@@ -47,6 +47,22 @@ _CLC_DEF _CLC_CONVERGENT uint __clc__membermask() {
   return FULL_MASK >> (max_size - sg_size);
 }
 
+_CLC_OVERLOAD _CLC_DEF event_t
+__spirv_GroupAsyncCopy(unsigned int scope, __attribute__((address_space(3))) int *dst,
+                       const __attribute__((address_space(1))) int *src, size_t num_gentypes,
+                       size_t stride, event_t event) {
+      if (__nvvm_reflect("__CUDA_ARCH") >= 800) {
+
+    size_t id = (__spirv_WorkgroupSize_y() * __spirv_WorkgroupSize_x() *         \
+               __spirv_LocalInvocationId_z()) +                                \
+              (__spirv_WorkgroupSize_x() * __spirv_LocalInvocationId_y()) +    \
+              __spirv_LocalInvocationId_x();
+
+    __nvvm_cp_async_ca_shared_global_4(dst + id, src + id);
+    }
+  return event;
+}
+
 #define __CLC_SUBGROUP_SHUFFLE_I32(TYPE)                                       \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __clc__SubgroupShuffle(          \
       TYPE x, uint idx) {                                                      \
