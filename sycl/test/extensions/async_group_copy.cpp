@@ -17,7 +17,7 @@ void copy_test(sycl::queue& q, size_t sub_group_size){
     std::vector<int> values(numValues,1);
     std::vector<int> src(numValues,1);
     std::vector<int> dst(numValues,1);
-    //std::iota(std::begin(values), std::end(values), 0);
+    std::iota(std::begin(values), std::end(values), 0);
     {
         sycl::buffer<int> bufA(values);
         sycl::buffer<int> bufSrc(src);
