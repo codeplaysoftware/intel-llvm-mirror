@@ -17375,8 +17375,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
                                    AtomicOrdering::SequentiallyConsistent);
   }
 
-  case NVPTX::BI__nvvm_atom_inc_gen_ui:
-  case NVPTX::BI__nvvm_atom_inc_gen_ul: {
+  case NVPTX::BI__nvvm_atom_inc_gen_ui: {
     Value *Ptr = EmitScalarExpr(E->getArg(0));
     Value *Val = EmitScalarExpr(E->getArg(1));
     Function *FnALI32 =
@@ -17384,8 +17383,7 @@ CodeGenFunction::EmitNVPTXBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
     return Builder.CreateCall(FnALI32, {Ptr, Val});
   }
 
-  case NVPTX::BI__nvvm_atom_dec_gen_ui:
-  case NVPTX::BI__nvvm_atom_dec_gen_ul: {
+  case NVPTX::BI__nvvm_atom_dec_gen_ui: {
     Value *Ptr = EmitScalarExpr(E->getArg(0));
     Value *Val = EmitScalarExpr(E->getArg(1));
     Function *FnALD32 =
