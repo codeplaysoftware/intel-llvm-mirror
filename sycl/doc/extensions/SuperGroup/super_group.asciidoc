@@ -1,0 +1,147 @@
+# Super Group Extension for DPC++: SYCL_EXT_ONEAPI_SUPER_GROUP
+:source-highlighter: coderay
+:coderay-linenums-mode: table
+:dpcpp: pass:[DPC++]
+
+// This section needs to be after the document title.
+:doctype: book
+:toc2:
+:toc: left
+:encoding: utf-8
+:lang: en
+
+:blank: pass:[ +]
+
+// Set the default source code type in this document to C++,
+// for syntax highlighting purposes.  This is needed because
+// docbook uses c++ and html5 uses cpp.
+:language: {basebackend@docbook:c++:cpp}
+
+
+== Notice
+
+Copyright (c) 2021-2021 Intel Corporation.  All rights reserved.
+
+NOTE: Khronos(R) is a registered trademark and SYCL(TM) and SPIR(TM) are
+trademarks of The Khronos Group Inc.  OpenCL(TM) is a trademark of Apple Inc.
+used by permission by Khronos.
+
+This extension is written against the SYCL 2020 revision 3 specification.  All
+references below to the "core SYCL specification" or to section numbers in the
+SYCL specification refer to that revision.
+
+
+## Introduction
+This document presents a proposed interface for synchronization between work_groups on a single device.
+The document will introduce a new group, the `super_group` which represents all the threads launched on a single device by a kernel invocation.
+`super_group` is supposed to give similar functionality to Nvidia's `grid_group`.
+Thread sychronisation will be introduced for `super_group` via the existing function `group_barrier`.
+
+## Feature test macro
+
+TODO
+
+//[frame="none",options="header"]
+//|======================
+//|Value |Description
+//|1     |Initial extension implementation on CUDA.
+//|======================
+
+## Extension of `memory_scope` enum class
+`super_group` will be added to the `memory_scope` enum class to work with
+synchronising functions such as `group_barrier`.
+
+```c++
+namespace sycl {
+
+enum class memory_scope : /* unspecified */ {
+  work_item, sub_group, work_group, super_group, device, system
+};
+inline constexpr auto memory_scope_work_item = memory_scope::work_item;
+inline constexpr auto memory_scope_sub_group = memory_scope::sub_group;
+inline constexpr auto memory_scope_work_group = memory_scope::work_group;
+inline constexpr auto memory_scope_super_group = memory_scope::super_group;
+inline constexpr auto memory_scope_device = memory_scope::device;
+inline constexpr auto memory_scope_system = memory_scope::system;
+
+} // namespace sycl
+```
+
+## New `super_group` class
+A new class named `super_group` will be introduced, this will be analogous of
+CUDA's `grid_group`. A `super_group` represents all `work_item` of all
+`work_group` of a kernel invocation.
+
+```c++
+namespace sycl::ext::oneapi {
+class super_group {
+public:
+  static constexpr memory_scope fence_scope = memory_scope::super_group;
+};
+}  // sycl::ext::oneapi
+
+```
+
+## Changes to `nd_item` class
+Addition of a new member functions to query which `super_group` this `nd_item` is
+located in.
+
+```c++
+namespace sycl {
+template <int dimensions = 1>
+class nd_item {
+  public:
+...
+  // get the super_group this work_item is a part of
+  super_group get_super_group() const;
+...
+};
+}
+```
+
+## Changes to `item` class
+Addition of a new member function to query which `super_group` this item is
+located_in.
+
+```c++
+namespace sycl {
+template <int dimensions = 1, bool with_offset = true>
+class item {
+  public:
+...
+  // get the super_group this work_item is a part of
+  super_group get_super_group() const;
+...
+};
+}
+```
+
+## Changes to is_group
+
+`sycl::is_group_v<super_group>` will be true.
+
+
+## Changes to `joint_reduce` and `reduce_over_group`
+
+`joint_reduce` and `reduce_over_group` only valid if 
+`std::is_same_v<std::decay_t<Group>, group> || std::is_same_v<std::decay_t<Group>, sub_group>`
+evaluates to true.
+
+## Group_barrier
+`group_barrier` should be valid when `std::is_same_v<std::decay_t<Group>, super_group>` is true.
+
+## Open Questions
+
+* Feature test macro
+
+## TODO List
+
+* Implementation
+
+## Revision History
+
+[frame="none",options="header"]
+|======================
+|Rev |Date       |Author        |Changes
+|1   |2021-10-27 |Finlay Marno  |Initial codeplay working draft.
+|======================
