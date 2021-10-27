@@ -10,9 +10,9 @@ enum class SYCLGroup {
     subgroup
 };
 
-void copy_test(sycl::queue& q, size_t sub_group_size){
+void copy_test(sycl::queue& q, size_t max_sub_group_size){
     constexpr int num_of_work_groups = 3;
-    const int work_group_size = sub_group_size*2;
+    const int work_group_size = max_sub_group_size*2;
     const int numValues = num_of_work_groups*work_group_size;
     std::vector<int> values(numValues,1);
     std::vector<int> src(numValues,1);
@@ -32,8 +32,9 @@ void copy_test(sycl::queue& q, size_t sub_group_size){
                 auto i = it.get_global_id();
                 auto group = it.get_group();
                 auto sub_group = it.get_sub_group();
+                auto sub_i = it.get_local_linear_id();
 
-                local_data[i] = 0;
+                local_data[sub_i] = 0;
                 sycl::group_barrier(group);
 
                 auto sub_group_offset = sub_group.get_local_range()*sub_group.get_group_id();
@@ -47,7 +48,7 @@ void copy_test(sycl::queue& q, size_t sub_group_size){
                 auto e = sycl::ext::oneapi::async_group_copy(sub_group, local_dst, global_src, 5,1);
                 sycl::ext::oneapi::wait_for(e);
 
-                acc_a[i] = local_data[it.get_local_linear_id()];
+                acc_a[i] = local_data[sub_i];
             });
         });
 
@@ -83,9 +84,9 @@ int main(){
     for (auto s : sub_group_sizes){
         std::cout << '\t' << s<< '\n';
     }
-    auto sub_group_size = *std::max_element(std::begin(sub_group_sizes), std::end(sub_group_sizes));
-    std::cout << "maximum sub_group size: " << sub_group_size << '\n';
+    auto max_sub_group_size = *std::max_element(std::begin(sub_group_sizes), std::end(sub_group_sizes));
+    std::cout << "maximum sub_group size: " << max_sub_group_size << '\n';
 
-    copy_test(q, sub_group_size);
+    copy_test(q, max_sub_group_size);
 }
 
