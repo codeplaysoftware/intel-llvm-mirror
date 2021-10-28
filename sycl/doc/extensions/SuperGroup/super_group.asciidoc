@@ -32,10 +32,12 @@ SYCL specification refer to that revision.
 
 
 ## Introduction
-This document presents a proposed interface for synchronization between work_groups on a single device.
-The document will introduce a new group, the `super_group` which represents all the threads launched on a single device by a kernel invocation.
-`super_group` is supposed to give similar functionality to Nvidia's `grid_group`.
-Thread sychronisation will be introduced for `super_group` via the existing function `group_barrier`.
+This document presents a proposed interface for synchronization between
+work-groups on a single device. The document will introduce a new group, the
+`super_group` which represents all the work-items launched on a single device by
+a kernel invocation. `super_group` is supposed to give similar functionality to
+Nvidia's `grid_group`. Synchronisation will be introduced for `super_group` via
+the existing function `group_barrier`.
 
 ## Feature test macro
 
@@ -48,8 +50,8 @@ TODO
 //|======================
 
 ## Extension of `memory_scope` enum class
-`super_group` will be added to the `memory_scope` enum class to work with
-synchronising functions such as `group_barrier`.
+`super_group` will be added to the `memory_scope` enum class. This is for the
+function `group_barrier`.
 
 ```c++
 namespace sycl {
@@ -69,8 +71,8 @@ inline constexpr auto memory_scope_system = memory_scope::system;
 
 ## New `super_group` class
 A new class named `super_group` will be introduced, this will be analogous of
-CUDA's `grid_group`. A `super_group` represents all `work_item` of all
-`work_group` of a kernel invocation.
+CUDA's `grid_group`. A super-group represents all work-items of all
+work-groups of a kernel invocation.
 
 ```c++
 namespace sycl::ext::oneapi {
@@ -83,7 +85,7 @@ public:
 ```
 
 ## Changes to `nd_item` class
-Addition of a new member functions to query which `super_group` this `nd_item` is
+Addition of a new member functions to query which super-group this `nd_item` is
 located in.
 
 ```c++
@@ -92,7 +94,7 @@ template <int dimensions = 1>
 class nd_item {
   public:
 ...
-  // get the super_group this work_item is a part of
+  // get the super-group this work-item is a part of
   super_group get_super_group() const;
 ...
 };
@@ -100,7 +102,7 @@ class nd_item {
 ```
 
 ## Changes to `item` class
-Addition of a new member function to query which `super_group` this item is
+Addition of a new member function to query which super-group this `item` is
 located_in.
 
 ```c++
@@ -109,7 +111,7 @@ template <int dimensions = 1, bool with_offset = true>
 class item {
   public:
 ...
-  // get the super_group this work_item is a part of
+  // get the super-group this work-item is a part of
   super_group get_super_group() const;
 ...
 };
@@ -143,7 +145,8 @@ evaluates to true:
 * `inclusive_scan_over_group`
 
 ## Group_barrier
-`group_barrier` will be available when `std::is_same_v<std::decay_t<Group>, super_group>` is true.
+`group_barrier` will be available when
+`std::is_same_v<std::decay_t<Group>, super_group>` is true.
 
 ## Open Questions
 
@@ -158,5 +161,5 @@ evaluates to true:
 [frame="none",options="header"]
 |======================
 |Rev |Date       |Author        |Changes
-|1   |2021-10-27 |Finlay Marno  |Initial codeplay working draft.
+|1   |2021-10-27 |Finlay Marno  |Initial working draft.
 |======================
