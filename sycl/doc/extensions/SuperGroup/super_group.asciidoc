@@ -121,14 +121,29 @@ class item {
 `sycl::is_group_v<super_group>` will be true.
 
 
-## Changes to `joint_reduce` and `reduce_over_group`
+## Changes to group algorithms
 
-`joint_reduce` and `reduce_over_group` only valid if 
-`std::is_same_v<std::decay_t<Group>, group> || std::is_same_v<std::decay_t<Group>, sub_group>`
-evaluates to true.
+The following functions are only available when
+```c++
+std::is_same_v<std::decay_t<Group>, group> || std::is_same_v<std::decay_t<Group>, sub_group>
+```
+evaluates to true:
+
+* `joint_any_of`
+* `any_of_group`
+* `joint_all_of`
+* `all_of_group`
+* `joint_none_of`
+* `none_of_group`
+* `joint_reduce`
+* `reduce_over_group`
+* `joint_exclusive_scan`
+* `exclusive_scan_over_group`
+* `joint_inclusive_scan`
+* `inclusive_scan_over_group`
 
 ## Group_barrier
-`group_barrier` should be valid when `std::is_same_v<std::decay_t<Group>, super_group>` is true.
+`group_barrier` will be available when `std::is_same_v<std::decay_t<Group>, super_group>` is true.
 
 ## Open Questions
 
