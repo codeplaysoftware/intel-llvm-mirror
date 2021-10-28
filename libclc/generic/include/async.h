@@ -1,8 +1,15 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
 #ifndef CLC_ASYNC
 #define CLC_ASYNC
-// Macro used by all data types / generic and nvidia , for async copy when arch < sm80
+// Macro used by all data types / generic and nvidia, for async copy when arch < sm80
 
-//TODO: consider better name than async.h
 #define STRIDED_COPY(DST_AS, SRC_AS, DST_STRIDE, SRC_STRIDE)                   \
   size_t size = __spirv_WorkgroupSize_x() * __spirv_WorkgroupSize_y() *        \
                 __spirv_WorkgroupSize_z();                                     \
