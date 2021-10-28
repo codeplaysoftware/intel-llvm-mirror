@@ -13,6 +13,14 @@
 
 int __nvvm_reflect(const char __constant *);
 
+_CLC_OVERLOAD _CLC_DEF event_t
+__spirv_GroupAsyncCopy(unsigned int scope, __attribute__((address_space(1))) int *dst,
+                       const __attribute__((address_space(3))) int *src, size_t num_gentypes,
+                       size_t stride, event_t event) {
+  STRIDED_COPY(global, local, stride, 1);
+  return event;
+}
+
 #define __CLC_GROUP_CP_ASYNC_4(TYPE) \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t                  \
       __spirv_GroupAsyncCopy(unsigned int scope, __attribute__((address_space(3))) TYPE *dst, \
