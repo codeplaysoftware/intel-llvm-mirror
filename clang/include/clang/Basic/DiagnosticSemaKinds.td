@@ -1676,10 +1676,6 @@ def warn_weak_vtable : Warning<
   "%0 has no out-of-line virtual method definitions; its vtable will be "
   "emitted in every translation unit">,
   InGroup<DiagGroup<"weak-vtables">>, DefaultIgnore;
-def warn_weak_template_vtable : Warning<
-  "explicit template instantiation %0 will emit a vtable in every "
-  "translation unit">,
-  InGroup<DiagGroup<"weak-template-vtables">>, DefaultIgnore;
 
 def ext_using_undefined_std : ExtWarn<
   "using directive refers to implicitly-defined namespace 'std'">;
@@ -7564,7 +7560,8 @@ def note_throw_in_function : Note<"function declared non-throwing here">;
 def err_seh_try_outside_functions : Error<
   "cannot use SEH '__try' in blocks, captured regions, or Obj-C method decls">;
 def err_mixing_cxx_try_seh_try : Error<
-  "cannot use C++ 'try' in the same function as SEH '__try'">;
+  "cannot use %select{C++ 'try'|Objective-C '@try'}0 "
+  "in the same function as SEH '__try'">;
 def err_seh_try_unsupported : Error<
   "SEH '__try' is not supported on this target">;
 def note_conflicting_try_here : Note<
@@ -11440,7 +11437,8 @@ def err_invalid_std_type_in_sycl_kernel : Error<"%0 is an invalid kernel name, "
 def err_sycl_kernel_incorrectly_named : Error<
   "%select{%1 should be globally visible"
   "|unscoped enum %1 requires fixed underlying type"
-  "|unnamed lambda %1 used"
+  "|unnamed type %1 is invalid; provide a kernel name, or use "
+  "'-fsycl-unnamed-lambda' to enable unnamed kernel lambdas"
   "}0">;
 
 def err_sycl_kernel_not_function_object
