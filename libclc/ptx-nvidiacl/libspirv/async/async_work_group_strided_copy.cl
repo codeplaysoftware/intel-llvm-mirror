@@ -11,7 +11,7 @@
 
 #define __CLC_BODY <../../../generic/libspirv/async/async_work_group_strided_copy.inc>
 #define __CLC_GEN_VEC3
-#include "../../include/gentype.inc"
+#include <clc/async/gentype.inc>
 
 
 int __nvvm_reflect(const char __constant *);

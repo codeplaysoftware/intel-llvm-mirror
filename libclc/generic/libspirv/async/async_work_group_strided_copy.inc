@@ -14,7 +14,6 @@ __spirv_GroupAsyncCopy(unsigned int scope, global __CLC_GENTYPE *dst,
   return event;
 }
 
-//TODO: this guy should be uncommented!
 _CLC_OVERLOAD _CLC_DEF event_t
 __spirv_GroupAsyncCopy(unsigned int scope, local __CLC_GENTYPE *dst,
                        const global __CLC_GENTYPE *src, size_t num_gentypes,
