@@ -18,6 +18,7 @@
 #include <sycl/ext/oneapi/atomic.hpp>
 #include <sycl/ext/oneapi/functional.hpp>
 #include <sycl/ext/oneapi/sub_group.hpp>
+#include <sycl/ext/oneapi/device_event.hpp>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
@@ -65,15 +66,7 @@ using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
         !cl::sycl::detail::is_native_op<T, BinaryOperation>::value,
     T>;
 
-namespace detail {
-template <typename G> struct group_execution_scope {};
-template <> struct group_execution_scope<sycl::ext::oneapi::sub_group> {
-  constexpr static auto Scope = __spv::Scope::Subgroup;
-};
-template <int D> struct group_execution_scope<sycl::group<D>> {
-  constexpr static auto Scope = __spv::Scope::Workgroup;
-};
-} // namespace detail
+using device_event = sycl::ext::oneapi::device_event;
 
 /// Asynchronously copies a number of elements specified by \p numElements
 /// from the source pointed by \p src to destination pointed by \p dest
