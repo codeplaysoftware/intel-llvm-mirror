@@ -169,6 +169,8 @@ Result over_copy_test(sycl::queue &q, size_t max_sub_group_size) {
                   sub_group, local_dst, global_src, num_of_copies);
               sycl::ext::oneapi::wait_for(sub_group, e);
             }
+            sycl::group_barrier(group);
+
 
             acc_a[i] = local_data[sub_i];
           });
@@ -210,7 +212,7 @@ Result over_copy_test(sycl::queue &q, size_t max_sub_group_size) {
         const auto expected_value =
             (sub_group < chosen_sub_group ||
              sub_group * sub_group_size + work_item >
-                 sub_group_size * chosen_sub_group + num_of_copies)
+                 sub_group_size * chosen_sub_group + (num_of_copies - 1))
                 ? 0
                 : i;
         if (v != expected_value) {
@@ -244,8 +246,10 @@ int main() {
   if constexpr (print_values) {
     std::cout << "Test copying less than the size of the subgroup\n";
   }
-  if (over_copy_test(q, max_sub_group_size) != Result::Success) {
+  if (under_copy_test(q, max_sub_group_size) != Result::Success) {
     return 1;
+  } else if (print_values) {
+    std::cout << "Success!\n";
   }
 
   if constexpr (print_values) {
@@ -253,5 +257,7 @@ int main() {
   }
   if (over_copy_test(q, max_sub_group_size) != Result::Success) {
     return 1;
+  } else if (print_values) {
+    std::cout << "Success!\n";
   }
 }
