@@ -116,6 +116,8 @@ extern SYCL_EXTERNAL TempRetT __spirv_ImageSampleExplicitLod(SampledType,
 
 #define __SYCL_OpGroupAsyncCopyGlobalToLocal __spirv_GroupAsyncCopy
 #define __SYCL_OpGroupAsyncCopyLocalToGlobal __spirv_GroupAsyncCopy
+#define __SYCL_OpGroupAsyncCopyGlobalToLocalMasked __spirv_GroupAsyncCopyMasked
+#define __SYCL_OpGroupAsyncCopyLocalToGlobalMasked __spirv_GroupAsyncCopyMasked
 
 // Atomic SPIR-V builtins
 #define __SPIRV_ATOMIC_LOAD(AS, Type)                                          \
@@ -636,6 +638,9 @@ extern SYCL_EXTERNAL float __spirv_ConvertBF16ToFINTEL(uint16_t) noexcept;
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __ocl_vec_t<uint32_t, 4>
 __spirv_GroupNonUniformBallot(uint32_t Execution, bool Predicate) noexcept;
 
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __ocl_vec_t<uint32_t, 4>
+__spirv_GroupActiveItems(uint32_t Execution) noexcept;
+
 #else // if !__SYCL_DEVICE_ONLY__
 
 template <typename dataT>
@@ -662,12 +667,40 @@ __SYCL_OpGroupAsyncCopyLocalToGlobal(__spv::Scope::Flag, dataT *Dest,
   return nullptr;
 }
 
+template <typename dataT>
+__SYCL_CONVERGENT__ extern __ocl_event_t
+__SYCL_OpGroupAsyncCopyGlobalToLocalMasked(__spv::Scope::Flag, dataT *Dest,
+                                     dataT *Src, size_t NumElements,
+                                     size_t Stride, __ocl_event_t, uint32_t) noexcept {
+  for (size_t i = 0; i < NumElements; i++) {
+    Dest[i] = Src[i * Stride];
+  }
+  // A real instance of the class is not needed, return dummy pointer.
+  return nullptr;
+}
+
+template <typename dataT>
+__SYCL_CONVERGENT__ extern __ocl_event_t
+__SYCL_OpGroupAsyncCopyLocalToGlobalMasked(__spv::Scope::Flag, dataT *Dest,
+                                     dataT *Src, size_t NumElements,
+                                     size_t Stride, __ocl_event_t, uint32_t) noexcept {
+  for (size_t i = 0; i < NumElements; i++) {
+    Dest[i * Stride] = Src[i];
+  }
+  // A real instance of the class is not needed, return dummy pointer.
+  return nullptr;
+}
+
 extern __SYCL_EXPORT void __spirv_ocl_prefetch(const char *Ptr,
                                                size_t NumBytes) noexcept;
 
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_ControlBarrier(__spv::Scope Execution, __spv::Scope Memory,
                        uint32_t Semantics) noexcept;
+					   
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
+__spirv_ControlBarrierMasked(__spv::Scope Execution, __spv::Scope Memory,
+                       uint32_t Semantics, uint32_t Mask) noexcept;
 
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_MemoryBarrier(__spv::Scope Memory, uint32_t Semantics) noexcept;

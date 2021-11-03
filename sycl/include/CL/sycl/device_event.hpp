@@ -10,6 +10,7 @@
 
 #include <CL/__spirv/spirv_ops.hpp>
 #include <CL/__spirv/spirv_types.hpp>
+#include <sycl/ext/oneapi/sub_group_mask.hpp>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
@@ -44,6 +45,12 @@ public:
   template <typename Group>
   void wait(Group) {
     __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1, m_Event);
+  }
+  template <typename Group>
+  void wait(Group, sub_group_mask mask) {
+	uint32_t mask_bits;
+	mask.extract_bits(mask_bits);
+    __spirv_GroupWaitEventsMasked(detail::group_execution_scope<Group>::Scope, 1, m_Event, mask_bits);
   }
 };
 
