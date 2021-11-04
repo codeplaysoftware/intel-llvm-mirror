@@ -641,6 +641,16 @@ __spirv_GroupNonUniformBallot(uint32_t Execution, bool Predicate) noexcept;
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __ocl_vec_t<uint32_t, 4>
 __spirv_GroupActiveItems(uint32_t Execution) noexcept;
 
+#ifdef __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__
+template <typename... Args>
+extern SYCL_EXTERNAL int
+__spirv_ocl_printf(const __attribute__((opencl_constant)) char *Format,
+                   Args... args);
+#else
+extern SYCL_EXTERNAL int
+__spirv_ocl_printf(const __attribute__((opencl_constant)) char *Format, ...);
+#endif
+
 #else // if !__SYCL_DEVICE_ONLY__
 
 template <typename dataT>

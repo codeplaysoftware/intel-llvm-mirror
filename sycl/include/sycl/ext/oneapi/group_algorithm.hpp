@@ -19,8 +19,8 @@
 #include <sycl/ext/oneapi/functional.hpp>
 #include <sycl/ext/oneapi/sub_group.hpp>
 #include <sycl/ext/oneapi/sub_group_mask.hpp>
+#include <sycl/ext/oneapi/device_event.hpp>
 
-#ifndef __DISABLE_SYCL_ONEAPI_GROUP_ALGORITHMS__
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
 namespace ext {
@@ -67,15 +67,7 @@ using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
         !cl::sycl::detail::is_native_op<T, BinaryOperation>::value,
     T>;
 
-namespace detail {
-template <typename G> struct group_execution_scope {};
-template <> struct group_execution_scope<sycl::ext::oneapi::sub_group> {
-  constexpr static auto Scope = __spv::Scope::Subgroup;
-};
-template <int D> struct group_execution_scope<sycl::group<D>> {
-  constexpr static auto Scope = __spv::Scope::Workgroup;
-};
-} // namespace detail
+using device_event = sycl::ext::oneapi::device_event;
 
 /// Asynchronously copies a number of elements specified by \p numElements
 /// from the source pointed by \p src to destination pointed by \p dest
@@ -173,7 +165,15 @@ device_event async_group_copy(Group g, global_ptr<dataT> dest,
   return async_group_copy(g, dest, src, numElements, 1);
 }
 
-
+template <typename Group, typename... eventTN>
+void wait_for(Group g, eventTN... Events) {
+  // Events.wait() calls __spirv_GroupWaitEvents
+  // __spirv_GroupWaitEvents ignores event_list and calls __spirv_ControlBarrier
+  // https://github.com/intel/llvm/blob/sycl/libclc/generic/libspirv/async/wait_group_events.cl
+  // __spirv_ControlBarrier calls __syncthreads or __nvvm_bar_warp_sync
+  // https://github.com/intel/llvm/blob/sycl/libclc/ptx-nvidiacl/libspirv/synchronization/barrier.cl
+  (Events.wait(g), ...);
+}
 /// Asynchronously copies a number of elements specified by \p numElements
 /// from the source pointed by \p src to destination pointed by \p dest
 /// with a source stride specified by \p srcStride, and returns a SYCL
@@ -274,16 +274,6 @@ template <typename Group, typename dataT>
 device_event async_group_copy(Group g, global_ptr<dataT> dest,
                               local_ptr<dataT> src, size_t numElements, sub_group_mask mask) {
   return async_group_copy(g, dest, src, numElements, 1, mask);
-}
-
-template <typename Group, typename... eventTN>
-void wait_for(Group g, eventTN... Events) {
-  // Events.wait() calls __spirv_GroupWaitEvents
-  // __spirv_GroupWaitEvents ignores event_list and calls __spirv_ControlBarrier
-  // https://github.com/intel/llvm/blob/sycl/libclc/generic/libspirv/async/wait_group_events.cl
-  // __spirv_ControlBarrier calls __syncthreads or __nvvm_bar_warp_sync
-  // https://github.com/intel/llvm/blob/sycl/libclc/ptx-nvidiacl/libspirv/synchronization/barrier.cl
-  (Events.wait(g), ...);
 }
 
 template <typename Group, typename... eventTN>
@@ -942,4 +932,3 @@ joint_reduce(Group g, Ptr first, Ptr last, T init, BinaryOperation binary_op, su
 
 } // namespace sycl
 } // __SYCL_INLINE_NAMESPACE(cl)
-#endif // __DISABLE_SYCL_ONEAPI_GROUP_ALGORITHMS__
