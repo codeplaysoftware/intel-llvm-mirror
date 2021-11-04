@@ -9892,7 +9892,7 @@ DECLARE_GROUP_ASYNC_COPY(fp16)
 _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT void
 __spirv_GroupWaitEvents(__clc_uint32_t, __clc_int32_t, __clc_event_t *);
 _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT void
-__spirv_GroupWaitEventsMasked(__clc_uint32_t, __clc_int32_t, __clc_event_t *, uint32_t);
+__spirv_GroupWaitEventsMasked(__clc_uint32_t, __clc_int32_t, __clc_event_t *, __clc_uint32_t);
 
 _CLC_OVERLOAD
 _CLC_DECL _CLC_CONSTFN __clc_bool_t __spirv_IsFinite(__clc_fp32_t);
