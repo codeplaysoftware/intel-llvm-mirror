@@ -899,7 +899,7 @@ joint_reduce(Group g, Ptr first, Ptr last, BinaryOperation binary_op, sub_group_
   T partial = sycl::known_identity_v<BinaryOperation, T>;
   sycl::detail::for_each(g, first, last,
                          [&](const T &x) { partial = binary_op(partial, x); });
-  return reduce_over_group(g, partial, binary_o, mask);
+  return reduce_over_group(g, partial, binary_op, mask);
 #else
   (void)g;
   (void)last;

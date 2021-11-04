@@ -267,7 +267,7 @@ detail::enable_if_t<std::is_same<std::decay_t<Group>, sub_group>::value,
 group_partition(Group g, uint32_t size) {
 #ifdef __SYCL_DEVICE_ONLY__
   uint32_t loc_id = g.get_local_linear_id();
-  uint32_t loc_size = get_local_linear_range();
+  uint32_t loc_size = g.get_local_linear_range();
   uint32_t bits = (1 << size) - 1;
   
   return detail::Builder::createSubGroupMask<sub_group_mask>(

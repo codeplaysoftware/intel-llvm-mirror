@@ -140,8 +140,8 @@ static T calc(typename GroupOpTag<T>::type, T x, BinaryOperation<void>) {
 }
 template <typename T, __spv::GroupOperation O, __spv::Scope::Flag S,
           template <typename> class BinaryOperation>
-static T calc(typename GroupOpTag<T>::type, T x, BinaryOperation<void>, sub_group_mask mask) {
-  return calc<T, O, S>(typename GroupOpTag<T>::type(), x, BinaryOperation<T>(), mask);
+static T calc(typename GroupOpTag<T>::type, T x, BinaryOperation<void>, uint32_t mask_bits) {
+  return calc<T, O, S>(typename GroupOpTag<T>::type(), x, BinaryOperation<T>(), mask_bits);
 }
 
 } // namespace detail
