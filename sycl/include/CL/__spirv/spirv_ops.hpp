@@ -680,8 +680,9 @@ __SYCL_OpGroupAsyncCopyLocalToGlobal(__spv::Scope::Flag, dataT *Dest,
 template <typename dataT>
 __SYCL_CONVERGENT__ extern __ocl_event_t
 __SYCL_OpGroupAsyncCopyGlobalToLocalMasked(__spv::Scope::Flag, dataT *Dest,
-                                     dataT *Src, size_t NumElements,
-                                     size_t Stride, __ocl_event_t, uint32_t) noexcept {
+                                           dataT *Src, size_t NumElements,
+                                           size_t Stride, __ocl_event_t,
+                                           uint32_t) noexcept {
   for (size_t i = 0; i < NumElements; i++) {
     Dest[i] = Src[i * Stride];
   }
@@ -692,8 +693,9 @@ __SYCL_OpGroupAsyncCopyGlobalToLocalMasked(__spv::Scope::Flag, dataT *Dest,
 template <typename dataT>
 __SYCL_CONVERGENT__ extern __ocl_event_t
 __SYCL_OpGroupAsyncCopyLocalToGlobalMasked(__spv::Scope::Flag, dataT *Dest,
-                                     dataT *Src, size_t NumElements,
-                                     size_t Stride, __ocl_event_t, uint32_t) noexcept {
+                                           dataT *Src, size_t NumElements,
+                                           size_t Stride, __ocl_event_t,
+                                           uint32_t) noexcept {
   for (size_t i = 0; i < NumElements; i++) {
     Dest[i * Stride] = Src[i];
   }
@@ -707,10 +709,10 @@ extern __SYCL_EXPORT void __spirv_ocl_prefetch(const char *Ptr,
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_ControlBarrier(__spv::Scope Execution, __spv::Scope Memory,
                        uint32_t Semantics) noexcept;
-					   
+
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_ControlBarrierMasked(__spv::Scope Execution, __spv::Scope Memory,
-                       uint32_t Semantics, uint32_t Mask) noexcept;
+                             uint32_t Semantics, uint32_t Mask) noexcept;
 
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_MemoryBarrier(__spv::Scope Memory, uint32_t Semantics) noexcept;

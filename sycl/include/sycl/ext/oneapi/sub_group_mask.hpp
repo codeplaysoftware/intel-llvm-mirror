@@ -269,7 +269,7 @@ group_partition(Group g, uint32_t size) {
   uint32_t loc_id = g.get_local_linear_id();
   uint32_t loc_size = g.get_local_linear_range();
   uint32_t bits = (1 << size) - 1;
-  
+
   return detail::Builder::createSubGroupMask<sub_group_mask>(
       bits << ((loc_id / size) * size), loc_size);
 #else
@@ -285,8 +285,7 @@ detail::enable_if_t<std::is_same<std::decay_t<Group>, sub_group>::value,
 group_active_items(Group g) {
   (void)g;
 #ifdef __SYCL_DEVICE_ONLY__
-  auto res = __spirv_GroupActiveItems(
-      detail::spirv::group_scope<Group>::value);
+  auto res = __spirv_GroupActiveItems(detail::spirv::group_scope<Group>::value);
   return detail::Builder::createSubGroupMask<sub_group_mask>(
       res[0], g.get_max_local_range()[0]);
 #else
@@ -302,7 +301,8 @@ template <typename Group>
 void device_event::wait(Group, ext::oneapi::sub_group_mask mask) {
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
-  __spirv_GroupWaitEventsMasked(detail::group_execution_scope<Group>::Scope, 1, m_Event, mask_bits);
+  __spirv_GroupWaitEventsMasked(detail::group_execution_scope<Group>::Scope, 1,
+                                m_Event, mask_bits);
 }
 
 } // namespace sycl

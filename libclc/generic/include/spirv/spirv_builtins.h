@@ -9843,24 +9843,34 @@ _CLC_OVERLOAD _CLC_DECL _CLC_CONSTFN __clc_vec16_int8_t
     __spirv_FUnordNotEqual(__clc_vec16_fp16_t, __clc_vec16_fp16_t);
 #endif
 
-#define DECLARE_GROUP_ASYNC_COPY_IMPL(CLC_TYPE, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT __clc_event_t __spirv_GroupAsyncCopy( \
-    __clc_uint32_t, DST_ADDR_SPACE CLC_TYPE *, SRC_ADDR_SPACE const CLC_TYPE *, \
-    __clc_size_t, __clc_size_t, __clc_event_t); \
-  _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT __clc_event_t __spirv_GroupAsyncCopyMasked( \
-    __clc_uint32_t, DST_ADDR_SPACE CLC_TYPE *, SRC_ADDR_SPACE const CLC_TYPE *, \
-    __clc_size_t, __clc_size_t, __clc_event_t, __clc_uint32_t);
+#define DECLARE_GROUP_ASYNC_COPY_IMPL(CLC_TYPE, DST_ADDR_SPACE,                \
+                                      SRC_ADDR_SPACE)                          \
+  _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT __clc_event_t                        \
+  __spirv_GroupAsyncCopy(__clc_uint32_t, DST_ADDR_SPACE CLC_TYPE *,            \
+                         SRC_ADDR_SPACE const CLC_TYPE *, __clc_size_t,        \
+                         __clc_size_t, __clc_event_t);                         \
+  _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT __clc_event_t                        \
+  __spirv_GroupAsyncCopyMasked(__clc_uint32_t, DST_ADDR_SPACE CLC_TYPE *,      \
+                               SRC_ADDR_SPACE const CLC_TYPE *, __clc_size_t,  \
+                               __clc_size_t, __clc_event_t, __clc_uint32_t);
 
-#define DECLARE_GROUP_ASYNC_COPY_VEC_SIZES(TYPE, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_##TYPE##_t, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec2_##TYPE##_t, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec3_##TYPE##_t, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec4_##TYPE##_t, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec8_##TYPE##_t, DST_ADDR_SPACE, SRC_ADDR_SPACE) \
-  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec16_##TYPE##_t, DST_ADDR_SPACE, SRC_ADDR_SPACE)
+#define DECLARE_GROUP_ASYNC_COPY_VEC_SIZES(TYPE, DST_ADDR_SPACE,               \
+                                           SRC_ADDR_SPACE)                     \
+  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_##TYPE##_t, DST_ADDR_SPACE,              \
+                                SRC_ADDR_SPACE)                                \
+  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec2_##TYPE##_t, DST_ADDR_SPACE,         \
+                                SRC_ADDR_SPACE)                                \
+  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec3_##TYPE##_t, DST_ADDR_SPACE,         \
+                                SRC_ADDR_SPACE)                                \
+  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec4_##TYPE##_t, DST_ADDR_SPACE,         \
+                                SRC_ADDR_SPACE)                                \
+  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec8_##TYPE##_t, DST_ADDR_SPACE,         \
+                                SRC_ADDR_SPACE)                                \
+  DECLARE_GROUP_ASYNC_COPY_IMPL(__clc_vec16_##TYPE##_t, DST_ADDR_SPACE,        \
+                                SRC_ADDR_SPACE)
 
-#define DECLARE_GROUP_ASYNC_COPY(TYPE) \
-  DECLARE_GROUP_ASYNC_COPY_VEC_SIZES(TYPE, __local, __global) \
+#define DECLARE_GROUP_ASYNC_COPY(TYPE)                                         \
+  DECLARE_GROUP_ASYNC_COPY_VEC_SIZES(TYPE, __local, __global)                  \
   DECLARE_GROUP_ASYNC_COPY_VEC_SIZES(TYPE, __global, __local)
 
 DECLARE_GROUP_ASYNC_COPY(char)
@@ -9892,7 +9902,8 @@ DECLARE_GROUP_ASYNC_COPY(fp16)
 _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT void
 __spirv_GroupWaitEvents(__clc_uint32_t, __clc_int32_t, __clc_event_t *);
 _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT void
-__spirv_GroupWaitEventsMasked(__clc_uint32_t, __clc_int32_t, __clc_event_t *, __clc_uint32_t);
+__spirv_GroupWaitEventsMasked(__clc_uint32_t, __clc_int32_t, __clc_event_t *,
+                              __clc_uint32_t);
 
 _CLC_OVERLOAD
 _CLC_DECL _CLC_CONSTFN __clc_bool_t __spirv_IsFinite(__clc_fp32_t);

@@ -68,10 +68,10 @@ struct GroupOpTag<T, detail::enable_if_t<detail::is_sgenfloat<T>::value>> {
         __spirv_Group##SPIRVOperation(S, static_cast<unsigned int>(O), Arg);   \
     return Ret;                                                                \
   }
-  
-#define __SYCL_CALC_OVERLOAD_MASKED(GroupTag, SPIRVOperation, BinaryOperation)        \
+
+#define __SYCL_CALC_OVERLOAD_MASKED(GroupTag, SPIRVOperation, BinaryOperation) \
   template <typename T, __spv::GroupOperation O, __spv::Scope::Flag S>         \
-  static T calc(GroupTag, T x, BinaryOperation, uint32_t mask_bits) {                              \
+  static T calc(GroupTag, T x, BinaryOperation, uint32_t mask_bits) {          \
     using ConvertedT = detail::ConvertToOpenCLType_t<T>;                       \
                                                                                \
     using OCLT =                                                               \
@@ -82,8 +82,8 @@ struct GroupOpTag<T, detail::enable_if_t<detail::is_sgenfloat<T>::value>> {
                                         std::is_same<ConvertedT, cl_ushort>(), \
                                     cl_uint, ConvertedT>>;                     \
     OCLT Arg = x;                                                              \
-    OCLT Ret =                                                                 \
-        __spirv_Group##SPIRVOperation##Masked(S, static_cast<unsigned int>(O), Arg, mask_bits);   \
+    OCLT Ret = __spirv_Group##SPIRVOperation##Masked(                          \
+        S, static_cast<unsigned int>(O), Arg, mask_bits);                      \
     return Ret;                                                                \
   }
 
@@ -121,14 +121,21 @@ __SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, IAdd, sycl::plus<T>)
 __SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, IAdd, sycl::plus<T>)
 
 __SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformIMul, sycl::multiplies<T>)
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformIMul, sycl::multiplies<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformIMul,
+                            sycl::multiplies<T>)
 
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseOr, sycl::bit_or<T>)
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseOr, sycl::bit_or<T>)
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseXor, sycl::bit_xor<T>)
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseXor, sycl::bit_xor<T>)
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseAnd, sycl::bit_and<T>)
-__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseAnd, sycl::bit_and<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseOr,
+                            sycl::bit_or<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseOr,
+                            sycl::bit_or<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseXor,
+                            sycl::bit_xor<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseXor,
+                            sycl::bit_xor<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseAnd,
+                            sycl::bit_and<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseAnd,
+                            sycl::bit_and<T>)
 
 #undef __SYCL_CALC_OVERLOAD
 #undef __SYCL_CALC_OVERLOAD_MASKED
@@ -140,8 +147,10 @@ static T calc(typename GroupOpTag<T>::type, T x, BinaryOperation<void>) {
 }
 template <typename T, __spv::GroupOperation O, __spv::Scope::Flag S,
           template <typename> class BinaryOperation>
-static T calc(typename GroupOpTag<T>::type, T x, BinaryOperation<void>, uint32_t mask_bits) {
-  return calc<T, O, S>(typename GroupOpTag<T>::type(), x, BinaryOperation<T>(), mask_bits);
+static T calc(typename GroupOpTag<T>::type, T x, BinaryOperation<void>,
+              uint32_t mask_bits) {
+  return calc<T, O, S>(typename GroupOpTag<T>::type(), x, BinaryOperation<T>(),
+                       mask_bits);
 }
 
 } // namespace detail
