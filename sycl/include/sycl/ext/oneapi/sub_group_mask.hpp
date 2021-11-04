@@ -261,45 +261,10 @@ group_ballot(Group g, bool predicate) {
 #endif
 }
 
-template <typename Group>
-detail::enable_if_t<std::is_same<std::decay_t<Group>, sub_group>::value,
-                    sub_group_mask>
-group_partition(Group g, uint32_t size) {
-#ifdef __SYCL_DEVICE_ONLY__
-  uint32_t loc_id = g.get_local_linear_id();
-  uint32_t loc_size = g.get_local_linear_range();
-  uint32_t bits = (1 << size) - 1;
-  
-  return detail::Builder::createSubGroupMask<sub_group_mask>(
-      bits << ((loc_id / size) * size), loc_size);
-#else
-  (void)size;
-  throw exception{errc::feature_not_supported,
-                  "Sub-group mask is not supported on host device"};
-#endif
-}
-
-template <typename Group>
-detail::enable_if_t<std::is_same<std::decay_t<Group>, sub_group>::value,
-                    sub_group_mask>
-group_active_items(Group g) {
-  (void)g;
-#ifdef __SYCL_DEVICE_ONLY__
-  auto res = __spirv_GroupActiveItems(
-      detail::spirv::group_scope<Group>::value);
-  return detail::Builder::createSubGroupMask<sub_group_mask>(
-      res[0], g.get_max_local_range()[0]);
-#else
-  throw exception{errc::feature_not_supported,
-                  "Sub-group mask is not supported on host device"};
-#endif
-}
-
 } // namespace oneapi
 } // namespace ext
 
-template <typename Group>
-void device_event::wait(Group, ext::oneapi::sub_group_mask mask) {
+void device_event::wait(sub_group, ext::oneapi::sub_group_mask mask) {
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
   __spirv_GroupWaitEventsMasked(detail::group_execution_scope<Group>::Scope, 1, m_Event, mask_bits);

@@ -51,8 +51,7 @@ public:
   void wait(Group) {
     __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1, m_Event);
   }
-  template <typename Group>
-  void wait(Group, ext::oneapi::sub_group_mask mask);
+  void wait(sub_group, ext::oneapi::sub_group_mask mask);
 };
 
 } // namespace sycl

@@ -18,6 +18,7 @@
 #include <CL/sycl/nd_range.hpp>
 #include <CL/sycl/range.hpp>
 #include <CL/sycl/sub_group.hpp>
+#include <CL/sycl/sub_group_mask.hpp>
 
 #include <cstddef>
 #include <stdexcept>
@@ -179,6 +180,30 @@ public:
   bool operator!=(const nd_item<dimensions> &rhs) const {
     return !((*this) == rhs);
   }
+  
+sub_group_mask partition_sub_group(size_t partition_size) const {
+  sub_group g = get_sub_group();
+  uint32_t loc_id = g.get_local_linear_id();
+  uint32_t loc_size = g.get_local_linear_range();
+  uint32_t bits = (1 << size) - 1;
+  
+  return detail::Builder::createSubGroupMask<ext::oneapi::sub_group_mask>(
+      bits << ((loc_id / size) * size), loc_size);
+}
+
+sub_group_mask active_sub_group_items() const {
+  auto res = __spirv_GroupActiveItems(
+      detail::spirv::group_scope<Group>::value);
+  return detail::Builder::createSubGroupMask<sub_group_mask>(
+      res[0], g.get_max_local_range()[0]);
+}
+	  
+size_t rank_in_mask(sub_group_mask mask){
+  // taking 1 from a power of two will give all 1s below the bit of our work-item
+  // anding this with the mask will leave only 1s where there are work-items with lower ids
+  // the popcount of this is the linear id in that sub_group_mask
+  return popcount(mask & ((1 << get_sub_group().get_local_linear_id()) - 1));
+}
 
 protected:
   friend class detail::Builder;
