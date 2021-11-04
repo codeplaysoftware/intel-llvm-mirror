@@ -920,7 +920,7 @@ detail::enable_if_t<
     T>
 joint_reduce(Group g, Ptr first, Ptr last, T init, BinaryOperation binary_op, sub_group_mask mask) {
   static_assert(
-      std::is_same<decltype(binary_op(init, *first)), T>::value),
+      std::is_same<decltype(binary_op(init, *first)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
   T partial = sycl::known_identity_v<BinaryOperation, T>;
