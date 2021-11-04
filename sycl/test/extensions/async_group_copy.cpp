@@ -1,3 +1,8 @@
+// This test checks async_group_copy with sub-groups
+// RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
+// RUN: %t.out
+// REQUIRES: cuda_be
+
 #include <CL/sycl.hpp>
 #include <algorithm>
 #include <iomanip>

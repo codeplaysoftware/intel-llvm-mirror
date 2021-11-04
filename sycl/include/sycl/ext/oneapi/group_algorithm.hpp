@@ -68,7 +68,7 @@ using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
 namespace detail {
     template <typename Group>
     constexpr auto group_to_scope() {
-        if constexpr (std::is_same_v<Group, sycl::ext::oneapi::sub_group>) {
+        if constexpr (std::is_same<Group, sycl::ext::oneapi::sub_group>::value) {
             return __spv::Scope::Subgroup;
         } else {
             return __spv::Scope::Workgroup;

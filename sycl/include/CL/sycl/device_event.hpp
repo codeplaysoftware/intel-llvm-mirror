@@ -8,10 +8,8 @@
 
 #pragma once
 
-#include "CL/sycl/group.hpp"
 #include <CL/__spirv/spirv_ops.hpp>
 #include <CL/__spirv/spirv_types.hpp>
-#include <type_traits>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
@@ -40,7 +38,7 @@ public:
   template <typename Group>
   void ext_oneapi_wait(Group) {
     constexpr auto scope = [](){
-      if constexpr (std::is_same_v<Group, sycl::ext::oneapi::sub_group>){
+      if (std::is_same<Group, sycl::ext::oneapi::sub_group>::value){
         return __spv::Scope::Subgroup;
       } else {
         return __spv::Scope::Workgroup;
