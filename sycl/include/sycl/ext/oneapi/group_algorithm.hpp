@@ -29,7 +29,7 @@ namespace oneapi {
 // EnableIf shorthands for algorithms that depend only on type
 template <typename T>
 using EnableIfIsScalarArithmetic = cl::sycl::detail::enable_if_t<
-    cl::sycl::detail::is_scalar_arithmetic<T>::value, T>;
+    cl::sycl::std::is_scalar_arithmetic<T>::value, T>;
 
 template <typename T>
 using EnableIfIsVectorArithmetic = cl::sycl::detail::enable_if_t<
@@ -48,7 +48,7 @@ using EnableIfIsTriviallyCopyable = cl::sycl::detail::enable_if_t<
 // EnableIf shorthands for algorithms that depend on type and an operator
 template <typename T, typename BinaryOperation>
 using EnableIfIsScalarArithmeticNativeOp = cl::sycl::detail::enable_if_t<
-    cl::sycl::detail::is_scalar_arithmetic<T>::value &&
+    cl::sycl::std::is_scalar_arithmetic<T>::value &&
         cl::sycl::detail::is_native_op<T, BinaryOperation>::value,
     T>;
 
@@ -61,7 +61,7 @@ using EnableIfIsVectorArithmeticNativeOp = cl::sycl::detail::enable_if_t<
 // TODO: Lift TriviallyCopyable restriction eventually
 template <typename T, typename BinaryOperation>
 using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
-    (!cl::sycl::detail::is_scalar_arithmetic<T>::value &&
+    (!cl::sycl::std::is_scalar_arithmetic<T>::value &&
      !cl::sycl::detail::is_vector_arithmetic<T>::value &&
      std::is_trivially_copyable<T>::value) ||
         !cl::sycl::detail::is_native_op<T, BinaryOperation>::value,
@@ -121,7 +121,7 @@ async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
 /// which can be used to wait on the completion of the copy.
 template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
-detail::enable_if_t<is_group_v<Group> && detail::is_scalar_bool<T>::value, device_event>
+detail::enable_if_t<is_group_v<Group> && std::is_scalar_bool<T>::value, device_event>
 async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
                  size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
@@ -224,7 +224,7 @@ async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
 /// which can be used to wait on the completion of the copy.
 template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
-detail::enable_if_t<is_group_v<Group> && detail::is_scalar_bool<T>::value, device_event>
+detail::enable_if_t<is_group_v<Group> && std::is_scalar_bool<T>::value, device_event>
 async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
                  size_t NumElements, size_t Stride, sub_group_mask mask) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
@@ -492,7 +492,7 @@ template <typename Group, typename T, class BinaryOperation>
 __SYCL2020_DEPRECATED(
     "ext::oneapi::reduce is deprecated. Use reduce_over_group instead.")
 detail::enable_if_t<(detail::is_generic_group<Group>::value &&
-                     detail::is_scalar_arithmetic<T>::value &&
+                     std::is_scalar_arithmetic<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T> reduce(Group g, T x, BinaryOperation binary_op) {
   return reduce_over_group(g, x, binary_op);
@@ -530,8 +530,8 @@ template <typename Group, typename V, typename T, class BinaryOperation>
 __SYCL2020_DEPRECATED(
     "ext::oneapi::reduce is deprecated. Use reduce_over_group instead.")
 detail::enable_if_t<(detail::is_generic_group<Group>::value &&
-                     detail::is_scalar_arithmetic<V>::value &&
-                     detail::is_scalar_arithmetic<T>::value &&
+                     std::is_scalar_arithmetic<V>::value &&
+                     std::is_scalar_arithmetic<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T> reduce(Group g, V x, T init, BinaryOperation binary_op) {
@@ -601,7 +601,7 @@ template <typename Group, typename T, class BinaryOperation>
 __SYCL2020_DEPRECATED("ext::oneapi::exclusive_scan is deprecated. Use "
                       "exclusive_scan_over_group instead.")
 detail::enable_if_t<(detail::is_generic_group<Group>::value &&
-                     detail::is_scalar_arithmetic<T>::value &&
+                     std::is_scalar_arithmetic<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T> exclusive_scan(Group g, T x, BinaryOperation binary_op) {
   return exclusive_scan_over_group(g, x, binary_op);
@@ -634,8 +634,8 @@ template <typename Group, typename V, typename T, class BinaryOperation>
 __SYCL2020_DEPRECATED("ext::oneapi::exclusive_scan is deprecated. Use "
                       "exclusive_scan_over_group instead.")
 detail::enable_if_t<(detail::is_generic_group<Group>::value &&
-                     detail::is_scalar_arithmetic<V>::value &&
-                     detail::is_scalar_arithmetic<T>::value &&
+                     std::is_scalar_arithmetic<V>::value &&
+                     std::is_scalar_arithmetic<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T> exclusive_scan(Group g, V x, T init,
@@ -691,7 +691,7 @@ template <typename Group, typename T, class BinaryOperation>
 __SYCL2020_DEPRECATED("ext::oneapi::inclusive_scan is deprecated. Use "
                       "inclusive_scan_over_group instead.")
 detail::enable_if_t<(detail::is_generic_group<Group>::value &&
-                     detail::is_scalar_arithmetic<T>::value &&
+                     std::is_scalar_arithmetic<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T> inclusive_scan(Group g, T x, BinaryOperation binary_op) {
   return inclusive_scan_over_group(g, x, binary_op);
@@ -701,8 +701,8 @@ template <typename Group, typename V, class BinaryOperation, typename T>
 __SYCL2020_DEPRECATED("ext::oneapi::inclusive_scan is deprecated. Use "
                       "inclusive_scan_over_group instead.")
 detail::enable_if_t<(detail::is_generic_group<Group>::value &&
-                     detail::is_scalar_arithmetic<V>::value &&
-                     detail::is_scalar_arithmetic<T>::value &&
+                     std::is_scalar_arithmetic<V>::value &&
+                     std::is_scalar_arithmetic<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T> inclusive_scan(Group g, V x, BinaryOperation binary_op,
@@ -797,7 +797,7 @@ group_barrier(Group, sub_group_mask mask, memory_scope FenceScope = Group::fence
 // ---- reduce_over_group
 template <typename Group, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     detail::is_scalar<T>::value &&
+                     std::is_scalar<T>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
@@ -837,8 +837,8 @@ reduce_over_group(Group g, T x, BinaryOperation binary_op, sub_group_mask mask) 
 
 template <typename Group, typename V, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     detail::is_scalar<V>::value &&
-                     detail::is_scalar<T>::value &&
+                     std::is_scalar<V>::value &&
+                     std::is_scalar<T>::value &&
                      detail::is_integral<V>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
