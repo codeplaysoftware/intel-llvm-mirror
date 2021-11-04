@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include "CL/sycl/group.hpp"
 #include <CL/__spirv/spirv_ops.hpp>
 #include <CL/__spirv/spirv_types.hpp>
+#include <type_traits>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
@@ -33,6 +35,18 @@ public:
 
   void wait() {
     __spirv_GroupWaitEvents(__spv::Scope::Workgroup, 1, m_Event);
+  }
+
+  template <typename Group>
+  void ext_oneapi_wait(Group) {
+    constexpr auto scope = [](){
+      if constexpr (std::is_same_v<Group, sycl::ext::oneapi::sub_group>()){
+        return __spv::Scope::Subgroup;
+      } else {
+        return __spv::Scope::Workgroup;
+      }
+    }();
+    __spirv_GroupWaitEvents(scope, 1, m_Event);
   }
 };
 
