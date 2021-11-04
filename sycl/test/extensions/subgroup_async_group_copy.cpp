@@ -176,7 +176,6 @@ Result over_copy_test(sycl::queue &q, size_t max_sub_group_size) {
             }
             sycl::group_barrier(group);
 
-
             acc_a[i] = local_data[sub_i];
           });
     });
