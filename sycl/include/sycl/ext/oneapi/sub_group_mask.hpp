@@ -297,5 +297,13 @@ group_active_items(Group g) {
 
 } // namespace oneapi
 } // namespace ext
+
+template <typename Group>
+void device_event::wait(Group, ext::oneapi::sub_group_mask mask) {
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  __spirv_GroupWaitEventsMasked(detail::group_execution_scope<Group>::Scope, 1, m_Event, mask_bits);
+}
+
 } // namespace sycl
 } // __SYCL_INLINE_NAMESPACE(cl)
