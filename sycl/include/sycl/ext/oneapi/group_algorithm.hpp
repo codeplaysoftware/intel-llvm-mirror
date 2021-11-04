@@ -819,7 +819,7 @@ reduce_over_group(Group, T x, BinaryOperation binary_op, sub_group_mask mask) {
 
 template <typename Group, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     detail::is_vector<T>::value &&
+                     detail::is_vec<T>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
@@ -859,8 +859,8 @@ reduce_over_group(Group g, V x, T init, BinaryOperation binary_op, sub_group_mas
 
 template <typename Group, typename V, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     detail::is_vector<V>::value &&
-                     detail::is_vector<T>::value &&
+                     detail::is_vec<V>::value &&
+                     detail::is_vec<T>::value &&
                      detail::is_integral<V>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
