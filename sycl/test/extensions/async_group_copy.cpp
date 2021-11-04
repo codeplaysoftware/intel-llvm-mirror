@@ -232,16 +232,10 @@ Result over_copy_test(sycl::queue &q, size_t max_sub_group_size) {
 
 int main() {
   sycl::queue q{sycl::default_selector{}};
-  std::cout << q.get_device().get_info<sycl::info::device::name>() << '\n';
   auto sub_group_sizes =
       q.get_device().get_info<sycl::info::device::sub_group_sizes>();
-  std::cout << "sub_group sizes:\n";
-  for (auto s : sub_group_sizes) {
-    std::cout << '\t' << s << '\n';
-  }
   auto max_sub_group_size =
       *std::max_element(std::begin(sub_group_sizes), std::end(sub_group_sizes));
-  std::cout << "maximum sub_group size: " << max_sub_group_size << '\n';
 
   if constexpr (print_values) {
     std::cout << "Test copying less than the size of the subgroup\n";
