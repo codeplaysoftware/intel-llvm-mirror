@@ -67,7 +67,16 @@ using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
         !cl::sycl::detail::is_native_op<T, BinaryOperation>::value,
     T>;
 
-using device_event = sycl::ext::oneapi::device_event;
+namespace detail {
+    template <typename Group>
+    constexpr auto group_to_scope() {
+        if constexpr (std::is_same<Group, sycl::ext::oneapi::sub_group>::value) {
+            return __spv::Scope::Subgroup;
+        } else {
+            return __spv::Scope::Workgroup;
+        }
+    }
+}
 
 /// Asynchronously copies a number of elements specified by \p numElements
 /// from the source pointed by \p src to destination pointed by \p dest
@@ -83,7 +92,7 @@ async_group_copy(Group, local_ptr<dataT> dest, global_ptr<dataT> src,
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyGlobalToLocal(
-      detail::group_execution_scope<Group>::Scope, DestT(dest.get()),
+      detail::group_to_scope<Group>(), DestT(dest.get()),
       SrcT(src.get()), numElements, srcStride, 0);
   return device_event(&E);
 }
@@ -102,8 +111,8 @@ async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyLocalToGlobal(
-      detail::group_execution_scope<Group>::Scope, DestT(dest.get()),
-      SrcT(src.get()), numElements, destStride, 0);
+      detail::group_to_scope<Group>(), DestT(dest.get()), SrcT(src.get()), numElements,
+      destStride, 0);
   return device_event(&E);
 }
 
@@ -175,7 +184,7 @@ void wait_for(Group g, eventTN... Events) {
   // https://github.com/intel/llvm/blob/sycl/libclc/generic/libspirv/async/wait_group_events.cl
   // __spirv_ControlBarrier calls __syncthreads or __nvvm_bar_warp_sync
   // https://github.com/intel/llvm/blob/sycl/libclc/ptx-nvidiacl/libspirv/synchronization/barrier.cl
-  (Events.wait(g), ...);
+  (Events.ext_oneapi_wait(g), ...);
 }
 /// Asynchronously copies a number of elements specified by \p numElements
 /// from the source pointed by \p src to destination pointed by \p dest

@@ -10,26 +10,9 @@
 
 #include <CL/__spirv/spirv_ops.hpp>
 #include <CL/__spirv/spirv_types.hpp>
-#include <CL/sycl/sub_group.hpp>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
-
-namespace ext {
-namespace oneapi {
-struct sub_group_mask;
-}
-} // namespace ext
-
-namespace detail {
-template <typename G> struct group_execution_scope {};
-template <> struct group_execution_scope<sycl::ext::oneapi::sub_group> {
-  constexpr static auto Scope = __spv::Scope::Subgroup;
-};
-template <int D> struct group_execution_scope<sycl::group<D>> {
-  constexpr static auto Scope = __spv::Scope::Workgroup;
-};
-} // namespace detail
 
 /// Encapsulates a single SYCL device event which is available only within SYCL
 /// kernel functions and can be used to wait for asynchronous operations within
@@ -48,10 +31,22 @@ public:
 
   device_event(__ocl_event_t *Event) : m_Event(Event) {}
 
-  template <typename Group> void wait(Group) {
-    __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1,
-                            m_Event);
+  void wait() {
+    __spirv_GroupWaitEvents(__spv::Scope::Workgroup, 1, m_Event);
   }
+
+  template <typename Group>
+  void ext_oneapi_wait(Group) {
+    constexpr auto scope = [](){
+      if (std::is_same<Group, sycl::ext::oneapi::sub_group>::value){
+        return __spv::Scope::Subgroup;
+      } else {
+        return __spv::Scope::Workgroup;
+      }
+    }();
+    __spirv_GroupWaitEvents(scope, 1, m_Event);
+  }
+
   inline void ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask mask);
 };
 
