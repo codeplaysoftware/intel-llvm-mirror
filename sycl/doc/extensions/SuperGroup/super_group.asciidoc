@@ -41,13 +41,19 @@ the existing function `group_barrier`.
 
 ## Feature test macro
 
-TODO
+This extension provides a feature-test macro as described in the core SYCL
+specification section 6.3.3 "Feature test macros". Therefore, an implementation
+supporting this extension must predefine the macro SYCL_EXT_ONEAPI_SUPER_GROUP
+to one of the values defined in the table below. Applications can test for the
+existence of this macro to determine if the implementation supports this
+feature, or applications can test the macro’s value to determine which of the
+extension’s APIs the implementation supports.
 
-//[frame="none",options="header"]
-//|======================
-//|Value |Description
-//|1     |Initial extension implementation on CUDA.
-//|======================
+[%header,cols="1,5"]
+|===
+|Value |Description
+|1     |Initial extension implementation on CUDA.
+|===
 
 ## Extension of `memory_scope` enum class
 `super_group` will be added to the `memory_scope` enum class. This is for the
@@ -147,10 +153,6 @@ evaluates to true:
 ## Group_barrier
 `group_barrier` will be available when
 `std::is_same_v<std::decay_t<Group>, super_group>` is true.
-
-## Open Questions
-
-* Feature test macro
 
 ## TODO List
 
