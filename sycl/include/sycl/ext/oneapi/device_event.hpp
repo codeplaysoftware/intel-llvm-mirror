@@ -27,7 +27,6 @@ template <int D> struct group_execution_scope<sycl::group<D>> {
 };
 } // namespace detail
 
-
 /// Encapsulates a single SYCL device event which is available only within SYCL
 /// kernel functions and can be used to wait for asynchronous operations within
 /// a kernel function to complete.
@@ -45,9 +44,9 @@ public:
 
   device_event(__ocl_event_t *Event) : m_Event(Event) {}
 
-  template <typename Group>
-  void wait(Group) {
-    __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1, m_Event);
+  template <typename Group> void wait(Group) {
+    __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1,
+                            m_Event);
   }
 };
 

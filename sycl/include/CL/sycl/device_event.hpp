@@ -14,12 +14,12 @@
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
-	
+
 namespace ext {
 namespace oneapi {
 struct sub_group_mask;
 }
-}
+} // namespace ext
 
 namespace detail {
 template <typename G> struct group_execution_scope {};
@@ -48,9 +48,9 @@ public:
 
   device_event(__ocl_event_t *Event) : m_Event(Event) {}
 
-  template <typename Group>
-  void wait(Group) {
-    __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1, m_Event);
+  template <typename Group> void wait(Group) {
+    __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1,
+                            m_Event);
   }
   inline void ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask mask);
 };

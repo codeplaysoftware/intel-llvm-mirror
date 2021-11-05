@@ -399,9 +399,7 @@ private:
 
   void waitForHelper() const {}
 
-  void waitForHelper(device_event Event) const {
-    Event.wait(this);
-  }
+  void waitForHelper(device_event Event) const { Event.wait(this); }
 
   template <typename T, typename... Ts>
   void waitForHelper(T E, Ts... Es) const {

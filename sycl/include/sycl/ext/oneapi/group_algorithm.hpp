@@ -16,10 +16,10 @@
 #include <CL/sycl/group_algorithm.hpp>
 #include <CL/sycl/nd_item.hpp>
 #include <sycl/ext/oneapi/atomic.hpp>
+#include <sycl/ext/oneapi/device_event.hpp>
 #include <sycl/ext/oneapi/functional.hpp>
 #include <sycl/ext/oneapi/sub_group.hpp>
 #include <sycl/ext/oneapi/sub_group_mask.hpp>
-#include <sycl/ext/oneapi/device_event.hpp>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
@@ -94,15 +94,16 @@ async_group_copy(Group, local_ptr<dataT> dest, global_ptr<dataT> src,
 /// device_event which can be used to wait on the completion of the copy.
 /// Permitted types for dataT are all scalar and vector types, except boolean.
 template <typename Group, typename dataT>
-detail::enable_if_t<is_group_v<Group> && !detail::is_bool<dataT>::value, device_event>
+detail::enable_if_t<is_group_v<Group> && !detail::is_bool<dataT>::value,
+                    device_event>
 async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
                  size_t numElements, size_t destStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyLocalToGlobal(
-      detail::group_execution_scope<Group>::Scope, DestT(dest.get()), SrcT(src.get()), numElements,
-      destStride, 0);
+      detail::group_execution_scope<Group>::Scope, DestT(dest.get()),
+      SrcT(src.get()), numElements, destStride, 0);
   return device_event(&E);
 }
 
@@ -113,7 +114,8 @@ async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
 /// which can be used to wait on the completion of the copy.
 template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
-detail::enable_if_t<is_group_v<Group> && detail::is_scalar_bool<T>::value, device_event>
+detail::enable_if_t<is_group_v<Group> && detail::is_scalar_bool<T>::value,
+                    device_event>
 async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
                  size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
@@ -131,7 +133,8 @@ async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
 /// which can be used to wait on the completion of the copy.
 template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
-detail::enable_if_t<is_group_v<Group> && detail::is_vector_bool<T>::value, device_event>
+detail::enable_if_t<is_group_v<Group> && detail::is_vector_bool<T>::value,
+                    device_event>
 async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
                  size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
@@ -184,7 +187,7 @@ device_event async_group_copy(sub_group, local_ptr<dataT> dest, global_ptr<dataT
                  size_t numElements, size_t srcStride, sub_group_mask mask) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
-  
+
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
 
@@ -205,7 +208,7 @@ async_group_copy(sub_group, global_ptr<dataT> dest, local_ptr<dataT> src,
                  size_t numElements, size_t destStride, sub_group_mask mask) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
-  
+
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
 
@@ -269,7 +272,8 @@ device_event async_group_copy(sub_group g, local_ptr<dataT> dest, global_ptr<dat
 /// Permitted types for dataT are all scalar and vector types.
 template <typename dataT>
 device_event async_group_copy(sub_group g, global_ptr<dataT> dest,
-                              local_ptr<dataT> src, size_t numElements, sub_group_mask mask) {
+                              local_ptr<dataT> src, size_t numElements,
+                              sub_group_mask mask) {
   return async_group_copy(g, dest, src, numElements, 1, mask);
 }
 

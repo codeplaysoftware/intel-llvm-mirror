@@ -283,7 +283,7 @@ inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_partition_sub
   uint32_t loc_id = g.get_local_linear_id();
   uint32_t loc_size = g.get_local_linear_range();
   uint32_t bits = (1 << partition_size) - 1;
-  
+
   return detail::Builder::createSubGroupMask<ext::oneapi::sub_group_mask>(
       bits << ((loc_id / partition_size) * partition_size), loc_size);
 #else
