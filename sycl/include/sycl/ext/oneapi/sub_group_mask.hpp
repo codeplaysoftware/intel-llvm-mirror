@@ -264,10 +264,61 @@ group_ballot(Group g, bool predicate) {
 } // namespace oneapi
 } // namespace ext
 
-void device_event::wait(sub_group, ext::oneapi::sub_group_mask mask) {
+inline void device_event::ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask mask) {
+#ifdef __SYCL_DEVICE_ONLY__
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
-  __spirv_GroupWaitEventsMasked(detail::group_execution_scope<Group>::Scope, 1, m_Event, mask_bits);
+  __spirv_GroupWaitEventsMasked(__spv::Scope::Subgroup, 1, m_Event, mask_bits);
+#else
+  (void)mask;
+  throw exception{errc::feature_not_supported,
+                  "Sub-group mask is not supported on host device"};
+#endif
+}
+
+template <int dimensions>
+inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_partition_sub_group(size_t partition_size) const {
+#ifdef __SYCL_DEVICE_ONLY__
+  sub_group g = get_sub_group();
+  uint32_t loc_id = g.get_local_linear_id();
+  uint32_t loc_size = g.get_local_linear_range();
+  uint32_t bits = (1 << partition_size) - 1;
+  
+  return detail::Builder::createSubGroupMask<ext::oneapi::sub_group_mask>(
+      bits << ((loc_id / partition_size) * partition_size), loc_size);
+#else
+  (void)partition_size;
+  throw exception{errc::feature_not_supported,
+                  "Sub-group mask is not supported on host device"};
+#endif
+}
+
+template <int dimensions>
+inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_active_sub_group_items() const {
+#ifdef __SYCL_DEVICE_ONLY__
+  auto res = __spirv_GroupActiveItems(__spv::Scope::Subgroup);
+  return detail::Builder::createSubGroupMask<ext::oneapi::sub_group_mask>(
+      res[0], get_sub_group().get_max_local_range()[0]);
+#else
+  throw exception{errc::feature_not_supported,
+                  "Sub-group mask is not supported on host device"};
+#endif
+}
+	  
+template <int dimensions>
+inline size_t nd_item<dimensions>::ext_oneapi_rank_in_mask(ext::oneapi::sub_group_mask mask){
+#ifdef __SYCL_DEVICE_ONLY__
+  // taking 1 from a power of two will give all 1s below the bit of our work-item
+  // anding this with the mask will leave only 1s where there are work-items with lower ids
+  // the popcount of this is the linear id in that sub_group_mask
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  return popcount(mask & ((1 << get_sub_group().get_local_linear_id()) - 1));
+#else
+  (void)mask;
+  throw exception{errc::feature_not_supported,
+                  "Sub-group mask is not supported on host device"};
+#endif
 }
 
 } // namespace sycl

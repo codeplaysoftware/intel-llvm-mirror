@@ -651,6 +651,14 @@ extern SYCL_EXTERNAL int
 __spirv_ocl_printf(const __attribute__((opencl_constant)) char *Format, ...);
 #endif
 
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
+__spirv_ControlBarrierMasked(__spv::Scope Execution, __spv::Scope Memory,
+                       uint32_t Semantics, uint32_t Mask) noexcept;
+
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
+__spirv_GroupWaitEventsMasked(__spv::Scope Execution, uint32_t NumEvents,
+                        __ocl_event_t *WaitEvents, uint32_t Mask) noexcept;
+
 #else // if !__SYCL_DEVICE_ONLY__
 
 template <typename dataT>
@@ -707,10 +715,6 @@ extern __SYCL_EXPORT void __spirv_ocl_prefetch(const char *Ptr,
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_ControlBarrier(__spv::Scope Execution, __spv::Scope Memory,
                        uint32_t Semantics) noexcept;
-					   
-__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
-__spirv_ControlBarrierMasked(__spv::Scope Execution, __spv::Scope Memory,
-                       uint32_t Semantics, uint32_t Mask) noexcept;
 
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
 __spirv_MemoryBarrier(__spv::Scope Memory, uint32_t Semantics) noexcept;

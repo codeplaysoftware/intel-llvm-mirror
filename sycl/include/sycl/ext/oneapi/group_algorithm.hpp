@@ -189,7 +189,7 @@ device_event async_group_copy(sub_group, local_ptr<dataT> dest, global_ptr<dataT
   mask.extract_bits(mask_bits);
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyGlobalToLocal(
-      detail::group_execution_scope<Group>::Scope, DestT(dest.get()),
+      __spv::Scope::Subgroup, DestT(dest.get()),
       SrcT(src.get()), numElements, srcStride, 0, mask_bits);
   return device_event(&E);
 }
@@ -210,7 +210,7 @@ async_group_copy(sub_group, global_ptr<dataT> dest, local_ptr<dataT> src,
   mask.extract_bits(mask_bits);
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyLocalToGlobal(
-      detail::group_execution_scope<Group>::Scope, DestT(dest.get()), SrcT(src.get()), numElements,
+      __spv::Scope::Subgroup, DestT(dest.get()), SrcT(src.get()), numElements,
       destStride, 0, mask_bits);
   return device_event(&E);
 }
@@ -758,7 +758,8 @@ leader(Group g) {
 #endif
 }
 
-void group_barrier(sycl::sub_group, sub_group_mask mask, memory_scope FenceScope = Group::fence_scope) {
+inline void group_barrier(sycl::sub_group, sub_group_mask mask, 
+                          memory_scope FenceScope = sycl::sub_group::fence_scope) {
 #ifdef __SYCL_DEVICE_ONLY__
   // Per SYCL spec, group_barrier must perform both control barrier and memory
   // fence operations. All work-items execute a release fence prior to
@@ -766,7 +767,7 @@ void group_barrier(sycl::sub_group, sub_group_mask mask, memory_scope FenceScope
   // which type of memory this behavior is applied to.
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
-  __spirv_ControlBarrierMasked(detail::group_barrier_scope<Group>::Scope,
+  __spirv_ControlBarrierMasked(__spv::Scope::Subgroup,
                          sycl::detail::spirv::getScope(FenceScope),
                          __spv::MemorySemanticsMask::SequentiallyConsistent |
                              __spv::MemorySemanticsMask::SubgroupMemory |
@@ -793,7 +794,7 @@ reduce_over_group(sub_group, T x, BinaryOperation binary_op, sub_group_mask mask
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
   return sycl::detail::calc<T, __spv::GroupOperation::Reduce,
-                            sycl::detail::spirv::group_scope<Group>::value>(
+                            __spv::Scope::Subgroup>(
       typename sycl::detail::GroupOpTag<T>::type(), x, binary_op, mask_bits);
 #else
   throw runtime_error("Group algorithms are not supported on host device.",

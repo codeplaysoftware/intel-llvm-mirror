@@ -10,6 +10,7 @@
 
 #include <CL/__spirv/spirv_ops.hpp>
 #include <CL/__spirv/spirv_types.hpp>
+#include <CL/sycl/sub_group.hpp>
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
@@ -51,7 +52,7 @@ public:
   void wait(Group) {
     __spirv_GroupWaitEvents(detail::group_execution_scope<Group>::Scope, 1, m_Event);
   }
-  void wait(sub_group, ext::oneapi::sub_group_mask mask);
+  inline void ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask mask);
 };
 
 } // namespace sycl
