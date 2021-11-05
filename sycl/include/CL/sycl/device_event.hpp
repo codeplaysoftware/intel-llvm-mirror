@@ -14,6 +14,13 @@
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
 
+namespace ext{
+namespace oneapi{
+struct sub_group;
+struct sub_group_mask;
+}
+}
+
 /// Encapsulates a single SYCL device event which is available only within SYCL
 /// kernel functions and can be used to wait for asynchronous operations within
 /// a kernel function to complete.
@@ -47,7 +54,7 @@ public:
     __spirv_GroupWaitEvents(scope, 1, m_Event);
   }
 
-  inline void ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask mask);
+  inline void ext_oneapi_wait(sycl::ext::oneapi::sub_group, ext::oneapi::sub_group_mask mask);
 };
 
 } // namespace sycl
