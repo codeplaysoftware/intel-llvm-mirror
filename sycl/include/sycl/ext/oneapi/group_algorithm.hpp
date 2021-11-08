@@ -16,7 +16,6 @@
 #include <CL/sycl/group_algorithm.hpp>
 #include <CL/sycl/nd_item.hpp>
 #include <sycl/ext/oneapi/atomic.hpp>
-#include <sycl/ext/oneapi/device_event.hpp>
 #include <sycl/ext/oneapi/functional.hpp>
 #include <sycl/ext/oneapi/sub_group.hpp>
 #include <sycl/ext/oneapi/sub_group_mask.hpp>
@@ -200,7 +199,7 @@ device_event async_group_copy(sub_group, local_ptr<dataT> dest, global_ptr<dataT
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
 
-  __ocl_event_t E = __SYCL_OpGroupAsyncCopyGlobalToLocal(
+  __ocl_event_t E = __SYCL_OpGroupAsyncCopyGlobalToLocalMasked(
       __spv::Scope::Subgroup, DestT(dest.get()),
       SrcT(src.get()), numElements, srcStride, 0, mask_bits);
   return device_event(&E);
@@ -221,7 +220,7 @@ async_group_copy(sub_group, global_ptr<dataT> dest, local_ptr<dataT> src,
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
 
-  __ocl_event_t E = __SYCL_OpGroupAsyncCopyLocalToGlobal(
+  __ocl_event_t E = __SYCL_OpGroupAsyncCopyLocalToGlobalMasked(
       __spv::Scope::Subgroup, DestT(dest.get()), SrcT(src.get()), numElements,
       destStride, 0, mask_bits);
   return device_event(&E);
@@ -288,7 +287,7 @@ device_event async_group_copy(sub_group g, global_ptr<dataT> dest,
 
 template <typename Group, typename... eventTN>
 void wait_for(Group g, sub_group_mask mask, eventTN... Events) {
-  (Events.wait(g, mask), ...);
+  (Events.ext_oneapi_wait(g, mask), ...);
 }
 
 template <typename Group>

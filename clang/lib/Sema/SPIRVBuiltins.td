@@ -906,6 +906,8 @@ foreach name = ["GroupAsyncCopy"] in {
   // TODO: We should enforce that the UInt must be a literal.
   def : SPVBuiltin<name, [Event, UInt, PointerType<AGenTypeN, LocalAS>, PointerType<ConstType<AGenTypeN>, GlobalAS>, Size, Size, Event], Attr.Convergent>;
   def : SPVBuiltin<name, [Event, UInt, PointerType<AGenTypeN, GlobalAS>, PointerType<ConstType<AGenTypeN>, LocalAS>, Size, Size, Event], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [Event, UInt, PointerType<AGenTypeN, LocalAS>, PointerType<ConstType<AGenTypeN>, GlobalAS>, Size, Size, Event, UInt], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [Event, UInt, PointerType<AGenTypeN, GlobalAS>, PointerType<ConstType<AGenTypeN>, LocalAS>, Size, Size, Event, UInt], Attr.Convergent>;
 }
 
 foreach name = ["GroupWaitEvents"] in {
