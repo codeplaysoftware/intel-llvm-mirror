@@ -891,8 +891,13 @@ joint_reduce(sub_group g, Ptr first, Ptr last, BinaryOperation binary_op, sub_gr
       "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
   T partial = sycl::known_identity_v<BinaryOperation, T>;
-  sycl::detail::for_each(g, first, last,
-                         [&](const T &x) { partial = binary_op(partial, x); });
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  ptrdiff_t offset = popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
+  ptrdiff_t stride = popcount(mask_bits);
+  for(Ptr p=first + offset;p<last;p+=stride){
+	  partial = binary_op(partial, *p);
+  }
   return reduce_over_group(g, partial, binary_op, mask);
 #else
   (void)g;
@@ -917,11 +922,14 @@ joint_reduce(sub_group g, Ptr first, Ptr last, T init, BinaryOperation binary_op
       std::is_same<decltype(binary_op(init, *first)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-  T partial = sycl::known_identity_v<BinaryOperation, T>;
-  sycl::detail::for_each(
-      g, first, last, [&](const typename detail::remove_pointer<Ptr>::type &x) {
-        partial = binary_op(partial, x);
-      });
+  T partial = sycl::known_identity_v<BinaryOperation, T>; 
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  ptrdiff_t offset = popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
+  ptrdiff_t stride = popcount(mask_bits);
+  for(Ptr p=first + offset;p<last;p+=stride){
+	  partial = binary_op(partial, *p);
+  }
   return reduce_over_group(g, partial, init, binary_op, mask);
 #else
   (void)g;
