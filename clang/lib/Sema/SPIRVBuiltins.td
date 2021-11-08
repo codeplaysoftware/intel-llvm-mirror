@@ -932,6 +932,7 @@ foreach name = ["GroupBroadcast"] in {
 foreach name = ["GroupIAdd", "GroupNonUniformIMul", "GroupNonUniformBitwiseOr",
                 "GroupNonUniformBitwiseXor", "GroupNonUniformBitwiseAnd"] in {
   def : SPVBuiltin<name, [AIGenTypeN, UInt, UInt, AIGenTypeN], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [AIGenTypeN, UInt, UInt, AIGenTypeN, UInt], Attr.Convergent>;
 }
 
 foreach name = ["GroupFAdd", "GroupFMin", "GroupFMax",
@@ -941,8 +942,10 @@ foreach name = ["GroupFAdd", "GroupFMin", "GroupFMax",
 
 foreach name = ["GroupUMin", "GroupUMax"] in {
   def : SPVBuiltin<name, [AUIGenTypeN, UInt, UInt, AUIGenTypeN], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [AUIGenTypeN, UInt, UInt, AUIGenTypeN, UInt], Attr.Convergent>;
 }
 
 foreach name = ["GroupSMin", "GroupSMax"] in {
   def : SPVBuiltin<name, [ASIGenTypeN, UInt, UInt, ASIGenTypeN], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [ASIGenTypeN, UInt, UInt, ASIGenTypeN, UInt], Attr.Convergent>;
 }
