@@ -237,7 +237,9 @@ struct sub_group_mask {
 
 private:
   sub_group_mask(uint32_t rhs, size_t bn) : Bits(rhs), bits_num(bn) {
+#ifndef __SYCL_DEVICE_ONLY__
     assert(bits_num <= max_bits);
+#endif
   }
   uint32_t Bits;
   // Number of valuable bits
