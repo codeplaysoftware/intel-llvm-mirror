@@ -85,7 +85,7 @@ namespace detail {
 template <typename Group, typename dataT>
 detail::enable_if_t<is_group_v<Group> && !detail::is_bool<dataT>::value,
                     device_event>
-async_group_copy(Group, local_ptr<dataT> dest, global_ptr<dataT> src,
+async_group_copy(Group, global_ptr<dataT> src, local_ptr<dataT> dest,
                  size_t numElements, size_t srcStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
@@ -104,7 +104,7 @@ async_group_copy(Group, local_ptr<dataT> dest, global_ptr<dataT> src,
 template <typename Group, typename dataT>
 detail::enable_if_t<is_group_v<Group> && !detail::is_bool<dataT>::value,
                     device_event>
-async_group_copy(Group, global_ptr<dataT> dest, local_ptr<dataT> src,
+async_group_copy(Group, local_ptr<dataT> src, global_ptr<dataT> dest,
                  size_t numElements, size_t destStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
@@ -124,14 +124,14 @@ template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
 detail::enable_if_t<is_group_v<Group> && detail::is_scalar_bool<T>::value,
                     device_event>
-async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
+async_group_copy(Group g, multi_ptr<T, SrcS> Src, multi_ptr<T, DestS> Dest,
                  size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   auto DestP =
       multi_ptr<uint8_t, DestS>(reinterpret_cast<uint8_t *>(Dest.get()));
   auto SrcP = multi_ptr<uint8_t, SrcS>(reinterpret_cast<uint8_t *>(Src.get()));
-  return async_group_copy(g, DestP, SrcP, NumElements, Stride);
+  return async_group_copy(g, SrcP, DestP, NumElements, Stride);
 }
 
 /// Specialization for vector bool type.
@@ -143,14 +143,14 @@ template <typename Group, typename T, access::address_space DestS,
           access::address_space SrcS>
 detail::enable_if_t<is_group_v<Group> && detail::is_vector_bool<T>::value,
                     device_event>
-async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
+async_group_copy(Group g, multi_ptr<T, SrcS> Src, multi_ptr<T, DestS> Dest,
                  size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   using VecT = detail::change_base_type_t<T, uint8_t>;
   auto DestP = multi_ptr<VecT, DestS>(reinterpret_cast<VecT *>(Dest.get()));
   auto SrcP = multi_ptr<VecT, SrcS>(reinterpret_cast<VecT *>(Src.get()));
-  return async_group_copy(g, DestP, SrcP, NumElements, Stride);
+  return async_group_copy(g, SrcP, DestP, NumElements, Stride);
 }
 
 /// Asynchronously copies a number of elements specified by \p numElements
@@ -160,9 +160,9 @@ async_group_copy(Group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
 /// Permitted types for dataT are all scalar and vector types.
 template <typename Group, typename dataT>
 detail::enable_if_t<is_group_v<Group>, device_event>
-async_group_copy(Group g, local_ptr<dataT> dest, global_ptr<dataT> src,
+async_group_copy(Group g, global_ptr<dataT> src, local_ptr<dataT> dest,
                  size_t numElements) {
-  return async_group_copy(g, dest, src, numElements, 1);
+  return async_group_copy(g, src, dest, numElements, 1);
 }
 
 /// Asynchronously copies a number of elements specified by \p numElements
@@ -171,9 +171,9 @@ async_group_copy(Group g, local_ptr<dataT> dest, global_ptr<dataT> src,
 /// of the copy.
 /// Permitted types for dataT are all scalar and vector types.
 template <typename Group, typename dataT>
-device_event async_group_copy(Group g, global_ptr<dataT> dest,
-                              local_ptr<dataT> src, size_t numElements) {
-  return async_group_copy(g, dest, src, numElements, 1);
+device_event async_group_copy(Group g, local_ptr<dataT> src, global_ptr<dataT> dest,
+                              size_t numElements) {
+  return async_group_copy(g, src, dest, numElements, 1);
 }
 
 template <typename Group, typename... eventTN>
@@ -191,8 +191,8 @@ void wait_for(Group g, eventTN... Events) {
 /// device_event which can be used to wait on the completion of the copy.
 /// Permitted types for dataT are all scalar and vector types, except boolean.
 template <typename dataT>
-device_event async_group_copy(sub_group, local_ptr<dataT> dest, global_ptr<dataT> src,
-                 size_t numElements, size_t srcStride, sub_group_mask mask) {
+device_event async_group_copy(sub_group, sub_group_mask mask, global_ptr<dataT> src,local_ptr<dataT> dest,
+                 size_t numElements, size_t srcStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
@@ -212,8 +212,8 @@ device_event async_group_copy(sub_group, local_ptr<dataT> dest, global_ptr<dataT
 /// Permitted types for dataT are all scalar and vector types, except boolean.
 template <typename dataT>
 detail::enable_if_t<!detail::is_bool<dataT>::value, device_event>
-async_group_copy(sub_group, global_ptr<dataT> dest, local_ptr<dataT> src,
-                 size_t numElements, size_t destStride, sub_group_mask mask) {
+async_group_copy(sub_group, sub_group_mask mask, local_ptr<dataT> src, global_ptr<dataT> dest,
+                 size_t numElements, size_t destStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
@@ -234,14 +234,14 @@ async_group_copy(sub_group, global_ptr<dataT> dest, local_ptr<dataT> src,
 template <typename T, access::address_space DestS,
           access::address_space SrcS>
 detail::enable_if_t<detail::is_scalar_bool<T>::value, device_event>
-async_group_copy(sub_group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
-                 size_t NumElements, size_t Stride, sub_group_mask mask) {
+async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src, multi_ptr<T, DestS> Dest,
+                 size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   auto DestP =
       multi_ptr<uint8_t, DestS>(reinterpret_cast<uint8_t *>(Dest.get()));
   auto SrcP = multi_ptr<uint8_t, SrcS>(reinterpret_cast<uint8_t *>(Src.get()));
-  return async_group_copy(g, DestP, SrcP, NumElements, Stride, mask);
+  return async_group_copy(g, mask, SrcP, DestP, NumElements, Stride);
 }
 
 /// Specialization for vector bool type.
@@ -252,14 +252,14 @@ async_group_copy(sub_group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
 template <typename T, access::address_space DestS,
           access::address_space SrcS>
 detail::enable_if_t<detail::is_vector_bool<T>::value, device_event>
-async_group_copy(sub_group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
-                 size_t NumElements, size_t Stride, sub_group_mask mask) {
+async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src, multi_ptr<T, DestS> Dest,
+                 size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   using VecT = detail::change_base_type_t<T, uint8_t>;
   auto DestP = multi_ptr<VecT, DestS>(reinterpret_cast<VecT *>(Dest.get()));
   auto SrcP = multi_ptr<VecT, SrcS>(reinterpret_cast<VecT *>(Src.get()));
-  return async_group_copy(g, DestP, SrcP, NumElements, Stride, mask);
+  return async_group_copy(g, mask, SrcP, DestP, NumElements, Stride);
 }
 
 /// Asynchronously copies a number of elements specified by \p numElements
@@ -268,9 +268,9 @@ async_group_copy(sub_group g, multi_ptr<T, DestS> Dest, multi_ptr<T, SrcS> Src,
 /// of the copy.
 /// Permitted types for dataT are all scalar and vector types.
 template <typename dataT>
-device_event async_group_copy(sub_group g, local_ptr<dataT> dest, global_ptr<dataT> src,
-                 size_t numElements, sub_group_mask mask) {
-  return async_group_copy(g, dest, src, numElements, 1, mask);
+device_event async_group_copy(sub_group g, sub_group_mask mask, global_ptr<dataT> src, local_ptr<dataT> dest,
+                 size_t numElements) {
+  return async_group_copy(g, mask, src, dest, numElements, 1);
 }
 
 /// Asynchronously copies a number of elements specified by \p numElements
@@ -279,10 +279,10 @@ device_event async_group_copy(sub_group g, local_ptr<dataT> dest, global_ptr<dat
 /// of the copy.
 /// Permitted types for dataT are all scalar and vector types.
 template <typename dataT>
-device_event async_group_copy(sub_group g, global_ptr<dataT> dest,
-                              local_ptr<dataT> src, size_t numElements,
-                              sub_group_mask mask) {
-  return async_group_copy(g, dest, src, numElements, 1, mask);
+device_event async_group_copy(sub_group g,
+                              sub_group_mask mask, local_ptr<dataT> src, global_ptr<dataT> dest,
+                              size_t numElements) {
+  return async_group_copy(g, mask, src, dest, numElements, 1);
 }
 
 template <typename Group, typename... eventTN>
@@ -798,7 +798,7 @@ detail::enable_if_t<(std::is_scalar<T>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group, T x, BinaryOperation binary_op, sub_group_mask mask) {
+reduce_over_group(sub_group, sub_group_mask mask, T x, BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(x, x)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
@@ -819,14 +819,14 @@ detail::enable_if_t<(detail::is_vec<T>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group g, T x, BinaryOperation binary_op, sub_group_mask mask) {
+reduce_over_group(sub_group g, sub_group_mask mask, T x, BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(x[0], x[0])),
                    typename T::element_type>::value,
       "Result type of binary_op must match reduction accumulation type.");
   T result;
   for (int s = 0; s < x.get_size(); ++s) {
-    result[s] = reduce_over_group(g, x[s], binary_op, mask);
+    result[s] = reduce_over_group(g, mask, x[s], binary_op);
   }
   return result;
 }
@@ -839,12 +839,12 @@ detail::enable_if_t<(std::is_scalar<V>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group g, V x, T init, BinaryOperation binary_op, sub_group_mask mask) {
+reduce_over_group(sub_group g, sub_group_mask mask, V x, T init, BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(init, x)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-  return binary_op(init, reduce_over_group(g, x, binary_op, mask));
+  return binary_op(init, reduce_over_group(g, mask, x, binary_op));
 #else
   (void)g;
   throw runtime_error("Group algorithms are not supported on host device.",
@@ -860,7 +860,7 @@ detail::enable_if_t<(detail::is_vec<V>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group g, V x, T init, BinaryOperation binary_op, sub_group_mask mask) {
+reduce_over_group(sub_group g, sub_group_mask mask, V x, T init, BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(init[0], x[0])),
                    typename T::element_type>::value,
@@ -868,7 +868,7 @@ reduce_over_group(sub_group g, V x, T init, BinaryOperation binary_op, sub_group
 #ifdef __SYCL_DEVICE_ONLY__
   T result = init;
   for (int s = 0; s < x.get_size(); ++s) {
-    result[s] = binary_op(init[s], reduce_over_group(g, x[s], binary_op, mask));
+    result[s] = binary_op(init[s], reduce_over_group(g, mask, x[s], binary_op));
   }
   return result;
 #else
@@ -884,7 +884,7 @@ detail::enable_if_t<
     (detail::is_pointer<Ptr>::value &&
      detail::is_integral<typename detail::remove_pointer<Ptr>::type>::value),
     typename detail::remove_pointer<Ptr>::type>
-joint_reduce(sub_group g, Ptr first, Ptr last, BinaryOperation binary_op, sub_group_mask mask) {
+joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, BinaryOperation binary_op) {
   using T = typename detail::remove_pointer<Ptr>::type;
   static_assert(
       std::is_same<decltype(binary_op(*first, *first)), T>::value,
@@ -898,7 +898,7 @@ joint_reduce(sub_group g, Ptr first, Ptr last, BinaryOperation binary_op, sub_gr
   for(Ptr p=first + offset;p<last;p+=stride){
 	  partial = binary_op(partial, *p);
   }
-  return reduce_over_group(g, partial, binary_op, mask);
+  return reduce_over_group(g, mask, partial, binary_op);
 #else
   (void)g;
   (void)last;
@@ -917,7 +917,7 @@ detail::enable_if_t<
                           BinaryOperation>::value &&
      detail::is_native_op<T, BinaryOperation>::value),
     T>
-joint_reduce(sub_group g, Ptr first, Ptr last, T init, BinaryOperation binary_op, sub_group_mask mask) {
+joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, T init, BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(init, *first)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
@@ -930,7 +930,7 @@ joint_reduce(sub_group g, Ptr first, Ptr last, T init, BinaryOperation binary_op
   for(Ptr p=first + offset;p<last;p+=stride){
 	  partial = binary_op(partial, *p);
   }
-  return reduce_over_group(g, partial, init, binary_op, mask);
+  return reduce_over_group(g, mask, partial, init, binary_op);
 #else
   (void)g;
   (void)last;

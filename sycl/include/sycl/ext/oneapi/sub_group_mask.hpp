@@ -306,7 +306,7 @@ inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_active_sub_gr
 }
 	  
 template <int dimensions>
-inline size_t nd_item<dimensions>::ext_oneapi_rank_in_mask(ext::oneapi::sub_group_mask mask){
+inline size_t nd_item<dimensions>::ext_oneapi_get_mask_id(ext::oneapi::sub_group_mask mask){
 #ifdef __SYCL_DEVICE_ONLY__
   // taking 1 from a power of two will give all 1s below the bit of our work-item
   // anding this with the mask will leave only 1s where there are work-items with lower ids

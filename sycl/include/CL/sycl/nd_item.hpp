@@ -190,7 +190,7 @@ inline ext::oneapi::sub_group_mask ext_oneapi_partition_sub_group(size_t partiti
 
 inline ext::oneapi::sub_group_mask ext_oneapi_active_sub_group_items() const;
 	  
-inline size_t ext_oneapi_rank_in_mask(ext::oneapi::sub_group_mask mask);
+inline size_t ext_oneapi_get_mask_id(ext::oneapi::sub_group_mask mask);
 
 protected:
   friend class detail::Builder;
