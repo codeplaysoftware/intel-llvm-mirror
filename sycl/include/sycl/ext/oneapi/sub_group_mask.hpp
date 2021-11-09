@@ -264,7 +264,8 @@ group_ballot(Group g, bool predicate) {
 } // namespace oneapi
 } // namespace ext
 
-inline void device_event::ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask mask) {
+inline void device_event::ext_oneapi_wait(sub_group,
+                                          ext::oneapi::sub_group_mask mask) {
 #ifdef __SYCL_DEVICE_ONLY__
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
@@ -277,7 +278,9 @@ inline void device_event::ext_oneapi_wait(sub_group, ext::oneapi::sub_group_mask
 }
 
 template <int dimensions>
-inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_partition_sub_group(size_t partition_size) const {
+inline ext::oneapi::sub_group_mask
+nd_item<dimensions>::ext_oneapi_partition_sub_group(
+    size_t partition_size) const {
 #ifdef __SYCL_DEVICE_ONLY__
   sub_group g = get_sub_group();
   uint32_t loc_id = g.get_local_linear_id();
@@ -294,7 +297,8 @@ inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_partition_sub
 }
 
 template <int dimensions>
-inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_active_sub_group_items() const {
+inline ext::oneapi::sub_group_mask
+nd_item<dimensions>::ext_oneapi_active_sub_group_items() const {
 #ifdef __SYCL_DEVICE_ONLY__
   auto res = __spirv_GroupActiveItems(__spv::Scope::Subgroup);
   return detail::Builder::createSubGroupMask<ext::oneapi::sub_group_mask>(
@@ -304,13 +308,15 @@ inline ext::oneapi::sub_group_mask nd_item<dimensions>::ext_oneapi_active_sub_gr
                   "Sub-group mask is not supported on host device"};
 #endif
 }
-	  
+
 template <int dimensions>
-inline size_t nd_item<dimensions>::ext_oneapi_get_mask_id(ext::oneapi::sub_group_mask mask){
+inline size_t
+nd_item<dimensions>::ext_oneapi_get_mask_id(ext::oneapi::sub_group_mask mask) {
 #ifdef __SYCL_DEVICE_ONLY__
-  // taking 1 from a power of two will give all 1s below the bit of our work-item
-  // anding this with the mask will leave only 1s where there are work-items with lower ids
-  // the popcount of this is the linear id in that sub_group_mask
+  // taking 1 from a power of two will give all 1s below the bit of our
+  // work-item anding this with the mask will leave only 1s where there are
+  // work-items with lower ids the popcount of this is the linear id in that
+  // sub_group_mask
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
   return popcount(mask & ((1 << get_sub_group().get_local_linear_id()) - 1));

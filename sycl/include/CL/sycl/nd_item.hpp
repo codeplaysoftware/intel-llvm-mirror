@@ -29,11 +29,11 @@ namespace detail {
 class Builder;
 }
 
-namespace ext{
-namespace oneapi{
+namespace ext {
+namespace oneapi {
 struct sub_group_mask;
 }
-}
+} // namespace ext
 
 /// Identifies an instance of the function object executing at each point in an
 /// nd_range.
@@ -185,12 +185,13 @@ public:
   bool operator!=(const nd_item<dimensions> &rhs) const {
     return !((*this) == rhs);
   }
-  
-inline ext::oneapi::sub_group_mask ext_oneapi_partition_sub_group(size_t partition_size) const ;
 
-inline ext::oneapi::sub_group_mask ext_oneapi_active_sub_group_items() const;
-	  
-inline size_t ext_oneapi_get_mask_id(ext::oneapi::sub_group_mask mask);
+  inline ext::oneapi::sub_group_mask
+  ext_oneapi_partition_sub_group(size_t partition_size) const;
+
+  inline ext::oneapi::sub_group_mask ext_oneapi_active_sub_group_items() const;
+
+  inline size_t ext_oneapi_get_mask_id(ext::oneapi::sub_group_mask mask);
 
 protected:
   friend class detail::Builder;

@@ -14,12 +14,12 @@
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
 
-namespace ext{
-namespace oneapi{
+namespace ext {
+namespace oneapi {
 struct sub_group;
 struct sub_group_mask;
-}
-}
+} // namespace oneapi
+} // namespace ext
 
 /// Encapsulates a single SYCL device event which is available only within SYCL
 /// kernel functions and can be used to wait for asynchronous operations within
@@ -42,10 +42,9 @@ public:
     __spirv_GroupWaitEvents(__spv::Scope::Workgroup, 1, m_Event);
   }
 
-  template <typename Group>
-  void ext_oneapi_wait(Group) {
-    constexpr auto scope = [](){
-      if (std::is_same<Group, sycl::ext::oneapi::sub_group>::value){
+  template <typename Group> void ext_oneapi_wait(Group) {
+    constexpr auto scope = []() {
+      if (std::is_same<Group, sycl::ext::oneapi::sub_group>::value) {
         return __spv::Scope::Subgroup;
       } else {
         return __spv::Scope::Workgroup;
@@ -54,7 +53,8 @@ public:
     __spirv_GroupWaitEvents(scope, 1, m_Event);
   }
 
-  inline void ext_oneapi_wait(sycl::ext::oneapi::sub_group, ext::oneapi::sub_group_mask mask);
+  inline void ext_oneapi_wait(sycl::ext::oneapi::sub_group,
+                              ext::oneapi::sub_group_mask mask);
 };
 
 } // namespace sycl

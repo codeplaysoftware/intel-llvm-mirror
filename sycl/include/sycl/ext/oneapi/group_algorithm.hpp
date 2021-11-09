@@ -67,15 +67,14 @@ using EnableIfIsNonNativeOp = cl::sycl::detail::enable_if_t<
     T>;
 
 namespace detail {
-    template <typename Group>
-    constexpr auto group_to_scope() {
-        if constexpr (std::is_same<Group, sycl::ext::oneapi::sub_group>::value) {
-            return __spv::Scope::Subgroup;
-        } else {
-            return __spv::Scope::Workgroup;
-        }
-    }
+template <typename Group> constexpr auto group_to_scope() {
+  if constexpr (std::is_same<Group, sycl::ext::oneapi::sub_group>::value) {
+    return __spv::Scope::Subgroup;
+  } else {
+    return __spv::Scope::Workgroup;
+  }
 }
+} // namespace detail
 
 /// Asynchronously copies a number of elements specified by \p numElements
 /// from the source pointed by \p src to destination pointed by \p dest
@@ -91,8 +90,8 @@ async_group_copy(Group, global_ptr<dataT> src, local_ptr<dataT> dest,
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyGlobalToLocal(
-      detail::group_to_scope<Group>(), DestT(dest.get()),
-      SrcT(src.get()), numElements, srcStride, 0);
+      detail::group_to_scope<Group>(), DestT(dest.get()), SrcT(src.get()),
+      numElements, srcStride, 0);
   return device_event(&E);
 }
 
@@ -110,8 +109,8 @@ async_group_copy(Group, local_ptr<dataT> src, global_ptr<dataT> dest,
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyLocalToGlobal(
-      detail::group_to_scope<Group>(), DestT(dest.get()), SrcT(src.get()), numElements,
-      destStride, 0);
+      detail::group_to_scope<Group>(), DestT(dest.get()), SrcT(src.get()),
+      numElements, destStride, 0);
   return device_event(&E);
 }
 
@@ -171,8 +170,8 @@ async_group_copy(Group g, global_ptr<dataT> src, local_ptr<dataT> dest,
 /// of the copy.
 /// Permitted types for dataT are all scalar and vector types.
 template <typename Group, typename dataT>
-device_event async_group_copy(Group g, local_ptr<dataT> src, global_ptr<dataT> dest,
-                              size_t numElements) {
+device_event async_group_copy(Group g, local_ptr<dataT> src,
+                              global_ptr<dataT> dest, size_t numElements) {
   return async_group_copy(g, src, dest, numElements, 1);
 }
 
@@ -191,8 +190,9 @@ void wait_for(Group g, eventTN... Events) {
 /// device_event which can be used to wait on the completion of the copy.
 /// Permitted types for dataT are all scalar and vector types, except boolean.
 template <typename dataT>
-device_event async_group_copy(sub_group, sub_group_mask mask, global_ptr<dataT> src,local_ptr<dataT> dest,
-                 size_t numElements, size_t srcStride) {
+device_event async_group_copy(sub_group, sub_group_mask mask,
+                              global_ptr<dataT> src, local_ptr<dataT> dest,
+                              size_t numElements, size_t srcStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
@@ -200,8 +200,8 @@ device_event async_group_copy(sub_group, sub_group_mask mask, global_ptr<dataT> 
   mask.extract_bits(mask_bits);
 
   __ocl_event_t E = __SYCL_OpGroupAsyncCopyGlobalToLocalMasked(
-      __spv::Scope::Subgroup, DestT(dest.get()),
-      SrcT(src.get()), numElements, srcStride, 0, mask_bits);
+      __spv::Scope::Subgroup, DestT(dest.get()), SrcT(src.get()), numElements,
+      srcStride, 0, mask_bits);
   return device_event(&E);
 }
 
@@ -212,8 +212,9 @@ device_event async_group_copy(sub_group, sub_group_mask mask, global_ptr<dataT> 
 /// Permitted types for dataT are all scalar and vector types, except boolean.
 template <typename dataT>
 detail::enable_if_t<!detail::is_bool<dataT>::value, device_event>
-async_group_copy(sub_group, sub_group_mask mask, local_ptr<dataT> src, global_ptr<dataT> dest,
-                 size_t numElements, size_t destStride) {
+async_group_copy(sub_group, sub_group_mask mask, local_ptr<dataT> src,
+                 global_ptr<dataT> dest, size_t numElements,
+                 size_t destStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
   using SrcT = detail::ConvertToOpenCLType_t<decltype(src)>;
 
@@ -231,11 +232,10 @@ async_group_copy(sub_group, sub_group_mask mask, local_ptr<dataT> src, global_pt
 /// from the source pointed by \p Src to destination pointed by \p Dest
 /// with a stride specified by \p Stride, and returns a SYCL device_event
 /// which can be used to wait on the completion of the copy.
-template <typename T, access::address_space DestS,
-          access::address_space SrcS>
+template <typename T, access::address_space DestS, access::address_space SrcS>
 detail::enable_if_t<detail::is_scalar_bool<T>::value, device_event>
-async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src, multi_ptr<T, DestS> Dest,
-                 size_t NumElements, size_t Stride) {
+async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src,
+                 multi_ptr<T, DestS> Dest, size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   auto DestP =
@@ -249,11 +249,10 @@ async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src, multi
 /// from the source pointed by \p Src to destination pointed by \p Dest
 /// with a stride specified by \p Stride, and returns a SYCL device_event
 /// which can be used to wait on the completion of the copy.
-template <typename T, access::address_space DestS,
-          access::address_space SrcS>
+template <typename T, access::address_space DestS, access::address_space SrcS>
 detail::enable_if_t<detail::is_vector_bool<T>::value, device_event>
-async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src, multi_ptr<T, DestS> Dest,
-                 size_t NumElements, size_t Stride) {
+async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src,
+                 multi_ptr<T, DestS> Dest, size_t NumElements, size_t Stride) {
   static_assert(sizeof(bool) == sizeof(uint8_t),
                 "Async copy to/from bool memory is not supported.");
   using VecT = detail::change_base_type_t<T, uint8_t>;
@@ -268,8 +267,9 @@ async_group_copy(sub_group g, sub_group_mask mask, multi_ptr<T, SrcS> Src, multi
 /// of the copy.
 /// Permitted types for dataT are all scalar and vector types.
 template <typename dataT>
-device_event async_group_copy(sub_group g, sub_group_mask mask, global_ptr<dataT> src, local_ptr<dataT> dest,
-                 size_t numElements) {
+device_event async_group_copy(sub_group g, sub_group_mask mask,
+                              global_ptr<dataT> src, local_ptr<dataT> dest,
+                              size_t numElements) {
   return async_group_copy(g, mask, src, dest, numElements, 1);
 }
 
@@ -279,8 +279,8 @@ device_event async_group_copy(sub_group g, sub_group_mask mask, global_ptr<dataT
 /// of the copy.
 /// Permitted types for dataT are all scalar and vector types.
 template <typename dataT>
-device_event async_group_copy(sub_group g,
-                              sub_group_mask mask, local_ptr<dataT> src, global_ptr<dataT> dest,
+device_event async_group_copy(sub_group g, sub_group_mask mask,
+                              local_ptr<dataT> src, global_ptr<dataT> dest,
                               size_t numElements) {
   return async_group_copy(g, mask, src, dest, numElements, 1);
 }
@@ -770,8 +770,9 @@ leader(Group g) {
 #endif
 }
 
-inline void group_barrier(sycl::sub_group, sub_group_mask mask, 
-                          memory_scope FenceScope = sycl::sub_group::fence_scope) {
+inline void
+group_barrier(sycl::sub_group, sub_group_mask mask,
+              memory_scope FenceScope = sycl::sub_group::fence_scope) {
 #ifdef __SYCL_DEVICE_ONLY__
   // Per SYCL spec, group_barrier must perform both control barrier and memory
   // fence operations. All work-items execute a release fence prior to
@@ -779,12 +780,13 @@ inline void group_barrier(sycl::sub_group, sub_group_mask mask,
   // which type of memory this behavior is applied to.
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
-  __spirv_ControlBarrierMasked(__spv::Scope::Subgroup,
-                         sycl::detail::spirv::getScope(FenceScope),
-                         __spv::MemorySemanticsMask::SequentiallyConsistent |
-                             __spv::MemorySemanticsMask::SubgroupMemory |
-                             __spv::MemorySemanticsMask::WorkgroupMemory |
-                             __spv::MemorySemanticsMask::CrossWorkgroupMemory, mask_bits);
+  __spirv_ControlBarrierMasked(
+      __spv::Scope::Subgroup, sycl::detail::spirv::getScope(FenceScope),
+      __spv::MemorySemanticsMask::SequentiallyConsistent |
+          __spv::MemorySemanticsMask::SubgroupMemory |
+          __spv::MemorySemanticsMask::WorkgroupMemory |
+          __spv::MemorySemanticsMask::CrossWorkgroupMemory,
+      mask_bits);
 #else
   (void)FenceScope;
   throw sycl::runtime_error("Barriers are not supported on host device",
@@ -798,7 +800,8 @@ detail::enable_if_t<(std::is_scalar<T>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group, sub_group_mask mask, T x, BinaryOperation binary_op) {
+reduce_over_group(sub_group, sub_group_mask mask, T x,
+                  BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(x, x)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
@@ -819,7 +822,8 @@ detail::enable_if_t<(detail::is_vec<T>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group g, sub_group_mask mask, T x, BinaryOperation binary_op) {
+reduce_over_group(sub_group g, sub_group_mask mask, T x,
+                  BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(x[0], x[0])),
                    typename T::element_type>::value,
@@ -832,14 +836,14 @@ reduce_over_group(sub_group g, sub_group_mask mask, T x, BinaryOperation binary_
 }
 
 template <typename V, typename T, class BinaryOperation>
-detail::enable_if_t<(std::is_scalar<V>::value &&
-                     std::is_scalar<T>::value &&
+detail::enable_if_t<(std::is_scalar<V>::value && std::is_scalar<T>::value &&
                      detail::is_integral<V>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group g, sub_group_mask mask, V x, T init, BinaryOperation binary_op) {
+reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
+                  BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(init, x)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
@@ -853,14 +857,14 @@ reduce_over_group(sub_group g, sub_group_mask mask, V x, T init, BinaryOperation
 }
 
 template <typename V, typename T, class BinaryOperation>
-detail::enable_if_t<(detail::is_vec<V>::value &&
-                     detail::is_vec<T>::value &&
+detail::enable_if_t<(detail::is_vec<V>::value && detail::is_vec<T>::value &&
                      detail::is_integral<V>::value &&
                      detail::is_integral<T>::value &&
                      detail::is_native_op<V, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
-reduce_over_group(sub_group g, sub_group_mask mask, V x, T init, BinaryOperation binary_op) {
+reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
+                  BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(init[0], x[0])),
                    typename T::element_type>::value,
@@ -884,7 +888,8 @@ detail::enable_if_t<
     (detail::is_pointer<Ptr>::value &&
      detail::is_integral<typename detail::remove_pointer<Ptr>::type>::value),
     typename detail::remove_pointer<Ptr>::type>
-joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, BinaryOperation binary_op) {
+joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last,
+             BinaryOperation binary_op) {
   using T = typename detail::remove_pointer<Ptr>::type;
   static_assert(
       std::is_same<decltype(binary_op(*first, *first)), T>::value,
@@ -895,8 +900,8 @@ joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, BinaryOperat
   mask.extract_bits(mask_bits);
   ptrdiff_t offset = popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
   ptrdiff_t stride = popcount(mask_bits);
-  for(Ptr p=first + offset;p<last;p+=stride){
-	  partial = binary_op(partial, *p);
+  for (Ptr p = first + offset; p < last; p += stride) {
+    partial = binary_op(partial, *p);
   }
   return reduce_over_group(g, mask, partial, binary_op);
 #else
@@ -917,18 +922,19 @@ detail::enable_if_t<
                           BinaryOperation>::value &&
      detail::is_native_op<T, BinaryOperation>::value),
     T>
-joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, T init, BinaryOperation binary_op) {
+joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, T init,
+             BinaryOperation binary_op) {
   static_assert(
       std::is_same<decltype(binary_op(init, *first)), T>::value,
       "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-  T partial = sycl::known_identity_v<BinaryOperation, T>; 
+  T partial = sycl::known_identity_v<BinaryOperation, T>;
   uint32_t mask_bits;
   mask.extract_bits(mask_bits);
   ptrdiff_t offset = popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
   ptrdiff_t stride = popcount(mask_bits);
-  for(Ptr p=first + offset;p<last;p+=stride){
-	  partial = binary_op(partial, *p);
+  for (Ptr p = first + offset; p < last; p += stride) {
+    partial = binary_op(partial, *p);
   }
   return reduce_over_group(g, mask, partial, init, binary_op);
 #else
