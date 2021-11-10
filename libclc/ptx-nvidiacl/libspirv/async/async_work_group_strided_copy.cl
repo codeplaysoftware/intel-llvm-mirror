@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include <clc/async/common.h>
+#include <clc/clc.h>
+#include <integer/popcount.h>
 #include <spirv/spirv.h>
 
 #define __CLC_BODY                                                             \
@@ -32,6 +34,51 @@ __CLC_GROUP_CP_ASYNC_DST_GLOBAL(float);
 __CLC_GROUP_CP_ASYNC_DST_GLOBAL(long);
 __CLC_GROUP_CP_ASYNC_DST_GLOBAL(ulong);
 __CLC_GROUP_CP_ASYNC_DST_GLOBAL(double);
+
+// CLC helpers
+__local bool *
+__clc__get_group_scratch_bool2(uint mask) __asm("__clc__get_group_scratch_bool2");
+
+#define __CLC_GROUP_CP_ASYNC_MASKED_4(TYPE)                                    \
+  _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked( \
+      unsigned int scope, __attribute__((address_space(3))) TYPE *dst,         \
+      const __attribute__((address_space(1))) TYPE *src, size_t num_gentypes,  \
+      size_t stride, event_t event, uint mask) {                               \
+                                                                               \
+    size_t size = __clc_native_popcount(mask);                                 \
+    uint lane_mask_lt = __nvvm_read_ptx_sreg_lanemask_lt();                    \
+    uint mask_id = lane_mask_lt & mask;                                        \
+    size_t id = __clc_native_popcount(mask_id);                                \
+    size_t i;                                                                  \
+    for (i = id; i < num_gentypes; i += size) {                                \
+      dst[i * stride] = src[i];                                                \
+      return event;                                                            \
+    }                                                                          \
+  }
+
+__CLC_GROUP_CP_ASYNC_MASKED_4(int);
+__CLC_GROUP_CP_ASYNC_MASKED_4(uint);
+__CLC_GROUP_CP_ASYNC_MASKED_4(float);
+
+#define __CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(TYPE)                         \
+  _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked( \
+      unsigned int scope, __attribute__((address_space(1))) TYPE *dst,         \
+      const __attribute__((address_space(3))) TYPE *src, size_t num_gentypes,  \
+      size_t stride, event_t event, uint mask) {                               \
+    size_t size = __clc_native_popcount(mask);                                 \
+    uint lane_mask_lt = __nvvm_read_ptx_sreg_lanemask_lt();                    \
+    uint mask_id = lane_mask_lt & mask;                                        \
+    size_t id = __clc_native_popcount(mask_id);                                \
+    size_t i;                                                                  \
+    for (i = id; i < num_gentypes; i += size) {                                \
+      dst[i * stride] = src[i];                                                \
+      return event;                                                            \
+    }                                                                          \
+  }
+
+__CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(int);
+__CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(uint);
+__CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(float);
 
 #define __CLC_GROUP_CP_ASYNC_4(TYPE)                                           \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopy(       \
