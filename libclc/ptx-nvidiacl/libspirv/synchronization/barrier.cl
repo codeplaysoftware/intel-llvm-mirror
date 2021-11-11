@@ -26,3 +26,11 @@ __spirv_ControlBarrier(unsigned int scope, unsigned int memory,
     __syncthreads();
   }
 }
+
+/*_CLC_OVERLOAD _CLC_DEF void
+__spirv_ControlBarrierMasked(unsigned int scope, unsigned int memory,
+                       unsigned int semantics, uint Mask) {
+  //if (scope == Subgroup) {
+    __nvvm_bar_warp_sync(Mask);
+ // }
+}*/
