@@ -40,6 +40,14 @@ __clc__get_group_scratch_float() __asm("__clc__get_group_scratch_float");
 __local double *
 __clc__get_group_scratch_double() __asm("__clc__get_group_scratch_double");
 
+_CLC_OVERLOAD _CLC_DEF uint __spirv_GroupActiveItems(unsigned int scope) {
+  //if scope = subgroup etc...
+  /*unsigned int mask;
+  asm volatile("activemask.b32 %0;" : "=r"(mask));
+  return mask;*/
+  return __nvvm_vote_ballot(1);
+}
+
 _CLC_DEF _CLC_CONVERGENT uint __clc__membermask() {
   uint FULL_MASK = 0xFFFFFFFF;
   uint max_size = __spirv_SubgroupMaxSize();

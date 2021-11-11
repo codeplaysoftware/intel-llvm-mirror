@@ -170,6 +170,9 @@ _CLC_OVERLOAD _CLC_DECL _CLC_CONSTFN __clc_vec16_uint64_t
 _CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT void
     __spirv_ControlBarrier(__clc_uint32_t, __clc_uint32_t, __clc_uint32_t);
 
+_CLC_OVERLOAD _CLC_DECL _CLC_CONVERGENT void
+    __spirv_ControlBarrierMasked(__clc_uint32_t, __clc_uint32_t, __clc_uint32_t,  __clc_uint32_t);
+
 _CLC_OVERLOAD
 _CLC_DECL _CLC_CONSTFN __clc_int8_t __spirv_ConvertFToS_Rchar(__clc_fp32_t);
 
