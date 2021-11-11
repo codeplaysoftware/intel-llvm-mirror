@@ -251,15 +251,18 @@ __CLC_SUBGROUP_COLLECTIVE(FMax, __CLC_MAX, double, -DBL_MAX)
 #undef __CLC_SUBGROUP_COLLECTIVE
 #undef __CLC_SUBGROUP_COLLECTIVE_REDUX
 
-  #define __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(NAME, OP, REDUX_OP, TYPE, IDENTITY)    \
+#define __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(NAME, OP, REDUX_OP, TYPE,       \
+                                               IDENTITY)                       \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __CLC_APPEND(                    \
-      __clc__Subgroup, NAME##Masked)(uint op, TYPE x, TYPE * carry) {                  \
+      __clc__Subgroup, NAME##Masked)(uint op, TYPE x, TYPE * carry,            \
+                                     uint Mask) {                              \
     if (__nvvm_reflect("__CUDA_ARCH") >= 800 && op == Reduce) {                \
-      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, __clc__membermask());      \
+      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                     \
       *carry = result;                                                         \
       return result;                                                           \
+    } else {                                                                   \
+      return -1;                                                               \
     }                                                                          \
-    else{return -1;}\
   }
 
 __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(IAdd, __CLC_ADD, add, int, 0)
@@ -269,21 +272,23 @@ __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(UMin, __CLC_MIN, umin, uint, UINT_MAX)
 __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(SMax, __CLC_MAX, max, int, INT_MIN)
 __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(UMax, __CLC_MAX, umax, uint, 0)
 
-
-#define __CLC_GROUP_COLLECTIVE_MASK(SPIRV_NAME, OP, TYPE, IDENTITY) \
+#define __CLC_GROUP_COLLECTIVE_MASKED(SPIRV_NAME, OP, TYPE, IDENTITY)          \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __CLC_APPEND(                    \
-      __spirv_Group, SPIRV_NAME##Masked)(uint scope, uint op, TYPE x, uint Mask) {                \
+      __spirv_Group, SPIRV_NAME##Masked)(uint scope, uint op, TYPE x,          \
+                                         uint Mask) {                          \
     TYPE carry = IDENTITY;                                                     \
     /* Perform GroupOperation within sub-group */                              \
-    TYPE sg_x = __CLC_APPEND(__clc__Subgroup, SPIRV_NAME##Masked)(op, x, &carry);        \
-      return sg_x;                                                             \
+    TYPE sg_x = __CLC_APPEND(__clc__Subgroup,                                  \
+                             SPIRV_NAME##Masked)(op, x, &carry, Mask);         \
+    return sg_x;                                                               \
   }
-__CLC_GROUP_COLLECTIVE_MASK(IAdd, __CLC_ADD, int, 0)
-__CLC_GROUP_COLLECTIVE_MASK(IAdd, __CLC_ADD, uint, 0)
-__CLC_GROUP_COLLECTIVE_MASK(SMin, __CLC_MIN, int, INT_MAX)
-__CLC_GROUP_COLLECTIVE_MASK(UMin, __CLC_MIN, uint, UINT_MAX)
-__CLC_GROUP_COLLECTIVE_MASK(SMax, __CLC_MAX, int, INT_MIN)
-__CLC_GROUP_COLLECTIVE_MASK(UMax, __CLC_MAX, uint, 0)
+
+__CLC_GROUP_COLLECTIVE_MASKED(IAdd, __CLC_ADD, int, 0)
+__CLC_GROUP_COLLECTIVE_MASKED(IAdd, __CLC_ADD, uint, 0)
+__CLC_GROUP_COLLECTIVE_MASKED(SMin, __CLC_MIN, int, INT_MAX)
+__CLC_GROUP_COLLECTIVE_MASKED(UMin, __CLC_MIN, uint, UINT_MAX)
+__CLC_GROUP_COLLECTIVE_MASKED(SMax, __CLC_MAX, int, INT_MIN)
+__CLC_GROUP_COLLECTIVE_MASKED(UMax, __CLC_MAX, uint, 0)
 
 #undef __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED
 #undef __CLC_GROUP_COLLECTIVE_MASK
