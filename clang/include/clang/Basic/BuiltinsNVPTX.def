@@ -456,6 +456,10 @@ TARGET_BUILTIN(__nvvm_vote_any_sync, "bUib", "", PTX60)
 TARGET_BUILTIN(__nvvm_vote_uni_sync, "bUib", "", PTX60)
 TARGET_BUILTIN(__nvvm_vote_ballot_sync, "UiUib", "", PTX60)
 
+// Activemask TODO: need to add ptx62
+
+TARGET_BUILTIN(__nvvm_activemask, "Ui", "", PTX60)
+
 // Match
 TARGET_BUILTIN(__nvvm_match_any_sync_i32, "UiUiUi", "", PTX60)
 TARGET_BUILTIN(__nvvm_match_any_sync_i64, "WiUiWi", "", PTX60)

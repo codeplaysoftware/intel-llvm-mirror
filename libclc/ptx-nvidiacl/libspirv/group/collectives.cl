@@ -45,7 +45,9 @@ _CLC_OVERLOAD _CLC_DEF uint __spirv_GroupActiveItems(unsigned int scope) {
   /*unsigned int mask;
   asm volatile("activemask.b32 %0;" : "=r"(mask));
   return mask;*/
-  return __nvvm_vote_ballot(1);
+  uint mask = __nvvm_activemask();
+  return mask;
+  //return __nvvm_vote_ballot(1);
 }
 
 _CLC_DEF _CLC_CONVERGENT uint __clc__membermask() {
@@ -265,7 +267,7 @@ __CLC_SUBGROUP_COLLECTIVE(FMax, __CLC_MAX, double, -DBL_MAX)
       __clc__Subgroup, NAME##Masked)(uint op, TYPE x, TYPE * carry,            \
                                      uint Mask) {                              \
     if (__nvvm_reflect("__CUDA_ARCH") >= 800 && op == Reduce) {                \
-      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                     \
+      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, __nvvm_activemask());                     \
       *carry = result;                                                         \
       return result;                                                           \
     } else {                                                                   \

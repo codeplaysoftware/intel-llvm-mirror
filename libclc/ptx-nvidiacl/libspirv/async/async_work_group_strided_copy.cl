@@ -45,9 +45,10 @@ __clc__get_group_scratch_bool2(uint mask) __asm("__clc__get_group_scratch_bool2"
       const __attribute__((address_space(1))) TYPE *src, size_t num_gentypes,  \
       size_t stride, event_t event, uint mask) {                               \
                                                                                \
-    size_t size = __clc_native_popcount(mask);                                 \
+    uint active =__nvvm_activemask(); \
+    size_t size = __clc_native_popcount(active);                                 \
     uint lane_mask_lt = __nvvm_read_ptx_sreg_lanemask_lt();                    \
-    uint mask_id = lane_mask_lt & mask;                                        \
+    uint mask_id = lane_mask_lt & active;                                        \
     size_t id = __clc_native_popcount(mask_id);                                \
     size_t i;                                                                  \
     for (i = id; i < num_gentypes; i += size) {                                \
