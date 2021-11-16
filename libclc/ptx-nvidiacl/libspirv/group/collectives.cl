@@ -40,7 +40,7 @@ __clc__get_group_scratch_float() __asm("__clc__get_group_scratch_float");
 __local double *
 __clc__get_group_scratch_double() __asm("__clc__get_group_scratch_double");
 
-_CLC_OVERLOAD _CLC_DEF uint __spirv_GroupActiveItems(unsigned int scope) {
+_CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT uint __spirv_GroupActiveItems(unsigned int scope) {
   //if scope = subgroup etc...
   /*unsigned int mask;
   asm volatile("activemask.b32 %0;" : "=r"(mask));
@@ -267,7 +267,7 @@ __CLC_SUBGROUP_COLLECTIVE(FMax, __CLC_MAX, double, -DBL_MAX)
       __clc__Subgroup, NAME##Masked)(uint op, TYPE x, TYPE * carry,            \
                                      uint Mask) {                              \
     if (__nvvm_reflect("__CUDA_ARCH") >= 800 && op == Reduce) {                \
-      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, __nvvm_activemask());                     \
+      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                     \
       *carry = result;                                                         \
       return result;                                                           \
     } else {                                                                   \
