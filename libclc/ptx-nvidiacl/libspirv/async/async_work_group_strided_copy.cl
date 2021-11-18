@@ -18,50 +18,50 @@
 #undef __CLC_BODY
 
 #define __CLC_BODY                                                             \
-<async_work_group_strided_copy.inc>
+<async_work_group_strided_copy_to_global.inc>
 #define __CLC_GEN_VEC3
 #include <clc/async/gentype.inc>
 #undef __CLC_BODY
 
 #define __CLC_BODY                                                             \
-<async_work_group_strided_copy_src.inc>
+<async_work_group_strided_copy_to_shared.inc>
 #define __CLC_GEN_VEC3
 #include <clc/async/gentype.inc>
 #undef __CLC_BODY
 
 #define __CLC_GENTYPE double
 #define __CLC_GENTYPE_MANGLED d
-#include <async_work_group_strided_copy.inc>
+#include <async_work_group_strided_copy_to_global.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE float
 #define __CLC_GENTYPE_MANGLED f
-#include <async_work_group_strided_copy.inc>
+#include <async_work_group_strided_copy_to_global.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE long
 #define __CLC_GENTYPE_MANGLED l
-#include <async_work_group_strided_copy.inc>
+#include <async_work_group_strided_copy_to_global.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE int
 #define __CLC_GENTYPE_MANGLED i
-#include <async_work_group_strided_copy.inc>
+#include <async_work_group_strided_copy_to_global.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE uint
 #define __CLC_GENTYPE_MANGLED j
-#include <async_work_group_strided_copy.inc>
+#include <async_work_group_strided_copy_to_global.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE ulong
 #define __CLC_GENTYPE_MANGLED m
-#include <async_work_group_strided_copy.inc>
+#include <async_work_group_strided_copy_to_global.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
