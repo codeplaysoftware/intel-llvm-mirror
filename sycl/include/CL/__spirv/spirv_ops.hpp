@@ -638,9 +638,6 @@ extern SYCL_EXTERNAL float __spirv_ConvertBF16ToFINTEL(uint16_t) noexcept;
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __ocl_vec_t<uint32_t, 4>
 __spirv_GroupNonUniformBallot(uint32_t Execution, bool Predicate) noexcept;
 
-__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __ocl_vec_t<uint32_t, 4>
-__spirv_GroupActiveItems(uint32_t Execution) noexcept;
-
 #ifdef __SYCL_USE_NON_VARIADIC_SPIRV_OCL_PRINTF__
 template <typename... Args>
 extern SYCL_EXTERNAL int
@@ -650,15 +647,6 @@ __spirv_ocl_printf(const __attribute__((opencl_constant)) char *Format,
 extern SYCL_EXTERNAL int
 __spirv_ocl_printf(const __attribute__((opencl_constant)) char *Format, ...);
 #endif
-
-__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
-__spirv_ControlBarrierMasked(__spv::Scope Execution, __spv::Scope Memory,
-                             uint32_t Semantics, uint32_t Mask) noexcept;
-
-__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT void
-__spirv_GroupWaitEventsMasked(__spv::Scope Execution, uint32_t NumEvents,
-                              __ocl_event_t *WaitEvents,
-                              uint32_t Mask) noexcept;
 
 #else // if !__SYCL_DEVICE_ONLY__
 

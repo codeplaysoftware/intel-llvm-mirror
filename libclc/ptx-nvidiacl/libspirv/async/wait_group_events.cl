@@ -9,8 +9,7 @@
 #include <spirv/spirv.h>
 
 int __nvvm_reflect(const char __constant *);
-
-_CLC_OVERLOAD _CLC_DEF void __spirv_GroupWaitEvents(unsigned int scope,
+_CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void __spirv_GroupWaitEvents(unsigned int scope,
                                                     int num_events,
                                                     event_t *event_list) {
   if (__nvvm_reflect("__CUDA_ARCH") >= 800) {
@@ -21,7 +20,7 @@ _CLC_OVERLOAD _CLC_DEF void __spirv_GroupWaitEvents(unsigned int scope,
   }
 }
 
-_CLC_OVERLOAD _CLC_DEF void __spirv_GroupWaitEventsMasked(unsigned int scope,
+_CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void __spirv_GroupWaitEventsMasked(unsigned int scope,
                                                     int num_events,
                                                     event_t *event_list, uint Mask) {
   if (__nvvm_reflect("__CUDA_ARCH") >= 800) {

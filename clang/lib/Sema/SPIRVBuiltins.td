@@ -891,6 +891,7 @@ foreach name = ["ControlBarrier"] in {
   // TODO: Allow enum flags instead of UInt ?
   // TODO: We should enforce that the UInt must be a literal.
   def : SPVBuiltin<name, [Void, UInt, UInt, UInt], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [Void, UInt, UInt, UInt, UInt], Attr.Convergent>;
 }
 
 foreach name = ["MemoryBarrier"] in {
@@ -914,10 +915,15 @@ foreach name = ["GroupWaitEvents"] in {
   def : SPVBuiltin<name, [Void, UInt, Int, PointerType<Event, DefaultAS>], Attr.Convergent>;
   def : SPVBuiltin<name, [Void, UInt, Int, PointerType<Event, PrivateAS>], Attr.Convergent>;
   def : SPVBuiltin<name, [Void, UInt, Int, PointerType<Event, GenericAS>], Attr.Convergent>;
+  def : SPVBuiltin<name # Masked, [Void, UInt, Int, PointerType<Event, GenericAS>, UInt], Attr.Convergent>;
 }
 
 foreach name = ["GroupAll", "GroupAny"] in {
   def : SPVBuiltin<name, [Bool, UInt, Bool], Attr.Convergent>;
+}
+
+foreach name = ["GroupActiveItems"] in {
+  def : SPVBuiltin<name, [UInt, UInt], Attr.Convergent>;
 }
 
 foreach name = ["GroupBroadcast"] in {

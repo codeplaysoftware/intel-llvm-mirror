@@ -27,11 +27,10 @@ __spirv_ControlBarrier(unsigned int scope, unsigned int memory,
   }
 }
 
-//todo: uint vs unsigned int?
-_CLC_OVERLOAD _CLC_DEF void
+_CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void
 __spirv_ControlBarrierMasked(unsigned int scope, unsigned int memory,
-                       unsigned int semantics, uint Mask) {
-  //if (scope == Subgroup) {
+                             unsigned int semantics, unsigned int Mask) {
+  if (scope == Subgroup) {
     __nvvm_bar_warp_sync(Mask);
- // }
+  }
 }

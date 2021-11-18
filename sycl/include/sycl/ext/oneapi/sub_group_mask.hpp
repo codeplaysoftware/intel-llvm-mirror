@@ -302,7 +302,7 @@ nd_item<dimensions>::ext_oneapi_active_sub_group_items() const {
 #ifdef __SYCL_DEVICE_ONLY__
   auto res = __spirv_GroupActiveItems(__spv::Scope::Subgroup);
   return detail::Builder::createSubGroupMask<ext::oneapi::sub_group_mask>(
-      res[0], get_sub_group().get_max_local_range()[0]);
+      res, get_sub_group().get_max_local_range()[0]);
 #else
   throw exception{errc::feature_not_supported,
                   "Sub-group mask is not supported on host device"};

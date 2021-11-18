@@ -15,8 +15,55 @@
 <../../../generic/libspirv/async/async_work_group_strided_copy.inc>
 #define __CLC_GEN_VEC3
 #include <clc/async/gentype.inc>
+#undef __CLC_BODY
 
-int __nvvm_reflect(const char __constant *);
+#define __CLC_BODY                                                             \
+<async_work_group_strided_copy.inc>
+#define __CLC_GEN_VEC3
+#include <clc/async/gentype.inc>
+#undef __CLC_BODY
+
+#define __CLC_BODY                                                             \
+<async_work_group_strided_copy_src.inc>
+#define __CLC_GEN_VEC3
+#include <clc/async/gentype.inc>
+#undef __CLC_BODY
+
+#define __CLC_GENTYPE double
+#define __CLC_GENTYPE_MANGLED d
+#include <async_work_group_strided_copy.inc>
+#undef __CLC_GENTYPE_MANGLED
+#undef __CLC_GENTYPE
+
+#define __CLC_GENTYPE float
+#define __CLC_GENTYPE_MANGLED f
+#include <async_work_group_strided_copy.inc>
+#undef __CLC_GENTYPE_MANGLED
+#undef __CLC_GENTYPE
+
+#define __CLC_GENTYPE long
+#define __CLC_GENTYPE_MANGLED l
+#include <async_work_group_strided_copy.inc>
+#undef __CLC_GENTYPE_MANGLED
+#undef __CLC_GENTYPE
+
+#define __CLC_GENTYPE int
+#define __CLC_GENTYPE_MANGLED i
+#include <async_work_group_strided_copy.inc>
+#undef __CLC_GENTYPE_MANGLED
+#undef __CLC_GENTYPE
+
+#define __CLC_GENTYPE uint
+#define __CLC_GENTYPE_MANGLED j
+#include <async_work_group_strided_copy.inc>
+#undef __CLC_GENTYPE_MANGLED
+#undef __CLC_GENTYPE
+
+#define __CLC_GENTYPE ulong
+#define __CLC_GENTYPE_MANGLED m
+#include <async_work_group_strided_copy.inc>
+#undef __CLC_GENTYPE_MANGLED
+#undef __CLC_GENTYPE
 
 #define __CLC_GROUP_CP_ASYNC_DST_GLOBAL(TYPE)                                  \
   _CLC_OVERLOAD _CLC_DEF event_t __spirv_GroupAsyncCopy(                       \
@@ -35,17 +82,17 @@ __CLC_GROUP_CP_ASYNC_DST_GLOBAL(long);
 __CLC_GROUP_CP_ASYNC_DST_GLOBAL(ulong);
 __CLC_GROUP_CP_ASYNC_DST_GLOBAL(double);
 
-#define __CLC_GROUP_CP_ASYNC_MASKED_4(TYPE)                                    \
+int __nvvm_reflect(const char __constant *);
+
+#define __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(TYPE)                               \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked( \
       unsigned int scope, __attribute__((address_space(3))) TYPE *dst,         \
       const __attribute__((address_space(1))) TYPE *src, size_t num_gentypes,  \
-      size_t stride, event_t event, uint mask) {                               \
+      size_t stride, event_t event, uint Mask) {                               \
                                                                                \
-    uint active = __nvvm_activemask();                                         \
-    size_t size = __clc_native_popcount(active);                               \
-    uint lane_mask_lt = __nvvm_read_ptx_sreg_lanemask_lt();                    \
-    uint mask_id = lane_mask_lt & active;                                      \
-    size_t id = __clc_native_popcount(mask_id);                                \
+    size_t size = __clc_native_popcount(Mask);                                 \
+    size_t id =                                                                \
+        __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);      \
     size_t i;                                                                  \
     if (__nvvm_reflect("__CUDA_ARCH") >= 800) {                                \
       for (i = id; i < num_gentypes; i += size) {                              \
@@ -60,29 +107,36 @@ __CLC_GROUP_CP_ASYNC_DST_GLOBAL(double);
     return event;                                                              \
   }
 
-__CLC_GROUP_CP_ASYNC_MASKED_4(int);
-__CLC_GROUP_CP_ASYNC_MASKED_4(uint);
-__CLC_GROUP_CP_ASYNC_MASKED_4(float);
+__CLC_GROUP_CP_ASYNC_SM80_MASKED_4(int);
+__CLC_GROUP_CP_ASYNC_SM80_MASKED_4(uint);
+__CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
 
-#define __CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(TYPE)                         \
+#define __CLC_GROUP_CP_ASYNC_SM80_MASKED_8(TYPE)                               \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked( \
-      unsigned int scope, __attribute__((address_space(1))) TYPE *dst,         \
-      const __attribute__((address_space(3))) TYPE *src, size_t num_gentypes,  \
-      size_t stride, event_t event, uint mask) {                               \
-    uint active = __nvvm_activemask();                                         \
-    size_t size = __clc_native_popcount(active);                               \
-    uint lane_mask_lt = __nvvm_read_ptx_sreg_lanemask_lt();                    \
-    uint mask_id = lane_mask_lt & active;                                      \
-    size_t id = __clc_native_popcount(mask_id);                                \
+      unsigned int scope, __attribute__((address_space(3))) TYPE *dst,         \
+      const __attribute__((address_space(1))) TYPE *src, size_t num_gentypes,  \
+      size_t stride, event_t event, uint Mask) {                               \
+                                                                               \
+    size_t size = __clc_native_popcount(Mask);                                 \
+    size_t id =                                                                \
+        __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);      \
     size_t i;                                                                  \
-    for (i = id; i < num_gentypes; i += size) {                                \
-      dst[i * stride] = src[i];                                                \
+    if (__nvvm_reflect("__CUDA_ARCH") >= 800) {                                \
+      for (i = id; i < num_gentypes; i += size) {                              \
+        __nvvm_cp_async_ca_shared_global_8(dst + i, src + i * stride);         \
+      }                                                                        \
+      __nvvm_cp_async_commit_group();                                          \
+    } else {                                                                   \
+      for (i = id; i < num_gentypes; i += size) {                              \
+        dst[i * stride] = src[i];                                              \
+      }                                                                        \
     }                                                                          \
     return event;                                                              \
+  }
 
-__CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(int);
-__CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(uint);
-__CLC_GROUP_CP_ASYNC_MASKED_GLOBAL_DST_4(float);
+__CLC_GROUP_CP_ASYNC_SM80_MASKED_8(long);
+__CLC_GROUP_CP_ASYNC_SM80_MASKED_8(ulong);
+__CLC_GROUP_CP_ASYNC_SM80_MASKED_8(double);
 
 #define __CLC_GROUP_CP_ASYNC_4(TYPE)                                           \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopy(       \

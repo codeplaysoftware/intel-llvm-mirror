@@ -40,14 +40,8 @@ __clc__get_group_scratch_float() __asm("__clc__get_group_scratch_float");
 __local double *
 __clc__get_group_scratch_double() __asm("__clc__get_group_scratch_double");
 
-_CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT uint __spirv_GroupActiveItems(unsigned int scope) {
-  //if scope = subgroup etc...
-  /*unsigned int mask;
-  asm volatile("activemask.b32 %0;" : "=r"(mask));
-  return mask;*/
-  uint mask = __nvvm_activemask();
-  return mask;
-  //return __nvvm_vote_ballot(1);
+_CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT unsigned int __spirv_GroupActiveItems(unsigned int scope) {
+  return __nvvm_activemask();
 }
 
 _CLC_DEF _CLC_CONVERGENT uint __clc__membermask() {
@@ -261,15 +255,20 @@ __CLC_SUBGROUP_COLLECTIVE(FMax, __CLC_MAX, double, -DBL_MAX)
 #undef __CLC_SUBGROUP_COLLECTIVE
 #undef __CLC_SUBGROUP_COLLECTIVE_REDUX
 
+// TODO: sm_xx < sm_80 not supported yet (returns -1)
 #define __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(NAME, OP, REDUX_OP, TYPE,       \
                                                IDENTITY)                       \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __CLC_APPEND(                    \
       __clc__Subgroup, NAME##Masked)(uint op, TYPE x, TYPE * carry,            \
-                                     uint Mask) {                              \
+                                     unsigned int Mask) {                      \
     if (__nvvm_reflect("__CUDA_ARCH") >= 800 && op == Reduce) {                \
-      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                     \
-      *carry = result;                                                         \
-      return result;                                                           \
+      if (__nvvm_read_ptx_sreg_lanemask_eq() & Mask) {                         \
+        TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                   \
+        *carry = result;                                                       \
+        return result;                                                         \
+      } else {                                                                 \
+        return *carry;                                                         \
+      }                                                                        \
     } else {                                                                   \
       return -1;                                                               \
     }                                                                          \
@@ -285,7 +284,7 @@ __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(UMax, __CLC_MAX, umax, uint, 0)
 #define __CLC_GROUP_COLLECTIVE_MASKED(SPIRV_NAME, OP, TYPE, IDENTITY)          \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __CLC_APPEND(                    \
       __spirv_Group, SPIRV_NAME##Masked)(uint scope, uint op, TYPE x,          \
-                                         uint Mask) {                          \
+                                         unsigned int Mask) {                  \
     TYPE carry = IDENTITY;                                                     \
     /* Perform GroupOperation within sub-group */                              \
     TYPE sg_x = __CLC_APPEND(__clc__Subgroup,                                  \
