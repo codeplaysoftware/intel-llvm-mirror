@@ -187,18 +187,20 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$DPCPP_HOME/llvm/build/lib ./a.out
 
 ### Build DPC++ toolchain with support for HIP AMD
 
-There is experimental support for DPC++ for HIP devices.
+There is experimental support for DPC++ for HIP on AMD devices. Note as this is
+still experimental and there is no continuous integration for this yet there
+are therefore no guarantees for supported platforms or configurations.
 
 To enable support for HIP devices, follow the instructions for the Linux
 DPC++ toolchain, but add the `--hip` flag to `configure.py`
 
 Enabling this flag requires an installation of
-ROCm 4.2.0 on the system, refer to
+ROCm on the system, for instruction on how to install this refer to
 [AMD ROCm Installation Guide for Linux](https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html).
 
-Currently, the only combinations which have been tested are Ubuntu 18.04 and
-Ubuntu 20.04 with ROCm 4.2.0 and ROCm 4.3.0 using the Vega20 (gfx906), MI50
-(gfx906) and MI100 (gfx908) devices and architectures respectively.
+Currently, this has only been tried on Linux, with ROCm 4.2.0 or 4.3.0 and
+using the Vega20 (gfx906), MI50 (gfx906) and MI100 (gfx908) devices and
+architectures respectively.
 
 [LLD](https://llvm.org/docs/AMDGPUUsage.html) is necessary for the AMDGPU
 compilation chain. The AMDGPU backend generates a standard ELF [ELF]
@@ -219,7 +221,9 @@ for the HIP installation:
 
 ### Build DPC++ toolchain with support for HIP NVIDIA
 
-There is experimental support for DPC++ for using HIP on NVIDIA devices.
+There is experimental support for DPC++ for HIP on Nvidia devices. Note as this
+is still experimental and there is no continuous integration for this yet there
+are therefore no guarantees for supported platforms or configurations.
 
 This is a compatibility feature and the [CUDA backend](#build-dpc-toolchain-with-support-for-nvidia-cuda)
 should be preferred to run on NVIDIA GPUs.
@@ -233,8 +237,8 @@ Enabling this flag requires HIP to be installed, more specifically
 as well as CUDA to be installed, see
 [NVIDIA CUDA Installation Guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
 
-Currently this was has only been tested on Linux with ROCm 4.2.0, CUDA 11 and
-a GeForce GTX 1060 device.
+Currently, this has only been tried on Linux, with ROCm 4.2.0 or 4.3.0, with
+CUDA 11, and using a GeForce 1060 device.
 
 ### Build DPC++ toolchain with support for ESIMD CPU Emulation
 
@@ -813,15 +817,17 @@ which contains all the symbols required.
 
 ### HIP back-end limitations
 
-* Only support on Linux.
-* Only tested on Ubuntu 18.04 and Ubuntu 20.04, however, for full details of
-  supported Operating Systems for ROCm, please refer to the
+* Only supported on Linux.
+* Only tried on Linux, however, for full details of supported Operating Systems
+  for ROCm, please refer to the
   [ROCm Supported Operating Systems](https://github.com/RadeonOpenCompute/ROCm#supported-operating-systems)
-* Only combinations which have been tested are Ubuntu 18.04 and Ubuntu 20.04
-  with ROCm 4.2.0 and ROCm 4.3.0 using the Vega20 (gfx906), MI50 (gfx906) and
-  MI100 (gfx908) devices and architectures respectively.
+* Only combinations which have been tried are Linux, with ROCm 4.2.0 or 4.3.0
+  and using Vega20 (gfx906), MI50 (gfx906) and MI100 (gfx908) devices and
+  architectures respectively.
 * Support is still experimental so not all of the tests are currently passing
   and many of the built-in function are not yet implemented.
+* Additionally there is no continuous integration yet so no guarantee can be
+  made for support platforms or configurations
 
 ## Find More
 
