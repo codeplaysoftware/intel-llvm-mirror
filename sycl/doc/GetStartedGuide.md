@@ -199,14 +199,12 @@ ROCm on the system, for instruction on how to install this refer to
 [AMD ROCm Installation Guide for Linux](https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html).
 
 Currently, this has only been tried on Linux, with ROCm 4.2.0 or 4.3.0 and
-using the Vega20 (gfx906), MI50 (gfx906) and MI100 (gfx908) devices and
-architectures respectively.
+using the MI50 (gfx906) and MI100 (gfx908) devices.
 
-[LLD](https://llvm.org/docs/AMDGPUUsage.html) is necessary for the AMDGPU
-compilation chain. The AMDGPU backend generates a standard ELF [ELF]
-relocatable code object that can be linked by lld to produce a standard ELF
-shared code object which can be loaded and executed on an AMDGPU target. The
-LLD project is enabled by default when configuring for HIP. For more details
+[LLD](https://llvm.org/docs/AMDGPUUsage.html) is necessary for the AMDGPU compilation chain.
+The AMDGPU backend generates a standard ELF [ELF] relocatable code object that can be linked by lld to
+produce a standard ELF shared code object which can be loaded and executed on an AMDGPU target.
+The LLD project is enabled by default when configuring for HIP. For more details
 on building LLD refer to [LLD Build Guide](https://lld.llvm.org/).
 
 The following CMake variables can be updated to change where CMake is looking
@@ -817,17 +815,16 @@ which contains all the symbols required.
 
 ### HIP back-end limitations
 
-* Only supported on Linux.
-* Only tried on Linux, however, for full details of supported Operating Systems
-  for ROCm, please refer to the
-  [ROCm Supported Operating Systems](https://github.com/RadeonOpenCompute/ROCm#supported-operating-systems)
-* Only combinations which have been tried are Linux, with ROCm 4.2.0 or 4.3.0
-  and using Vega20 (gfx906), MI50 (gfx906) and MI100 (gfx908) devices and
-  architectures respectively.
+* Requires a ROCm compatible operating system, for full details of supported
+  Operating System for ROCm, please refer to the
+  [ROCm Supported Operating Systems](https://github.com/RadeonOpenCompute/ROCm#supported-operating-systems).
+* Has only been tried with ROCm 4.2.0 and 4.3.0.
+* Has only been tested using the MI50 (gfx906) and MI100 (gfx908) devices.
 * Support is still experimental so not all of the tests are currently passing
   and many of the built-in function are not yet implemented.
 * Additionally there is no continuous integration yet so no guarantee can be
   made for support platforms or configurations
+* Global offsets are currently not supported.
 
 ## Find More
 
