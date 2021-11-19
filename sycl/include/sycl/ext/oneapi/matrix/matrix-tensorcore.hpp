@@ -34,22 +34,6 @@ enum class matrix_type {
   uint64
 };
 
-/*template <matrix_type T, matrix_use MT, size_t Rows = sycl::dynamic_extent,
-          size_t Cols = sycl::dynamic_extent,
-          matrix_layout Layout = matrix_layout::row_major,
-          typename Group = sycl::sub_group, typename Cond = void>
-struct joint_matrix {
-  joint_matrix(Group g) {}
-};
-
-template <matrix_layout Layout>
-struct joint_matrix<
-    matrix_type::bf16, matrix_use::a, 16, 16, Layout, sycl::sub_group,
-    typename std::enable_if_t<Layout == matrix_layout::row_major ||
-                              Layout == matrix_layout::col_major>> {
-  double data[1];
-};*/
-
 template <matrix_type T, matrix_use MT, size_t Rows = sycl::dynamic_extent,
           size_t Cols = sycl::dynamic_extent,
           matrix_layout Layout = matrix_layout::row_major,
