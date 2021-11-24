@@ -30,11 +30,10 @@ __spirv_ControlBarrier(unsigned int scope, unsigned int memory,
 _CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void
 __spirv_ControlBarrierMasked(unsigned int scope, unsigned int memory,
                              unsigned int semantics, unsigned int Mask) {
-  if (scope == Subgroup) {
-    __nvvm_bar_warp_sync(Mask);
-  }
-  else{
+  if (scope != Subgroup) {
     __builtin_trap();
     __builtin_unreachable();
   }
+
+  __nvvm_bar_warp_sync(Mask);
 }

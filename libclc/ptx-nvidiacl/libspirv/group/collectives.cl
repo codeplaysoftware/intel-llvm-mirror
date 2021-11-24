@@ -255,23 +255,21 @@ __CLC_SUBGROUP_COLLECTIVE(FMax, __CLC_MAX, double, -DBL_MAX)
 #undef __CLC_SUBGROUP_COLLECTIVE
 #undef __CLC_SUBGROUP_COLLECTIVE_REDUX
 
-// TODO: sm_xx < sm_80 not supported yet (returns -1)
 #define __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(NAME, OP, REDUX_OP, TYPE,       \
                                                IDENTITY)                       \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __CLC_APPEND(                    \
       __clc__Subgroup, NAME##Masked)(uint op, TYPE x, TYPE * carry,            \
                                      unsigned int Mask) {                      \
-    if (__nvvm_reflect("__CUDA_ARCH") >= 800 && op == Reduce) {                \
-      if (__nvvm_read_ptx_sreg_lanemask_eq() & Mask) {                         \
-        TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                   \
-        *carry = result;                                                       \
-        return result;                                                         \
-      } else {                                                                 \
-        return *carry;                                                         \
-      }                                                                        \
+    if (__nvvm_reflect("__CUDA_ARCH") < 800 || op != Reduce) {                 \
+      __builtin_trap();                                                        \
+      __builtin_unreachable();                                                 \
+    }                                                                          \
+    if (__nvvm_read_ptx_sreg_lanemask_eq() & Mask) {                           \
+      TYPE result = __nvvm_redux_sync_##REDUX_OP(x, Mask);                     \
+      *carry = result;                                                         \
+      return result;                                                           \
     } else {                                                                   \
-        __builtin_trap(); \
-        __builtin_unreachable();                                                            \
+      return *carry;                                                           \
     }                                                                          \
   }
 
@@ -286,6 +284,10 @@ __CLC_SUBGROUP_COLLECTIVE_REDUX_MASKED(UMax, __CLC_MAX, umax, uint, 0)
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT TYPE __CLC_APPEND(                    \
       __spirv_Group, SPIRV_NAME##Masked)(uint scope, uint op, TYPE x,          \
                                          unsigned int Mask) {                  \
+    if (scope != Subgroup) {                                                   \
+        __builtin_trap();                                                      \
+        __builtin_unreachable();                                               \
+    }                                                                          \
     TYPE carry = IDENTITY;                                                     \
     /* Perform GroupOperation within sub-group */                              \
     TYPE sg_x = __CLC_APPEND(__clc__Subgroup,                                  \

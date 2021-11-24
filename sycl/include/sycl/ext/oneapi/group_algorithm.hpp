@@ -190,7 +190,8 @@ void wait_for(Group g, eventTN... Events) {
 /// device_event which can be used to wait on the completion of the copy.
 /// Permitted types for dataT are all scalar and vector types, except boolean.
 template <typename dataT>
-device_event async_group_copy(sub_group, sub_group_mask mask,
+detail::enable_if_t<!detail::is_bool<dataT>::value, device_event>
+async_group_copy(sub_group, sub_group_mask mask,
                               global_ptr<dataT> src, local_ptr<dataT> dest,
                               size_t numElements, size_t srcStride) {
   using DestT = detail::ConvertToOpenCLType_t<decltype(dest)>;
@@ -820,7 +821,9 @@ reduce_over_group(sub_group, sub_group_mask mask, T x,
 template <typename T, class BinaryOperation>
 detail::enable_if_t<(detail::is_vec<T>::value &&
                      detail::is_integral<T>::value &&
-                     detail::is_native_op<T, BinaryOperation>::value),
+                     (detail::IsPlus<T, BinaryOperation>::value ||
+                   detail::IsMinimum<T, BinaryOperation>::value ||
+                   detail::IsMaximum<T, BinaryOperation>::value)),
                     T>
 reduce_over_group(sub_group g, sub_group_mask mask, T x,
                   BinaryOperation binary_op) {
@@ -839,8 +842,9 @@ template <typename V, typename T, class BinaryOperation>
 detail::enable_if_t<(std::is_scalar<V>::value && std::is_scalar<T>::value &&
                      detail::is_integral<V>::value &&
                      detail::is_integral<T>::value &&
-                     detail::is_native_op<V, BinaryOperation>::value &&
-                     detail::is_native_op<T, BinaryOperation>::value),
+                     (detail::IsPlus<V, BinaryOperation>::value ||
+                   detail::IsMinimum<V, BinaryOperation>::value ||
+                   detail::IsMaximum<V, BinaryOperation>::value)),
                     T>
 reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
                   BinaryOperation binary_op) {
