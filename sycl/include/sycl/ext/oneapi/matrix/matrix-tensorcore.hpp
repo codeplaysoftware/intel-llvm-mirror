@@ -214,6 +214,45 @@ __SYCL_INLINE_NAMESPACE(cl) {
     }
   };
 
+template <matrix::matrix_layout Layout, access::address_space Space>
+  struct joint_matrix_load_impl<
+      unsigned short, matrix::matrix_type::bf16, matrix::matrix_use::a, 16, 16, Layout,
+      Space,
+      typename std::enable_if_t<Layout == matrix::matrix_layout::row_major ||
+                                Layout == matrix::matrix_layout::col_major>> {
+    void load(matrix::joint_matrix<matrix::matrix_type::bf16,
+                                   matrix::matrix_use::a, 16, 16, Layout> &res,
+              multi_ptr<unsigned short, Space> src, size_t stride) {
+
+#ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+uint32_t* tileptr = reinterpret_cast<uint32_t*>(src.get()); 
+      __mma_bf16_m16n16k16_ld_a(res.data, tileptr, stride, get_layout_id<Layout>());
+#endif
+#endif
+    }
+  };
+
+  template <matrix::matrix_layout Layout, access::address_space Space>
+  struct joint_matrix_load_impl<
+      unsigned short, matrix::matrix_type::bf16, matrix::matrix_use::b, 16, 16, Layout,
+      Space,
+      typename std::enable_if_t<Layout == matrix::matrix_layout::row_major ||
+                                Layout == matrix::matrix_layout::col_major>> {
+    void load(matrix::joint_matrix<matrix::matrix_type::bf16,
+                                   matrix::matrix_use::b, 16, 16, Layout> &res,
+              multi_ptr<unsigned short, Space> src, size_t stride) {
+
+#ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+uint32_t* tileptr = reinterpret_cast<uint32_t*>(src.get()); 
+      __mma_bf16_m16n16k16_ld_b(res.data, tileptr, stride, get_layout_id<Layout>());
+#endif
+#endif
+    }
+  };
+
+
   template <matrix::matrix_layout Layout, access::address_space Space>
   struct joint_matrix_load_impl<
       double, matrix::matrix_type::fp64, matrix::matrix_use::b, 4, 8, Layout,
