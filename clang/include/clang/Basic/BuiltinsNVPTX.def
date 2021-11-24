@@ -33,6 +33,7 @@
 
 #pragma push_macro("PTX60")
 #pragma push_macro("PTX61")
+#pragma push_macro("PTX62")
 #pragma push_macro("PTX63")
 #pragma push_macro("PTX64")
 #pragma push_macro("PTX65")
@@ -49,7 +50,8 @@
 #define PTX65 "ptx65|" PTX70
 #define PTX64 "ptx64|" PTX65
 #define PTX63 "ptx63|" PTX64
-#define PTX61 "ptx61|" PTX63
+#define PTX62 "ptx62|" PTX63
+#define PTX61 "ptx61|" PTX62
 #define PTX60 "ptx60|" PTX61
 
 #pragma push_macro("AND")
@@ -456,9 +458,8 @@ TARGET_BUILTIN(__nvvm_vote_any_sync, "bUib", "", PTX60)
 TARGET_BUILTIN(__nvvm_vote_uni_sync, "bUib", "", PTX60)
 TARGET_BUILTIN(__nvvm_vote_ballot_sync, "UiUib", "", PTX60)
 
-// Activemask TODO: need to add ptx62
-
-TARGET_BUILTIN(__nvvm_activemask, "Ui", "", PTX60)
+// Activemask
+TARGET_BUILTIN(__nvvm_activemask, "Ui", "", PTX62)
 
 // Match
 TARGET_BUILTIN(__nvvm_match_any_sync_i32, "UiUiUi", "", PTX60)
