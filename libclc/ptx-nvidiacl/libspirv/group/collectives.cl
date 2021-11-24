@@ -270,7 +270,8 @@ __CLC_SUBGROUP_COLLECTIVE(FMax, __CLC_MAX, double, -DBL_MAX)
         return *carry;                                                         \
       }                                                                        \
     } else {                                                                   \
-      return -1;                                                               \
+        __builtin_trap(); \
+        __builtin_unreachable();                                                            \
     }                                                                          \
   }
 

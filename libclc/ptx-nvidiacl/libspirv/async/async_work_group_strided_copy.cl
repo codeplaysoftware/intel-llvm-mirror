@@ -89,7 +89,7 @@ int __nvvm_reflect(const char __constant *);
       unsigned int scope, __attribute__((address_space(3))) TYPE *dst,         \
       const __attribute__((address_space(1))) TYPE *src, size_t num_gentypes,  \
       size_t stride, event_t event, uint Mask) {                               \
-                                                                               \
+    if (scope == Subgroup) {                                                   \
     size_t size = __clc_native_popcount(Mask);                                 \
     size_t id =                                                                \
         __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);      \
@@ -105,6 +105,11 @@ int __nvvm_reflect(const char __constant *);
       }                                                                        \
     }                                                                          \
     return event;                                                              \
+    }                                                                          \
+    else{                                                                      \
+      __builtin_trap();                                                        \
+      __builtin_unreachable();                                                 \
+    }                                                                          \
   }
 
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(int);
@@ -116,7 +121,7 @@ __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
       unsigned int scope, __attribute__((address_space(3))) TYPE *dst,         \
       const __attribute__((address_space(1))) TYPE *src, size_t num_gentypes,  \
       size_t stride, event_t event, uint Mask) {                               \
-                                                                               \
+    if (scope == Subgroup) {                                                   \
     size_t size = __clc_native_popcount(Mask);                                 \
     size_t id =                                                                \
         __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);      \
@@ -132,6 +137,11 @@ __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
       }                                                                        \
     }                                                                          \
     return event;                                                              \
+        }                                                                      \
+    else{                                                                      \
+      __builtin_trap();                                                        \
+        __builtin_unreachable();                                               \
+    }                                                                          \
   }
 
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_8(long);

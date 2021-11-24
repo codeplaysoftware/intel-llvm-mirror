@@ -33,4 +33,8 @@ __spirv_ControlBarrierMasked(unsigned int scope, unsigned int memory,
   if (scope == Subgroup) {
     __nvvm_bar_warp_sync(Mask);
   }
+  else{
+    __builtin_trap();
+    __builtin_unreachable();
+  }
 }
