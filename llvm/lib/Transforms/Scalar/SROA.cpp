@@ -114,6 +114,8 @@ STATISTIC(NumVectorized, "Number of vectorized aggregates");
 /// GEPs.
 static cl::opt<bool> SROAStrictInbounds("sroa-strict-inbounds", cl::init(false),
                                         cl::Hidden);
+static cl::opt<bool> SROAAggPeeling("sroa-agg-peeling", cl::init(true),
+                                    cl::Hidden);
 
 namespace {
 
@@ -211,6 +213,10 @@ public:
 
 } // end anonymous namespace
 
+namespace peel{
+class AllocaPeels;
+}
+
 /// Representation of the alloca slices.
 ///
 /// This class represents the slices of an alloca which are formed by its
@@ -228,6 +234,7 @@ public:
   /// If this is true, the slices are never fully built and should be
   /// ignored.
   bool isEscaped() const { return PointerEscapingInstr; }
+  bool isAborted() const { return WasAborted; }
 
   /// Support for iterating over the slices.
   /// @{
@@ -295,8 +302,10 @@ public:
 private:
   template <typename DerivedT, typename RetT = void> class BuilderBase;
   class SliceBuilder;
+  class AggPeelerBuilder;
 
   friend class AllocaSlices::SliceBuilder;
+  friend class peel::AllocaPeels;
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
   /// Handle to alloca instruction to simplify method interfaces.
@@ -310,6 +319,8 @@ private:
   /// store a pointer to that here and abort trying to form slices of the
   /// alloca. This will be null if the alloca slices are analyzed successfully.
   Instruction *PointerEscapingInstr;
+  // Tell if the escaping pointer is actually an aborted exec.
+  bool WasAborted;
 
   /// The slices of the alloca.
   ///
@@ -634,6 +645,8 @@ static Value *foldPHINodeOrSelectInst(Instruction &I) {
   return foldSelectInst(cast<SelectInst>(I));
 }
 
+#include "AggPeeling.hpp"
+
 /// Builder for the alloca slices.
 ///
 /// This class builds a set of alloca slices by recursively visiting the uses
@@ -658,6 +671,16 @@ public:
       : PtrUseVisitor<SliceBuilder>(DL),
         AllocSize(DL.getTypeAllocSize(AI.getAllocatedType()).getFixedSize()),
         AS(AS) {}
+
+  PtrInfo visitPtr(Instruction &I) {
+    PtrInfo PtrI = Base::visitPtr(I);
+
+    if (PtrI.isAborted() && SROAAggPeeling) {
+      peel::AllocaPeels AP(DL, cast<AllocaInst>(I), AS, PtrI);
+    }
+
+    return PtrI;
+  }
 
 private:
   void markAsDead(Instruction &I) {
@@ -1109,9 +1132,12 @@ void AllocaSlices::printUse(raw_ostream &OS, const_iterator I,
 
 void AllocaSlices::print(raw_ostream &OS) const {
   if (PointerEscapingInstr) {
-    OS << "Can't analyze slices for alloca: " << AI << "\n"
-       << "  A pointer to this alloca escaped by:\n"
-       << "  " << *PointerEscapingInstr << "\n";
+    OS << "Can't analyze slices for alloca: " << AI << "\n";
+    if (isAborted())
+      OS   << "  A pointer to this alloca escaped (due to abort) by:\n";
+    else
+      OS   << "  A pointer to this alloca escaped by:\n";
+    OS << "  " << *PointerEscapingInstr << "\n";
     return;
   }
 
@@ -2056,6 +2082,8 @@ static bool isIntegerWideningViableForSlice(const Slice &S,
 /// promote the resulting alloca.
 static bool isIntegerWideningViable(Partition &P, Type *AllocaTy,
                                     const DataLayout &DL) {
+  llvm::errs() << " ----> ";
+  AllocaTy->dump();
   uint64_t SizeInBits = DL.getTypeSizeInBits(AllocaTy).getFixedSize();
   // Don't create integer types larger than the maximum bitwidth.
   if (SizeInBits > IntegerType::MAX_INT_BITS)
@@ -2452,6 +2480,11 @@ private:
     if (Offset > 0 || NewEndOffset < NewAllocaEndOffset) {
       IntegerType *ExtractTy = Type::getIntNTy(LI.getContext(), SliceSize * 8);
       V = extractInteger(DL, IRB, V, ExtractTy, Offset, "extract");
+    }
+    if (!(cast<IntegerType>(LI.getType())->getBitWidth() >= SliceSize * 8)) {
+      LI.getParent()->getParent()->dump();
+      llvm::errs() << "= " << LI.getParent()->getParent()->getName() << "\n";
+      llvm::errs() << "-> " << SliceSize << "\n";
     }
     // It is possible that the extracted type is not the load type. This
     // happens if there is a load past the end of the alloca, and as
@@ -4705,6 +4738,8 @@ bool SROA::promoteAllocas(Function &F) {
 PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
                                 AssumptionCache &RunAC) {
   LLVM_DEBUG(dbgs() << "SROA function: " << F.getName() << "\n");
+  //errs() << "SROA function: " << F.getName() << "\n";
+  F.dump();
   C = &F.getContext();
   DT = &RunDT;
   AC = &RunAC;

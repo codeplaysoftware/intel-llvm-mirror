@@ -130,6 +130,7 @@ protected:
     using UseAndIsOffsetKnownPair = PointerIntPair<Use *, 1, bool>;
 
     UseAndIsOffsetKnownPair UseAndIsOffsetKnown;
+    Type *LowerBoundType;
     APInt Offset;
   };
 
@@ -152,6 +153,10 @@ protected:
   /// being visited.
   bool IsOffsetKnown;
 
+  /// Set if we have a known lower constant offset for the use currently
+  /// being visited.
+  Type *LowerBoundType;
+
   /// The constant offset of the use if that is known.
   APInt Offset;
 
@@ -171,7 +176,7 @@ protected:
   ///
   /// This routine does the heavy lifting of the pointer walk by computing
   /// offsets and looking through GEPs.
-  bool adjustOffsetForGEP(GetElementPtrInst &GEPI);
+  bool adjustOffsetForGEP(GetElementPtrInst &GEPI, bool TrackLowerBound);
 };
 
 } // end namespace detail
@@ -201,7 +206,7 @@ protected:
 /// return short-circuits the visit, stopping it immediately.
 ///
 /// FIXME: Generalize this for all values rather than just instructions.
-template <typename DerivedT>
+template <typename DerivedT, bool TrackLowerBound = false>
 class PtrUseVisitor : protected InstVisitor<DerivedT>,
                       public detail::PtrUseVisitorBase {
   friend class InstVisitor<DerivedT>;
@@ -223,6 +228,7 @@ public:
     assert(I.getType()->isPointerTy());
     IntegerType *IntIdxTy = cast<IntegerType>(DL.getIndexType(I.getType()));
     IsOffsetKnown = true;
+    LowerBoundType = nullptr;
     Offset = APInt(IntIdxTy->getBitWidth(), 0);
     PI.reset();
 
@@ -234,6 +240,7 @@ public:
       UseToVisit ToVisit = Worklist.pop_back_val();
       U = ToVisit.UseAndIsOffsetKnown.getPointer();
       IsOffsetKnown = ToVisit.UseAndIsOffsetKnown.getInt();
+      LowerBoundType = ToVisit.LowerBoundType;
       if (IsOffsetKnown)
         Offset = std::move(ToVisit.Offset);
 
@@ -268,7 +275,7 @@ protected:
       return;
 
     // If we can't walk the GEP, clear the offset.
-    if (!adjustOffsetForGEP(GEPI)) {
+    if (!adjustOffsetForGEP(GEPI, TrackLowerBound && GEPI.isInBounds())) {
       IsOffsetKnown = false;
       Offset = APInt();
     }
