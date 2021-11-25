@@ -104,7 +104,7 @@ int __nvvm_reflect(const char __constant *);
       __nvvm_cp_async_commit_group();                                          \
     } else {                                                                   \
       for (i = id; i < num_gentypes; i += size) {                              \
-        dst[i * stride] = src[i];                                              \
+        dst[i] = src[i * stride];                                              \
       }                                                                        \
     }                                                                          \
     return event;                                                              \
@@ -134,7 +134,7 @@ __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
       __nvvm_cp_async_commit_group();                                          \
     } else {                                                                   \
       for (i = id; i < num_gentypes; i += size) {                              \
-        dst[i * stride] = src[i];                                              \
+        dst[i] = src[i * stride];                                              \
       }                                                                        \
     }                                                                          \
     return event;                                                              \

@@ -14,7 +14,7 @@
       __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);        \
   size_t i;                                                                    \
   for (i = id; i < num_gentypes; i += size) {                                  \
-    dst[i * stride] = src[i];                                                  \
+    dst[i] = src[i * stride];                                                  \
   }
 
 _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked(
