@@ -18,50 +18,51 @@
 #undef __CLC_BODY
 
 #define __CLC_BODY                                                             \
-<async_work_group_strided_copy_to_global.inc>
+<async_work_group_strided_copy_to_global_masked.inc>
 #define __CLC_GEN_VEC3
 #include <clc/async/gentype.inc>
 #undef __CLC_BODY
 
 #define __CLC_BODY                                                             \
-<async_work_group_strided_copy_to_shared.inc>
+<async_work_group_strided_copy_to_shared_masked.inc>
 #define __CLC_GEN_VEC3
 #include <clc/async/gentype.inc>
 #undef __CLC_BODY
 
+
 #define __CLC_GENTYPE double
 #define __CLC_GENTYPE_MANGLED d
-#include <async_work_group_strided_copy_to_global.inc>
+#include <async_work_group_strided_copy_to_global_masked.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE float
 #define __CLC_GENTYPE_MANGLED f
-#include <async_work_group_strided_copy_to_global.inc>
+#include <async_work_group_strided_copy_to_global_masked.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE long
 #define __CLC_GENTYPE_MANGLED l
-#include <async_work_group_strided_copy_to_global.inc>
+#include <async_work_group_strided_copy_to_global_masked.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE int
 #define __CLC_GENTYPE_MANGLED i
-#include <async_work_group_strided_copy_to_global.inc>
+#include <async_work_group_strided_copy_to_global_masked.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE uint
 #define __CLC_GENTYPE_MANGLED j
-#include <async_work_group_strided_copy_to_global.inc>
+#include <async_work_group_strided_copy_to_global_masked.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
 #define __CLC_GENTYPE ulong
 #define __CLC_GENTYPE_MANGLED m
-#include <async_work_group_strided_copy_to_global.inc>
+#include <async_work_group_strided_copy_to_global_masked.inc>
 #undef __CLC_GENTYPE_MANGLED
 #undef __CLC_GENTYPE
 
@@ -93,6 +94,7 @@ int __nvvm_reflect(const char __constant *);
         __builtin_trap();                                                      \
         __builtin_unreachable();                                               \
     }                                                                          \
+    if (__nvvm_read_ptx_sreg_lanemask_eq() & Mask){                            \
     size_t size = __clc_native_popcount(Mask);                                 \
     size_t id =                                                                \
         __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);      \
@@ -107,12 +109,15 @@ int __nvvm_reflect(const char __constant *);
         dst[i] = src[i * stride];                                              \
       }                                                                        \
     }                                                                          \
+    }                                                                          \
     return event;                                                              \
   }
 
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(int);
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(uint);
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
+
+#undef __CLC_GROUP_CP_ASYNC_SM80_MASKED_4
 
 #define __CLC_GROUP_CP_ASYNC_SM80_MASKED_8(TYPE)                               \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked( \
@@ -123,6 +128,7 @@ __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
         __builtin_trap();                                                      \
         __builtin_unreachable();                                               \
     }                                                                          \
+    if (__nvvm_read_ptx_sreg_lanemask_eq() & Mask){                            \
     size_t size = __clc_native_popcount(Mask);                                 \
     size_t id =                                                                \
         __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);      \
@@ -137,12 +143,15 @@ __CLC_GROUP_CP_ASYNC_SM80_MASKED_4(float);
         dst[i] = src[i * stride];                                              \
       }                                                                        \
     }                                                                          \
+    }                                                                          \
     return event;                                                              \
   }
 
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_8(long);
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_8(ulong);
 __CLC_GROUP_CP_ASYNC_SM80_MASKED_8(double);
+
+#undef __CLC_GROUP_CP_ASYNC_SM80_MASKED_8
 
 #define __CLC_GROUP_CP_ASYNC_4(TYPE)                                           \
   _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopy(       \

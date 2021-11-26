@@ -9,13 +9,15 @@
 
 // TODO: could adsorb this into a common.h depending on future usage etc
 #define STRIDED_COPY_SUBGROUP_MASKED()                                         \
+if (__nvvm_read_ptx_sreg_lanemask_eq() & Mask){                                \
   size_t size = __clc_native_popcount(Mask);                                   \
   size_t id =                                                                  \
       __clc_native_popcount(__nvvm_read_ptx_sreg_lanemask_lt() & Mask);        \
   size_t i;                                                                    \
   for (i = id; i < num_gentypes; i += size) {                                  \
     dst[i] = src[i * stride];                                                  \
-  }
+  }                                                                            \
+}
 
 _CLC_DEF _CLC_OVERLOAD _CLC_CONVERGENT event_t __spirv_GroupAsyncCopyMasked(
     unsigned int scope, __attribute__((address_space(3))) __CLC_GENTYPE *dst,
