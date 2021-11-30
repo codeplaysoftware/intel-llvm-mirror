@@ -1,10 +1,10 @@
-//==----------- group_algorithm.hpp --- SYCL group algorithm extensions----------------==//
+//==----------- group_algorithm.hpp --- SYCL group algorithm----------------==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-//===---------------------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 
 #pragma once
 #include <CL/__spirv/spirv_ops.hpp>
@@ -816,118 +816,116 @@ __SYCL_INLINE_NAMESPACE(cl) {
   }
 
   // ---- reduce_over_group
-  template <typename T, class BinaryOperation>
-  detail::enable_if_t<(std::is_scalar<T>::value &&
-                       (detail::IsPlus<T, BinaryOperation>::value ||
-                        detail::IsMinimum<T, BinaryOperation>::value ||
-                        detail::IsMaximum<T, BinaryOperation>::value) &&
-                       detail::is_native_op<T, BinaryOperation>::value),
-                      T>
-  reduce_over_group(sub_group, sub_group_mask mask, T x,
-                    BinaryOperation binary_op) {
-    static_assert(
-        std::is_same<decltype(binary_op(x, x)), T>::value,
-        "Result type of binary_op must match reduction accumulation type.");
+template <typename T, class BinaryOperation>
+detail::enable_if_t<(std::is_scalar<T>::value &&
+(detail::IsPlus<T, BinaryOperation>::value ||
+                   detail::IsMinimum<T, BinaryOperation>::value ||
+                   detail::IsMaximum<T, BinaryOperation>::value) &&
+                     detail::is_native_op<T, BinaryOperation>::value),
+                    T>
+reduce_over_group(sub_group, sub_group_mask mask, T x,
+                  BinaryOperation binary_op) {
+  static_assert(
+      std::is_same<decltype(binary_op(x, x)), T>::value,
+      "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-    uint32_t mask_bits;
-    mask.extract_bits(mask_bits);
-    return sycl::detail::calc<T, __spv::GroupOperation::Reduce,
-                              __spv::Scope::Subgroup>(
-        typename sycl::detail::GroupOpTag<T>::type(), x, binary_op, mask_bits);
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  return sycl::detail::calc<T, __spv::GroupOperation::Reduce,
+                            __spv::Scope::Subgroup>(
+      typename sycl::detail::GroupOpTag<T>::type(), x, binary_op, mask_bits);
 #else
-    throw runtime_error("Group algorithms are not supported on host device.",
-                        PI_INVALID_DEVICE);
+  throw runtime_error("Group algorithms are not supported on host device.",
+                      PI_INVALID_DEVICE);
 #endif
-  }
+}
 
-  template <typename V, typename T, class BinaryOperation>
-  detail::enable_if_t<(std::is_scalar<V>::value && std::is_scalar<T>::value &&
-                       (detail::IsPlus<V, BinaryOperation>::value ||
-                        detail::IsMinimum<V, BinaryOperation>::value ||
-                        detail::IsMaximum<V, BinaryOperation>::value) &&
-                       detail::is_native_op<V, BinaryOperation>::value),
-                      T>
-  reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
-                    BinaryOperation binary_op) {
-    static_assert(
-        std::is_same<decltype(binary_op(init, x)), T>::value,
-        "Result type of binary_op must match reduction accumulation type.");
+template <typename V, typename T, class BinaryOperation>
+detail::enable_if_t<(std::is_scalar<V>::value && std::is_scalar<T>::value &&
+                     (detail::IsPlus<V, BinaryOperation>::value ||
+                   detail::IsMinimum<V, BinaryOperation>::value ||
+                   detail::IsMaximum<V, BinaryOperation>::value) &&
+                   detail::is_native_op<V, BinaryOperation>::value),
+                    T>
+reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
+                  BinaryOperation binary_op) {
+  static_assert(
+      std::is_same<decltype(binary_op(init, x)), T>::value,
+      "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-    return binary_op(init, reduce_over_group(g, mask, x, binary_op));
+  return binary_op(init, reduce_over_group(g, mask, x, binary_op));
 #else
-    (void)g;
-    throw runtime_error("Group algorithms are not supported on host device.",
-                        PI_INVALID_DEVICE);
+  (void)g;
+  throw runtime_error("Group algorithms are not supported on host device.",
+                      PI_INVALID_DEVICE);
 #endif
-  }
+}
 
-  // ---- joint_reduce
-  template <typename Ptr, class BinaryOperation>
-  detail::enable_if_t<
-      (detail::is_pointer<Ptr>::value &&
-       detail::is_integral<typename detail::remove_pointer<Ptr>::type>::value),
-      typename detail::remove_pointer<Ptr>::type>
-  joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last,
-               BinaryOperation binary_op) {
-    using T = typename detail::remove_pointer<Ptr>::type;
-    static_assert(
-        std::is_same<decltype(binary_op(*first, *first)), T>::value,
-        "Result type of binary_op must match reduction accumulation type.");
+// ---- joint_reduce
+template <typename Ptr, class BinaryOperation>
+detail::enable_if_t<
+    (detail::is_pointer<Ptr>::value &&
+     detail::is_integral<typename detail::remove_pointer<Ptr>::type>::value),
+    typename detail::remove_pointer<Ptr>::type>
+joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last,
+             BinaryOperation binary_op) {
+  using T = typename detail::remove_pointer<Ptr>::type;
+  static_assert(
+      std::is_same<decltype(binary_op(*first, *first)), T>::value,
+      "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-    T partial = sycl::known_identity_v<BinaryOperation, T>;
-    uint32_t mask_bits;
-    mask.extract_bits(mask_bits);
-    ptrdiff_t offset =
-        popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
-    ptrdiff_t stride = popcount(mask_bits);
-    for (Ptr p = first + offset; p < last; p += stride) {
-      partial = binary_op(partial, *p);
-    }
-    return reduce_over_group(g, mask, partial, binary_op);
-#else
-    (void)g;
-    (void)last;
-    (void)binary_op;
-    throw runtime_error("Group algorithms are not supported on host device.",
-                        PI_INVALID_DEVICE);
-#endif
+  T partial = sycl::known_identity_v<BinaryOperation, T>;
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  ptrdiff_t offset = popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
+  ptrdiff_t stride = popcount(mask_bits);
+  for (Ptr p = first + offset; p < last; p += stride) {
+    partial = binary_op(partial, *p);
   }
+  return reduce_over_group(g, mask, partial, binary_op);
+#else
+  (void)g;
+  (void)last;
+  (void)binary_op;
+  throw runtime_error("Group algorithms are not supported on host device.",
+                      PI_INVALID_DEVICE);
+#endif
+}
 
-  template <typename Ptr, typename T, class BinaryOperation>
-  detail::enable_if_t<
-      (detail::is_pointer<Ptr>::value &&
-       detail::is_integral<typename detail::remove_pointer<Ptr>::type>::value &&
-       detail::is_integral<T>::value &&
-       detail::is_native_op<typename detail::remove_pointer<Ptr>::type,
-                            BinaryOperation>::value &&
-       detail::is_native_op<T, BinaryOperation>::value),
-      T>
-  joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, T init,
-               BinaryOperation binary_op) {
-    static_assert(
-        std::is_same<decltype(binary_op(init, *first)), T>::value,
-        "Result type of binary_op must match reduction accumulation type.");
+template <typename Ptr, typename T, class BinaryOperation>
+detail::enable_if_t<
+    (detail::is_pointer<Ptr>::value &&
+     detail::is_integral<typename detail::remove_pointer<Ptr>::type>::value &&
+     detail::is_integral<T>::value &&
+     detail::is_native_op<typename detail::remove_pointer<Ptr>::type,
+                          BinaryOperation>::value &&
+     detail::is_native_op<T, BinaryOperation>::value),
+    T>
+joint_reduce(sub_group g, sub_group_mask mask, Ptr first, Ptr last, T init,
+             BinaryOperation binary_op) {
+  static_assert(
+      std::is_same<decltype(binary_op(init, *first)), T>::value,
+      "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
-    T partial = sycl::known_identity_v<BinaryOperation, T>;
-    uint32_t mask_bits;
-    mask.extract_bits(mask_bits);
-    ptrdiff_t offset =
-        popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
-    ptrdiff_t stride = popcount(mask_bits);
-    for (Ptr p = first + offset; p < last; p += stride) {
-      partial = binary_op(partial, *p);
-    }
-    return reduce_over_group(g, mask, partial, init, binary_op);
-#else
-    (void)g;
-    (void)last;
-    throw runtime_error("Group algorithms are not supported on host device.",
-                        PI_INVALID_DEVICE);
-#endif
+  T partial = sycl::known_identity_v<BinaryOperation, T>;
+  uint32_t mask_bits;
+  mask.extract_bits(mask_bits);
+  ptrdiff_t offset = popcount(mask_bits & ((1 << g.get_local_linear_id()) - 1));
+  ptrdiff_t stride = popcount(mask_bits);
+  for (Ptr p = first + offset; p < last; p += stride) {
+    partial = binary_op(partial, *p);
   }
+  return reduce_over_group(g, mask, partial, init, binary_op);
+#else
+  (void)g;
+  (void)last;
+  throw runtime_error("Group algorithms are not supported on host device.",
+                      PI_INVALID_DEVICE);
+#endif
+}
 
-  } // namespace oneapi
-  } // namespace ext
+} // namespace oneapi
+} // namespace ext
 
-  } // namespace sycl
+} // namespace sycl
 } // __SYCL_INLINE_NAMESPACE(cl)
