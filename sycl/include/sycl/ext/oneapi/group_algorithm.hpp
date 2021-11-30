@@ -798,7 +798,9 @@ group_barrier(sycl::sub_group, sub_group_mask mask,
 // ---- reduce_over_group
 template <typename T, class BinaryOperation>
 detail::enable_if_t<(std::is_scalar<T>::value &&
-                     detail::is_integral<T>::value &&
+(detail::IsPlus<V, BinaryOperation>::value ||
+                   detail::IsMinimum<V, BinaryOperation>::value ||
+                   detail::IsMaximum<V, BinaryOperation>::value)) &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
 reduce_over_group(sub_group, sub_group_mask mask, T x,
@@ -818,33 +820,12 @@ reduce_over_group(sub_group, sub_group_mask mask, T x,
 #endif
 }
 
-template <typename T, class BinaryOperation>
-detail::enable_if_t<(detail::is_vec<T>::value &&
-                     detail::is_integral<T>::value &&
-                     (detail::IsPlus<T, BinaryOperation>::value ||
-                   detail::IsMinimum<T, BinaryOperation>::value ||
-                   detail::IsMaximum<T, BinaryOperation>::value)),
-                    T>
-reduce_over_group(sub_group g, sub_group_mask mask, T x,
-                  BinaryOperation binary_op) {
-  static_assert(
-      std::is_same<decltype(binary_op(x[0], x[0])),
-                   typename T::element_type>::value,
-      "Result type of binary_op must match reduction accumulation type.");
-  T result;
-  for (int s = 0; s < x.get_size(); ++s) {
-    result[s] = reduce_over_group(g, mask, x[s], binary_op);
-  }
-  return result;
-}
-
 template <typename V, typename T, class BinaryOperation>
 detail::enable_if_t<(std::is_scalar<V>::value && std::is_scalar<T>::value &&
-                     detail::is_integral<V>::value &&
-                     detail::is_integral<T>::value &&
                      (detail::IsPlus<V, BinaryOperation>::value ||
                    detail::IsMinimum<V, BinaryOperation>::value ||
-                   detail::IsMaximum<V, BinaryOperation>::value)),
+                   detail::IsMaximum<V, BinaryOperation>::value)) &&
+                   detail::is_native_op<T, BinaryOperation>::value),
                     T>
 reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
                   BinaryOperation binary_op) {
@@ -853,32 +834,6 @@ reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
       "Result type of binary_op must match reduction accumulation type.");
 #ifdef __SYCL_DEVICE_ONLY__
   return binary_op(init, reduce_over_group(g, mask, x, binary_op));
-#else
-  (void)g;
-  throw runtime_error("Group algorithms are not supported on host device.",
-                      PI_INVALID_DEVICE);
-#endif
-}
-
-template <typename V, typename T, class BinaryOperation>
-detail::enable_if_t<(detail::is_vec<V>::value && detail::is_vec<T>::value &&
-                     detail::is_integral<V>::value &&
-                     detail::is_integral<T>::value &&
-                     detail::is_native_op<V, BinaryOperation>::value &&
-                     detail::is_native_op<T, BinaryOperation>::value),
-                    T>
-reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
-                  BinaryOperation binary_op) {
-  static_assert(
-      std::is_same<decltype(binary_op(init[0], x[0])),
-                   typename T::element_type>::value,
-      "Result type of binary_op must match reduction accumulation type.");
-#ifdef __SYCL_DEVICE_ONLY__
-  T result = init;
-  for (int s = 0; s < x.get_size(); ++s) {
-    result[s] = binary_op(init[s], reduce_over_group(g, mask, x[s], binary_op));
-  }
-  return result;
 #else
   (void)g;
   throw runtime_error("Group algorithms are not supported on host device.",
