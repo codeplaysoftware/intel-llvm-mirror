@@ -14,10 +14,8 @@ _CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void __spirv_GroupWaitEvents(unsigned int
                                                     event_t *event_list) {
   if (__nvvm_reflect("__CUDA_ARCH") >= 800) {
     __nvvm_cp_async_wait_group(0);
-    __spirv_ControlBarrier(scope, scope, SequentiallyConsistent);
-  } else {
-    __spirv_ControlBarrier(scope, scope, SequentiallyConsistent);
   }
+  __spirv_ControlBarrier(scope, scope, SequentiallyConsistent);
 }
 
 _CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void __spirv_GroupWaitEventsMasked(unsigned int scope,
@@ -25,8 +23,6 @@ _CLC_OVERLOAD _CLC_DEF _CLC_CONVERGENT void __spirv_GroupWaitEventsMasked(unsign
                                                     event_t *event_list, uint Mask) {
   if (__nvvm_reflect("__CUDA_ARCH") >= 800) {
     __nvvm_cp_async_wait_group(0);
-    __spirv_ControlBarrierMasked(scope, scope, SequentiallyConsistent, Mask);
-  } else {
-    __spirv_ControlBarrierMasked(scope, scope, SequentiallyConsistent, Mask);
   }
+  __spirv_ControlBarrierMasked(scope, scope, SequentiallyConsistent, Mask);
 }
