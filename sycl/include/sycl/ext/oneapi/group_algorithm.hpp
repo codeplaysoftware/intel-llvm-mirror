@@ -814,13 +814,21 @@ __SYCL_INLINE_NAMESPACE(cl) {
                               PI_INVALID_DEVICE);
 #endif
   }
+using cl::sycl::detail::bool_constant;
 
-  // ---- reduce_over_group
+template <typename T, class BinaryOperation>
+using IsRedux = bool_constant<detail::is_integral<T>::value &&
+                                  detail::IsBitAND<T, BinaryOperation>::value ||
+                              detail::IsBitOR<T, BinaryOperation>::value ||
+                              detail::IsBitXOR<T, BinaryOperation>::value ||
+                              (detail::IsPlus<T, BinaryOperation>::value ||
+                               detail::IsMinimum<T, BinaryOperation>::value ||
+                               detail::IsMaximum<T, BinaryOperation>::value)>;
+
+// ---- reduce_over_group
 template <typename T, class BinaryOperation>
 detail::enable_if_t<(std::is_scalar<T>::value &&
-(detail::IsPlus<T, BinaryOperation>::value ||
-                   detail::IsMinimum<T, BinaryOperation>::value ||
-                   detail::IsMaximum<T, BinaryOperation>::value) &&
+                     IsRedux<T, BinaryOperation>::value &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
 reduce_over_group(sub_group, sub_group_mask mask, T x,
@@ -842,10 +850,8 @@ reduce_over_group(sub_group, sub_group_mask mask, T x,
 
 template <typename V, typename T, class BinaryOperation>
 detail::enable_if_t<(std::is_scalar<V>::value && std::is_scalar<T>::value &&
-                     (detail::IsPlus<V, BinaryOperation>::value ||
-                   detail::IsMinimum<V, BinaryOperation>::value ||
-                   detail::IsMaximum<V, BinaryOperation>::value) &&
-                   detail::is_native_op<V, BinaryOperation>::value),
+                     IsRedux<T, BinaryOperation>::value &&
+                     detail::is_native_op<V, BinaryOperation>::value),
                     T>
 reduce_over_group(sub_group g, sub_group_mask mask, V x, T init,
                   BinaryOperation binary_op) {

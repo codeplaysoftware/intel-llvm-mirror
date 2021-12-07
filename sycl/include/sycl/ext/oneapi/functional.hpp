@@ -120,6 +120,20 @@ __SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, UMax, sycl::maximum<T>)
 __SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, IAdd, sycl::plus<T>)
 __SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, IAdd, sycl::plus<T>)
 
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseOr,
+                            sycl::bit_or<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseOr,
+                            sycl::bit_or<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseXor,
+                            sycl::bit_xor<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseXor,
+                            sycl::bit_xor<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpISigned, NonUniformBitwiseAnd,
+                            sycl::bit_and<T>)
+__SYCL_CALC_OVERLOAD_MASKED(GroupOpIUnsigned, NonUniformBitwiseAnd,
+                            sycl::bit_and<T>)
+
+
 #undef __SYCL_CALC_OVERLOAD
 #undef __SYCL_CALC_OVERLOAD_MASKED
 
