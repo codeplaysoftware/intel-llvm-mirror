@@ -158,12 +158,17 @@ class Slice {
   /// split.
   PointerIntPair<Use *, 1, bool> UseAndIsSplittable;
 
+  // If it has a lower bound type from the visit
+  Type *LowerBoundType = 0;
+
 public:
   Slice() = default;
 
-  Slice(uint64_t BeginOffset, uint64_t EndOffset, Use *U, bool IsSplittable)
+  Slice(uint64_t BeginOffset, uint64_t EndOffset, Use *U,
+      bool IsSplittable, Type *LBT = 0)
       : BeginOffset(BeginOffset), EndOffset(EndOffset),
-        UseAndIsSplittable(U, IsSplittable) {}
+        UseAndIsSplittable(U, IsSplittable),
+        LowerBoundType(LBT) {}
 
   uint64_t beginOffset() const { return BeginOffset; }
   uint64_t endOffset() const { return EndOffset; }
@@ -175,6 +180,9 @@ public:
 
   bool isDead() const { return getUse() == nullptr; }
   void kill() { UseAndIsSplittable.setPointer(nullptr); }
+
+  Type *getLowerBoundType() const { return LowerBoundType; }
+
 
   /// Support for ordering ranges.
   ///
@@ -645,19 +653,18 @@ static Value *foldPHINodeOrSelectInst(Instruction &I) {
   return foldSelectInst(cast<SelectInst>(I));
 }
 
-#include "AggPeeling.hpp"
-
 /// Builder for the alloca slices.
 ///
 /// This class builds a set of alloca slices by recursively visiting the uses
 /// of an alloca and making a slice for each load and store at each offset.
-class AllocaSlices::SliceBuilder : public PtrUseVisitor<SliceBuilder> {
-  friend class PtrUseVisitor<SliceBuilder>;
+class AllocaSlices::SliceBuilder : public PtrUseVisitor<SliceBuilder, true> {
+  friend class PtrUseVisitor<SliceBuilder, true>;
   friend class InstVisitor<SliceBuilder>;
 
-  using Base = PtrUseVisitor<SliceBuilder>;
+  using Base = PtrUseVisitor<SliceBuilder, true>;
 
   const uint64_t AllocSize;
+  Type *AllocatedType;
   AllocaSlices &AS;
 
   SmallDenseMap<Instruction *, unsigned> MemTransferSliceMap;
@@ -668,17 +675,13 @@ class AllocaSlices::SliceBuilder : public PtrUseVisitor<SliceBuilder> {
 
 public:
   SliceBuilder(const DataLayout &DL, AllocaInst &AI, AllocaSlices &AS)
-      : PtrUseVisitor<SliceBuilder>(DL),
+      : PtrUseVisitor<SliceBuilder, true>(DL),
         AllocSize(DL.getTypeAllocSize(AI.getAllocatedType()).getFixedSize()),
+        AllocatedType(AI.getAllocatedType()),
         AS(AS) {}
 
   PtrInfo visitPtr(Instruction &I) {
     PtrInfo PtrI = Base::visitPtr(I);
-
-    if (PtrI.isAborted() && SROAAggPeeling) {
-      peel::AllocaPeels AP(DL, cast<AllocaInst>(I), AS, PtrI);
-    }
-
     return PtrI;
   }
 
@@ -705,6 +708,23 @@ private:
     uint64_t BeginOffset = Offset.getZExtValue();
     uint64_t EndOffset = BeginOffset + Size;
 
+    if (LowerBoundType) {
+      // FIXME do we need to walk the AllocatedType?
+      EndOffset = BeginOffset + DL.getTypeStoreSize(LowerBoundType);
+      #if 0
+      if (U) {
+        LowerBoundType->dump();
+        U->get()->dump();
+        U->getUser()->dump();
+        llvm::errs() << "-> " << DL.getTypeStoreSize(LowerBoundType) << "; "
+            << BeginOffset << " " << EndOffset << "\n";
+      }
+      else
+        llvm::errs() << "U is null\n";
+      #endif
+     }
+       
+
     // Clamp the end offset to the end of the allocation. Note that this is
     // formulated to handle even the case where "BeginOffset + Size" overflows.
     // This may appear superficially to be something we could ignore entirely,
@@ -721,7 +741,8 @@ private:
       EndOffset = AllocSize;
     }
 
-    AS.Slices.push_back(Slice(BeginOffset, EndOffset, U, IsSplittable));
+    AS.Slices.push_back(Slice(BeginOffset, EndOffset, U,
+        IsSplittable, LowerBoundType));
   }
 
   void visitBitCastInst(BitCastInst &BC) {
@@ -2082,8 +2103,6 @@ static bool isIntegerWideningViableForSlice(const Slice &S,
 /// promote the resulting alloca.
 static bool isIntegerWideningViable(Partition &P, Type *AllocaTy,
                                     const DataLayout &DL) {
-  llvm::errs() << " ----> ";
-  AllocaTy->dump();
   uint64_t SizeInBits = DL.getTypeSizeInBits(AllocaTy).getFixedSize();
   // Don't create integer types larger than the maximum bitwidth.
   if (SizeInBits > IntegerType::MAX_INT_BITS)
@@ -4332,6 +4351,8 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
     ++NumNewAllocas;
   }
 
+  //llvm::errs() << " ----> ";
+  //SliceTy->dump();
   LLVM_DEBUG(dbgs() << "Rewriting alloca partition "
                     << "[" << P.beginOffset() << "," << P.endOffset()
                     << ") to: " << *NewAI << "\n");
@@ -4418,6 +4439,14 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
   return NewAI;
 }
 
+static bool hasLowerBoundType(Partition &P)
+{
+  for (Slice &S: P)
+    if (S.getLowerBoundType())
+      return true;
+  return false;
+}
+
 /// Walks the slices of an alloca and form partitions based on them,
 /// rewriting each of their uses.
 bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
@@ -4500,6 +4529,12 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
 
   // Rewrite each partition.
   for (auto &P : AS.partitions()) {
+    if (hasLowerBoundType(P)) {
+      llvm::errs() << "Skipping partition [" << P.beginOffset() << "," <<
+        P.endOffset() << "]\n";
+      ++NumPartitions;
+      continue;
+    }
     if (AllocaInst *NewAI = rewritePartition(AI, AS, P)) {
       Changed = true;
       if (NewAI != &AI) {
@@ -4739,7 +4774,7 @@ PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
                                 AssumptionCache &RunAC) {
   LLVM_DEBUG(dbgs() << "SROA function: " << F.getName() << "\n");
   //errs() << "SROA function: " << F.getName() << "\n";
-  F.dump();
+  //F.dump();
   C = &F.getContext();
   DT = &RunDT;
   AC = &RunAC;
