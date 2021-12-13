@@ -1,4 +1,4 @@
-//===- AggPeeling.cpp - Aggregates Peeling   ------------------------------===//
+//===- AggPeel.cpp - Aggregates Peeling   ------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -14,9 +14,104 @@
 /// bails out as soon as index are not predictable. The leaves partially
 /// breakable structs untouched.
 ///
-//===----------------------------------------------------------------------===//
 
+#include "llvm/Transforms/Scalar/AggPeel.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/PointerIntPair.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/SmallBitVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/ADT/iterator.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/Analysis/AssumptionCache.h"
+#include "llvm/Analysis/GlobalsModRef.h"
+#include "llvm/Analysis/Loads.h"
+#include "llvm/Analysis/PtrUseVisitor.h"
+#include "llvm/Config/llvm-config.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/ConstantFolder.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DIBuilder.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Dominators.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/GetElementPtrTypeIterator.h"
+#include "llvm/IR/GlobalAlias.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/InstVisitor.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Metadata.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Operator.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Use.h"
+#include "llvm/IR/User.h"
+#include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/Pass.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Compiler.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/MathExtras.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Utils/Local.h"
+#include "llvm/Transforms/Utils/PromoteMemToReg.h"
+#include <algorithm>
+#include <cassert>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <iterator>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+
+using namespace llvm;
+
+#define DEBUG_TYPE "aggpeel"
 namespace peel {
+
+static Value *foldSelectInst(SelectInst &SI) {
+  // If the condition being selected on is a constant or the same value is
+  // being selected between, fold the select. Yes this does (rarely) happen
+  // early on.
+  if (ConstantInt *CI = dyn_cast<ConstantInt>(SI.getCondition()))
+    return SI.getOperand(1 + CI->isZero());
+  if (SI.getOperand(1) == SI.getOperand(2))
+    return SI.getOperand(1);
+
+  return nullptr;
+}
+
+/// A helper that folds a PHI node or a select.
+static Value *foldPHINodeOrSelectInst(Instruction &I) {
+  if (PHINode *PN = dyn_cast<PHINode>(&I)) {
+    // If PN merges together the same value, return that value.
+    return PN->hasConstantValue();
+  }
+  return foldSelectInst(cast<SelectInst>(I));
+}
 
 /// A used slice of an alloca.
 ///
@@ -85,8 +180,7 @@ public:
 class AllocaPeels {
 public:
   /// Construct the peels of a particular alloca.
-  AllocaPeels(const DataLayout &DL, AllocaInst &AI, AllocaSlices &AS,
-              detail::PtrUseVisitorBase::PtrInfo &PtrI);
+  AllocaPeels(const DataLayout &DL, AllocaInst &AI);
 
   /// Test whether a pointer to the allocation escapes our analysis.
   ///
@@ -143,14 +237,14 @@ public:
   ArrayRef<Use *> getDeadOperands() const { return DeadOperands; }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  // void print(raw_ostream &OS, const_iterator I, StringRef Indent = "  ") const;
-  // void printPeelSlice(raw_ostream &OS, const_iterator I,
-  //                     StringRef Indent = "  ") const;
-  // void printUse(raw_ostream &OS, const_iterator I,
-  //               StringRef Indent = "  ") const;
-  // void print(raw_ostream &OS) const;
-  // void dump(const_iterator I) const;
-  // void dump() const;
+   void print(raw_ostream &OS, const_iterator I, StringRef Indent = "  ") const;
+   void printPeelSlice(raw_ostream &OS, const_iterator I,
+                       StringRef Indent = "  ") const;
+   void printUse(raw_ostream &OS, const_iterator I,
+                 StringRef Indent = "  ") const;
+   void print(raw_ostream &OS) const;
+   void dump(const_iterator I) const;
+   void dump() const;
 #endif
 
 private:
@@ -243,6 +337,7 @@ private:
         map_range(IdxList, [](APInt &I) { return I.getZExtValue(); });
     Idxs.insert(Idxs.begin(), ToUIntMap.begin(), ToUIntMap.end());
 
+#if 0
     while (Ty != FinalType) {
       Idxs.push_back(0);
       if (!(isa<StructType>(Ty) ||  isa<ArrayType>(Ty))) {
@@ -251,6 +346,7 @@ private:
       }
       Ty = Ty->getContainedType(0);
     }
+#endif
 
     return Ty;
   }
@@ -276,10 +372,7 @@ private:
     if (LowerBoundType) {
       Slice.setEndOffset(Slice.beginOffset() + DL.getTypeStoreSize(Ty));
       if (U) {
-        LowerBoundType->dump();
-        U->get()->dump();
-        U->getUser()->dump();
-        llvm::errs() << "-> " << DL.getTypeStoreSize(Ty) << "; " << Slice.beginOffset() << " " << Slice.endOffset() << "\n";
+        llvm::errs() << "Here I am\n";
       }
     } else {
       Slice.setEndOffset(Slice.beginOffset() + Size);
@@ -594,15 +687,56 @@ private:
   void visitInstruction(Instruction &I) { PI.setAborted(&I); }
 };
 
-AllocaPeels::AllocaPeels(const DataLayout &DL, AllocaInst &AI, AllocaSlices &AS,
-                         detail::PtrUseVisitorBase::PtrInfo &PtrI)
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+
+void AllocaPeels::print(raw_ostream &OS, const_iterator I,
+                         StringRef Indent) const {
+  printPeelSlice(OS, I, Indent);
+  OS << "\n";
+  printUse(OS, I, Indent);
+}
+
+void AllocaPeels::printPeelSlice(raw_ostream &OS, const_iterator I,
+                              StringRef Indent) const {
+  OS << Indent << "[" << I->beginOffset() << "," << I->endOffset() << ")"
+     << " slice #" << (I - begin());
+}
+
+void AllocaPeels::printUse(raw_ostream &OS, const_iterator I,
+                            StringRef Indent) const {
+  OS << Indent << "  used by: " << *I->getUse()->getUser() << "\n";
+}
+
+void AllocaPeels::print(raw_ostream &OS) const {
+  if (PointerEscapingInstr) {
+    OS << "Can't analyze slices for alloca: " << AI << "\n";
+    if (isAborted())
+      OS   << "  A pointer to this alloca escaped (due to abort) by:\n";
+    else
+      OS   << "  A pointer to this alloca escaped by:\n";
+    OS << "  " << *PointerEscapingInstr << "\n";
+    return;
+  }
+
+  OS << "AggPeel Slices of alloca: " << AI << "\n";
+  for (const_iterator I = begin(), E = end(); I != E; ++I)
+    print(OS, I);
+}
+
+LLVM_DUMP_METHOD void AllocaPeels::dump(const_iterator I) const {
+  print(dbgs(), I);
+}
+LLVM_DUMP_METHOD void AllocaPeels::dump() const { print(dbgs()); }
+
+#endif // !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+AllocaPeels::AllocaPeels(const DataLayout &DL, AllocaInst &AI)
     :
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
       AI(AI),
 #endif
       PointerEscapingInstr(nullptr) {
   AggPeelerBuilder PB(DL, AI, *this);
-  PtrI = PB.visitPtr(AI);
+  detail::PtrUseVisitorBase::PtrInfo PtrI = PB.visitPtr(AI);
   if (PtrI.isEscaped() || PtrI.isAborted()) {
     return;
   }
@@ -612,15 +746,122 @@ AllocaPeels::AllocaPeels(const DataLayout &DL, AllocaInst &AI, AllocaSlices &AS,
   // Sort the uses. This arranges for the offsets to be in ascending order,
   // and the sizes to be in descending order.
   llvm::stable_sort(PeelSlices);
-
-  AS.Slices.clear();
-  for (PeelSlice &S : PeelSlices) {
-    AS.Slices.push_back(
-        Slice(S.beginOffset(), S.endOffset(), S.getUse(), false));
-  }
-  AS.DeadUsers = std::move(DeadUsers);
-  AS.DeadUseIfPromotable = std::move(DeadUseIfPromotable);
-  AS.DeadOperands = std::move(DeadOperands);
 }
 
+
+class AggPeel {
+  LLVMContext *C = nullptr;
+  DominatorTree *DT = nullptr;
+  AssumptionCache *AC = nullptr;
+
+  /// Worklist of alloca instructions to rewrite
+  SetVector<AllocaInst *, SmallVector<AllocaInst *, 16>> Worklist;
+
+  bool runOnAlloca(AllocaInst &AI);
+public:
+  PreservedAnalyses runImpl(Function &, DominatorTree &, AssumptionCache &);
+};
+
+bool AggPeel::runOnAlloca(AllocaInst &AI) {
+  LLVM_DEBUG(dbgs() << "AggPeel alloca: " << AI << "\n");
+      
+  // Special case dead allocas, as they're trivial.
+  if (AI.use_empty()) { 
+    AI.eraseFromParent();
+    return true;
+  }
+  const DataLayout &DL = AI.getModule()->getDataLayout();
+
+  // Skip alloca forms that this analysis can't handle.
+  auto *AT = AI.getAllocatedType();
+  if (AI.isArrayAllocation() || !AT->isSized() || isa<ScalableVectorType>(AT) ||
+      DL.getTypeAllocSize(AT).getFixedSize() == 0)
+    return false;
+
+  peel::AllocaPeels AP(DL, AI);
+  // AP has the slices
+  LLVM_DEBUG(AP.print(dbgs()));
+  return false;
+}
+
+
+
+PreservedAnalyses AggPeel::runImpl(Function &F, DominatorTree &RunDT,
+                                AssumptionCache &RunAC) {
+  LLVM_DEBUG(dbgs() << "AggPeel function: " << F.getName() << "\n");
+  C = &F.getContext();
+  DT = &RunDT;
+  AC = &RunAC;
+
+  bool Changed = false;
+
+  BasicBlock &EntryBB = F.getEntryBlock();
+  for (BasicBlock::iterator I = EntryBB.begin(), E = std::prev(EntryBB.end());
+       I != E; ++I) {
+    if (AllocaInst *AI = dyn_cast<AllocaInst>(I)) {
+      if (isa<ScalableVectorType>(AI->getAllocatedType())) {
+        //if (isAllocaPromotable(AI))
+        //  PromotableAllocas.push_back(AI);
+      } else {
+        Changed |= runOnAlloca(*AI);
+      }
+    }
+  }
+
+  if (!Changed)
+    return PreservedAnalyses::all();
+
+  PreservedAnalyses PA;
+  PA.preserveSet<CFGAnalyses>();
+  return PA;
+}
 } // namespace peel
+
+PreservedAnalyses AggPeelPass::run(Function &F, FunctionAnalysisManager &AM) {
+  peel::AggPeel P;
+  return P.runImpl(F, AM.getResult<DominatorTreeAnalysis>(F),
+                 AM.getResult<AssumptionAnalysis>(F));
+}
+
+///
+class AggPeelLegacyPass : public FunctionPass {
+  peel::AggPeel P;
+
+public:
+  static char ID;
+
+  AggPeelLegacyPass() : FunctionPass(ID) {
+    initializeAggPeelLegacyPassPass(*PassRegistry::getPassRegistry());
+  }
+
+  bool runOnFunction(Function &F) override {
+    if (skipFunction(F))
+      return false;
+
+    auto PA = P.runImpl(
+        F, getAnalysis<DominatorTreeWrapperPass>().getDomTree(),
+        getAnalysis<AssumptionCacheTracker>().getAssumptionCache(F));
+    return !PA.areAllPreserved();
+  }
+
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.addRequired<AssumptionCacheTracker>();
+    AU.addRequired<DominatorTreeWrapperPass>();
+    AU.addPreserved<GlobalsAAWrapperPass>();
+    AU.setPreservesCFG();
+  }
+
+  StringRef getPassName() const override { return "AggPeel"; }
+};
+
+char AggPeelLegacyPass::ID = 0;
+
+FunctionPass *llvm::createAggPeelPass() { return new AggPeelLegacyPass(); }
+
+INITIALIZE_PASS_BEGIN(AggPeelLegacyPass, "aggpeel",
+                      "Peel aggregates into separate allocas", false, false)
+INITIALIZE_PASS_DEPENDENCY(AssumptionCacheTracker)
+INITIALIZE_PASS_DEPENDENCY(DominatorTreeWrapperPass)
+INITIALIZE_PASS_END(AggPeelLegacyPass, "aggpeel",
+    "Peel aggregates into separate allocas",
+                    false, false)

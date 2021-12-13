@@ -37,6 +37,7 @@ void llvm::initializeScalarOpts(PassRegistry &Registry) {
   initializeAnnotationRemarksLegacyPass(Registry);
   initializeBDCELegacyPassPass(Registry);
   initializeAlignmentFromAssumptionsPass(Registry);
+  initializeAggPeelLegacyPassPass(Registry);
   initializeCallSiteSplittingLegacyPassPass(Registry);
   initializeConstantHoistingLegacyPassPass(Registry);
   initializeConstraintEliminationPass(Registry);

@@ -65,6 +65,7 @@ void initializeAAResultsWrapperPassPass(PassRegistry&);
 void initializeADCELegacyPassPass(PassRegistry&);
 void initializeAddDiscriminatorsLegacyPassPass(PassRegistry&);
 void initializeAddFSDiscriminatorsPass(PassRegistry &);
+void initializeAggPeelLegacyPassPass(PassRegistry &);
 void initializeModuleAddressSanitizerLegacyPassPass(PassRegistry &);
 void initializeASanGlobalsMetadataWrapperPassPass(PassRegistry &);
 void initializeAddressSanitizerLegacyPassPass(PassRegistry &);

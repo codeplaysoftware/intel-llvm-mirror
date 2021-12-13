@@ -115,6 +115,12 @@ FunctionPass *createSROAPass();
 
 //===----------------------------------------------------------------------===//
 //
+// AggPeel - Peel aggregates out of aggregates
+//
+FunctionPass *createAggPeelPass();
+
+//===----------------------------------------------------------------------===//
+//
 // InductiveRangeCheckElimination - Transform loops to elide range checks on
 // linear functions of the induction variable.
 //
