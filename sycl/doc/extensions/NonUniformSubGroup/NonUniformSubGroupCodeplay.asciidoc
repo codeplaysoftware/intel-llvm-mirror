@@ -264,25 +264,18 @@ namespace ext::oneapi {
 == Group Functions
 
 The `sycl::is_group` function should be update to reflect that `opportunistic_group`, `ballot_group`, and `cluster_group` are now also groups.
-This will also mean updating some template functions that used is_group to disable 
+This will also mean updating some template functions that used is_group to disable template specializations.
 
-[source, c++]
-----
-is_group;
-group_barrier;
-broadcast;
-----
+`sycl::group_barrier` and `sycl::broadcast` should be updated to work with all the group types.
 
 == Group Algorithms
 
-A subset of the group algorithms have been chosen to reduce the scope of the extension.
-The other algorithms could be added later.
+A subset of the group algorithms have been chosen to reduce the scope of the extension:
 
-[source, c++]
-----
-select;
-reduce;
-----
+* `sycl::reduce` should be included since it covers many general uses.
+* `sycl::select` should be included to make the aggregate atomics example possible.
+
+Other algorithms could be added later.
 
 == Questions
 . What happens when work-items in different control-flow call get_opportunistic_group?
