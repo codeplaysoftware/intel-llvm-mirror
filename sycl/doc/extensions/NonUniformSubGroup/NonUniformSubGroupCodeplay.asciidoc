@@ -1,0 +1,292 @@
+= SYCL_EXT_ONEAPI_NEW_GROUPS
+
+== Introduction
+
+To fully exploit the available resources, modern hardware architectures allow for further sub-divisions of sub-groups. 
+Managing synchronization in divergent control-flow can become awkward, especially when programming library code.
+This proposal introduces new classes to synchronize sub-divisions of SYCL sub-groups.
+These new classes can be used as function arguments to convey exactly what group the function is expecting, simplying the interface and greatly reducing the amount of delicate wording needed in function documentation.
+The group functions and algorithms will also be updated to simplify use of these groups.
+
+== The `opportunistic_group` class
+
+Possible alternative name - `reactive_group`
+
+Divergent control flow and independent forward progress can lead to only a subset of a sub-group executing the same instruction in lock-step.
+In some cases it may be helpful to capture this group and use it for some opportunistic optimization.
+One example could be to aggregate an atomic operation across the work-items in a sub-group ready to perform the atomic, thus reducing the contention on the atomic.
+The creation of an `opportunistic_group` does not require any synchronization because the work-items are implicitly executing in lock-step.
+
+The following example shows an atomic pointer being incremented.
+It is expected that all the work-items in the sub_group will increment the atomic value, but we opportunistically capture the groups of threads as they arrive to this point in the control flow.
+
+[source, c++]
+----
+template <sycl::memory_order order, sycl::memory_scope scope, sycl::access::address_space addr_space>
+int atomic_aggregate_inc(sycl::sub_group sub_group, sycl::atomic_ref<int, order, scope, addr_space> ptr) {
+    sycl::ext::oneapi::opportunistic_group active_group = sub_group.get_opportunistic_group();
+    int count = active_group.get_local_linear_range();
+    int old_value;
+    if (active_group.leader()) {
+        old_value = ptr.fetch_add(count);
+    }
+    // return the value the individual work-item might have received if it had worked alone.
+    auto index_in_group = active_group.get_local_linear_id();
+    return sycl::select_from_group(active_group, old_value, 0) + index_in_group; 
+}
+----
+
+`opportunisic_group` should *not* be used to group the work-items that follow the same control flow.
+Due to independent forward progress, there is no guarentee that work-items will remain in lock-step, even when there is no divergence.
+To group work-items following a common control flow, use a `ballot_group`.
+
+
+The `opportunistic_group` class would have the following interface:
+
+[source, c++]
+----
+namespace sycl::ext::oneapi {
+class opportunistic_group {
+public:
+    using id_type = id<1>;
+    using range_type = range<1>;
+    using linear_id_type = uint32_t;
+    static constexpr int dimensions = 1;
+    static constexpr sycl::memory_scope fence_scope =
+        sycl::memory_scope::non_uniform_sub_group;
+    
+    // get the id within the opportunistic-group
+    id_type get_local_id() const;
+    // get the id within the opportunistic-group
+    linear_id_type get_local_linear_id() const;
+    // get the size of the opportunistic-group
+    range_type get_local_range() const;
+    // get the size of the opportunistic-group
+    linear_id_type get_local_linear_range() const;
+    // true for only one work-item in the group
+    bool leader() const;
+};
+}
+----
+
+NOTE: `opportunistic_group` does not have a group id or group range because the idea of other divisions of the sub_group doesn't have much meaning.
+
+== The `ballot_group` class
+
+Currently in SYCL the control flow of a group must be converged to synchronize the work-items in the group.
+This can be very lead to the awkward breaking up of if-statements to insert synchronization points.
+A ballot-group will allow the programmer to group the work-items that match a runtime predicate, allowing for the synchronization of work-items following the same control flow.
+The creation of a ballot-group requires the synchronization of the source group since details of the other work-items in the ballot-group will be broadcast to participating work-items.
+
+In the following example a sub-group is split up and one branch of the control flow performs a group barrier with a subset of the sub-group. This subset is then further subdivided.
+[source, c++]
+----
+auto sub_group = it.get_sub_group();
+auto will_branch = sub_group.get_local_linear_id() % 2 == 0;
+// get group representing the subset of the sub-group that took the branch
+sycl::ext::oneapi::ballot_group inner = sub_group.get_ballot_group(sub_group, will_branch);
+if (will_branch)
+{
+  // synchronize across the work-items that took the branch
+  sycl::group_barrier(inner);
+
+  // reduce across subset of outer work-items that took the branch
+  float ix = sycl::reduce(inner, x, plus<>());
+
+  // once again diverge the groups without fear.
+  auto will_branch_further = inner.get_local_linear_id() < 8;
+  auto inner_inner = sub_group.get_ballot_group(inner, will_branch_further);
+  if (will_branch_further) {
+      // still synchronizing without deadlock
+      sycl::group_barrier(inner_inner);
+  }
+}
+
+// take a subset of an opportunistic group
+auto matching_active_items = sub_group.get_ballot_group(
+    sub_group.get_opportunistic_group(), some_predicate());
+----
+
+This will allow functions to cause divergent control flow without having to consider how to converge again to synchronize.
+
+The `ballot_group` class would have the following interface:
+
+[source, c++]
+----
+namespace sycl::ext::oneapi {
+class ballot_group {
+public:
+    using id_type = id<1>;
+    using range_type = range<1>;
+    using linear_id_type = uint32_t;
+    static constexpr int dimensions = 1;
+    static constexpr sycl::memory_scope fence_scope =
+        sycl::memory_scope::non_uniform_sub_group;
+    
+    // get the id within the ballot-group
+    id_type get_local_id() const;
+    // get the id within the ballot-group
+    linear_id_type get_local_linear_id() const;
+    // get the size of the ballot-group
+    range_type get_local_range() const;
+    // get the size of the ballot-group
+    linear_id_type get_local_linear_range() const;
+    // true for only one work-item in the group
+    bool leader() const;
+};
+}
+----
+
+NOTE: `ballot_group` does not have a group id or group range because its obvious this is one of two groups and an ordering of the groups doesn't have meaning.
+
+== The `cluster_group` class
+
+With the introduction on independent forward progress in sub_groups comes the possibility to partition sub-groups into smaller groups that work independently.
+This could be acheived with a `ballot_group`, but when the group size is known at compile-time it can be used for optimizations such as loop unrolling.
+
+[source, c++]
+----
+// sum the buffer in groups of 8
+constexpr std::size_t cluster_size = 8;
+auto sub_group = it.get_sub_group();
+auto cluster = sub_group.get_cluster_group<cluster_size>();
+// compiler knows that exactly 3 shuffles are needed to sum the values
+auto result = sycl::reduce(cluster, buf[it.get_local_linear_id()], sycl::plus<>());
+if (cluster.leader()){
+    buf[it.get_local_linear_id()/cluster_size] = result;
+}
+----
+
+To allow for optimizations, cluster-groups would have a number of properties:
+
+* The work items in a cluster will be contiguous in the sub_group.
+* Clusters sizes must be powers of two, and less than or equal to `get_max_local_range`.
+* For a given `cluster_size`, a work-item will always be in a single cluster and always the same cluster.
+* If `get_local_linear_range` is not evenly divisible by `cluster_size` then the behaviour is undefined.
+
+These properties also mean that no synchronization is needed to created a cluster-group, a work-item can independently calculate the cluster it belongs to, meaning that cluster-groups can be created in divergent control-flow.
+
+Another use of the cluster group would be to provide an interface with a compile-time known size of cluster-group as an argument.
+
+[source, c++]
+----
+void func_that_needs_4_threads(sycl::ext::oneapi::cluster_group<4> group);
+----
+
+
+The `cluster_group` class would have the following interface:
+
+[source, c++]
+----
+
+namespace sycl::ext::oneapi {
+template <std::size_t cluster_size>
+class cluster_group {
+public:
+    using id_type = id<1>;
+    using range_type = range<1>;
+    using linear_id_type = uint32_t;
+    static constexpr int dimensions = 1;
+    static constexpr sycl::memory_scope fence_scope =
+        sycl::memory_scope::non_uniform_sub_group;
+    
+    // get the id within the cluster-group
+    id_type get_local_id() const;
+    // get the id within the cluster-group
+    linear_id_type get_local_linear_id() const;
+    // get the size of the cluster-group
+    range_type get_local_range() const;
+    // get the size of the cluster-group
+    linear_id_type get_local_linear_range() const;
+
+    id_type get_group_id() const;
+    range_type get_group_range() const;
+    linear_id_type get_group_linear_id() const;
+    linear_id_type get_group_range_id() const;
+
+    // true for only one work-item in the group
+    bool leader() const;
+};
+}
+----
+
+== Changes to `sub_group`
+
+To create the new groups, the `sub_group` class could extended to add new member functions.
+
+[source, c++]
+----
+namespace sycl::ext::oneapi {
+class sub_group{
+...
+// return a group consisting of the work-items in the sub-group that call this function in lock-step.
+// This can be called in divergent control flow since so synchronization is needed.
+opportunistic_group get_opportunistic_group() const;
+
+// return a group consisting of the work-items in the sub-group that gave the value 'true' for the `predicate` argument.
+// This will cause synchronization of the group.
+template <typename non_uniform_sub_group>
+ballot_group get_ballot_group(non_uniform_sub_group group, bool predicate) const;
+
+// return a group consisting of the work-items in the sub-group that are in the same cluster as the calling work-item.
+// This can be called in divergent control flow since so synchronization is needed.
+template <size_t cluster_size> 
+cluster_group get_cluster_group() const;
+...
+};
+}
+----
+
+== Changes to `memory_scope`
+
+A new memory scope should be added.
+
+[source, c++]
+----
+namespace sycl {
+
+enum class memory_scope : /* unspecified */ {
+  work_item, sub_group, work_group, device, system, ext_oneapi_non_uniform_sub_group
+};
+inline constexpr auto memory_scope_work_item = memory_scope::work_item;
+inline constexpr auto memory_scope_sub_group = memory_scope::sub_group;
+inline constexpr auto memory_scope_work_group = memory_scope::work_group;
+inline constexpr auto memory_scope_device = memory_scope::device;
+inline constexpr auto memory_scope_system = memory_scope::system;
+namespace ext::oneapi {
+    inline constexpr auto memory_scope_non_uniform_sub_group = sycl::memory_scope::ext_oneapi_non_uniform_sub_group;
+}
+
+} // namespace sycl
+
+----
+
+== Group Functions
+
+The `sycl::is_group` function should be update to reflect that `opportunistic_group`, `ballot_group`, and `cluster_group` are now also groups.
+This will also mean updating some template functions that used is_group to disable 
+
+[source, c++]
+----
+is_group;
+group_barrier;
+broadcast;
+----
+
+== Group Algorithms
+
+A subset of the group algorithms have been chosen to reduce the scope of the extension.
+The other algorithms could be added later.
+
+[source, c++]
+----
+select;
+reduce;
+----
+
+== Questions
+. What happens when work-items in different control-flow call get_opportunistic_group?
+. do we want a memory scope for each new class or just non_uniform_sub_group?
+. Creating a non_uniform_sub_group when already in divergent control flow.
+. Potentially `get_opportunistic_group`, `get_ballot_group`, and `get_cluster_group` could be free functions that take a sub-group as the first argument.
+. Should the `sub_group` member functions be prefixed with "ext_oneapi_".
