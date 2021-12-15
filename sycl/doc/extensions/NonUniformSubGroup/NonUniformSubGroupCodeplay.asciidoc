@@ -24,7 +24,7 @@ NOTE: Khronos(R) is a registered trademark and SYCL(TM) and SPIR(TM) are tradema
 
 To fully exploit the available resources, modern hardware architectures allow for further sub-divisions of sub-groups. 
 Managing synchronization in divergent control-flow can become awkward, especially when programming library code.
-This proposal introduces new classes to synchronize sub-divisions of SYCL sub-groups.
+This proposal introduces new classes to represent sub-divisions of SYCL sub-groups, allowing for easier synchronization and cooperation.
 These new classes can be used as function arguments to convey exactly what group the function is expecting, simplying the interface and greatly reducing the amount of delicate wording needed in function documentation.
 The group functions and algorithms will also be updated to simplify use of these groups.
 
@@ -32,7 +32,7 @@ The group functions and algorithms will also be updated to simplify use of these
 
 Possible alternative name - `reactive_group`
 
-Divergent control flow and independent forward progress can lead to only a subset of a sub-group executing the same instruction in lock-step.
+Divergent control flow and independent forward progress can lead to not all work-items of a sub-group executing the same instruction in lock-step.
 In some cases it may be helpful to capture this group and use it for some opportunistic optimization.
 One example could be to aggregate an atomic operation across the work-items in a sub-group ready to perform the atomic, thus reducing the contention on the atomic.
 The creation of an `opportunistic_group` does not require any synchronization because the work-items are implicitly executing in lock-step.
