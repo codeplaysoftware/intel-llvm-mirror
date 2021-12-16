@@ -770,6 +770,7 @@ class AggPeel {
   LLVMContext *C = nullptr;
   DominatorTree *DT = nullptr;
   AssumptionCache *AC = nullptr;
+  Function *F = nullptr;
 
   /// Worklist of alloca instructions to rewrite
   SetVector<AllocaInst *, SmallVector<AllocaInst *, 16>> Worklist;
@@ -781,6 +782,13 @@ class AggPeel {
 public:
   PreservedAnalyses runImpl(Function &, DominatorTree &, AssumptionCache &);
 };
+
+static Value *getAddressValue (Use *U) {
+  // FIXME? Is there a better way to do this?
+  if (BitCastInst *BI = dyn_cast<BitCastInst>(U->get()))
+    return BI->getOperand(0);
+  return U->get();
+}
 
 bool AggPeel::runOnAlloca(AllocaInst &AI) {
   LLVM_DEBUG(dbgs() << "AggPeel alloca: " << AI << "\n");
@@ -838,16 +846,16 @@ bool AggPeel::runOnAlloca(AllocaInst &AI) {
         continue;
       }
       if (isa<PHINode>(*I) || isa<SelectInst>(*I)) {
-        llvm::errs() << "Can't handle PHI or Select: ";
-        I->dump();
+        LLVM_DEBUG(llvm::dbgs() << "Can't handle PHI or Select: ");
+        LLVM_DEBUG(I->dump());
         continue;
       }
       break;
     }
     if (it == AP.end())
       break;
+
     // now we should have the beginning of a partition to rewrite
-    Changed = true;
     LLVM_DEBUG(llvm::dbgs() << "Begin partition: " << "[" <<
       it->beginOffset() << "," << it->endOffset() <<
       ")" << " slice #" << (it - AP.begin()) << "\n");
@@ -863,6 +871,20 @@ bool AggPeel::runOnAlloca(AllocaInst &AI) {
     LLVM_DEBUG(llvm::dbgs() << "End partition: " << "[" <<
       itend->beginOffset() << "," << itend->endOffset() <<
       ")" << " slice #" << (itend - AP.begin()) << "\n");
+
+    // skip if the first partition is the same size as the original alloca
+    Optional<TypeSize> allocsize = AI.getAllocationSizeInBits(DL);
+    assert(allocsize.hasValue());
+    uint64_t allocsizeval = allocsize.getValue().getFixedSize() / 8;
+    uint64_t partsizeval = itbegin->endOffset() - itbegin->beginOffset();
+    LLVM_DEBUG(dbgs() << "alloc size " << allocsizeval << 
+      " partsizeval " << partsizeval << "\n");
+    if (partsizeval == allocsizeval) {
+      LLVM_DEBUG(dbgs() << "Skipping partition, covers alloca\n");
+      continue;
+    }
+
+    Changed = true;
     // Now rewrite the slices from itbegin to itend
     LLVM_DEBUG(llvm::dbgs() << "Alloca Type: ");
     LLVM_DEBUG(itbegin->getGEPType()->dump());
@@ -889,6 +911,8 @@ void AggPeel::rewrite(AllocaInst &NewAI,
     AllocaPeels::iterator &itbegin,
     AllocaPeels::iterator &itlast) {
   // save the indices for the aggrgate itself
+  LLVM_DEBUG(dbgs() << "Aggregate indices: ");
+  LLVM_DEBUG(itbegin->dumpindices());
   llvm::SmallVectorImpl<uint64_t> &indices = itbegin->getIndexes();
   // new geps so we don't replace them multiple times
   SmallPtrSet<Instruction *, 4> newgeps;
@@ -896,19 +920,16 @@ void AggPeel::rewrite(AllocaInst &NewAI,
     Use *U = itrw->getUse();
     LLVM_DEBUG(llvm::dbgs() << "rewriting use: ");
     LLVM_DEBUG(U->get()->dump());
-    GetElementPtrInst *gep;
-    // FIXME? Is there a better way to do this?
-    if (BitCastInst *BI = dyn_cast<BitCastInst>(U->get()))
-      gep = dyn_cast<GetElementPtrInst>(BI->getOperand(0));
-    else
-      gep = dyn_cast<GetElementPtrInst>(U->get());
-    assert(gep && "Can't find GEP instruction");
-    LLVM_DEBUG(gep->dump());
-
-    if (indices.size() == gep->getNumIndices()) {
-      LLVM_DEBUG(dbgs() << "Replacing gep with alloca value\n");
-      BasicBlock::iterator ii(gep);
-      ReplaceInstWithValue(gep->getParent()->getInstList(), ii, &NewAI);
+    Value *addr = getAddressValue(U);
+    assert(addr && "Can't find address expression instruction");
+    GetElementPtrInst *gep = dyn_cast<GetElementPtrInst>(addr);
+    if (!gep) {
+      LLVM_DEBUG(llvm::dbgs() << "Replacing addr: ");
+      LLVM_DEBUG(addr->dump());
+      Instruction *addrinst = dyn_cast<Instruction>(addr);
+      assert(addrinst && "Address not an instruction");
+      BasicBlock::iterator ii(addrinst);
+      ReplaceInstWithValue(addrinst->getParent()->getInstList(), ii, &NewAI);
     }
     else {
       // make the new gep
@@ -918,32 +939,37 @@ void AggPeel::rewrite(AllocaInst &NewAI,
       }
       SmallVector<Value *, 4> newindices;
       newindices.push_back(ConstantInt::get(*C, APInt(64, 0L, true)));
+      assert(indices.size() <= gep->getNumIndices() &&
+       "Too many indices for aggregate");
       newindices.append(gep->idx_begin() + indices.size(), gep->idx_end());
       GetElementPtrInst *newgep = GetElementPtrInst::Create(
         NewAI.getAllocatedType(), &NewAI, newindices);
       newgep->setIsInBounds(gep->isInBounds());
       newgeps.insert(newgep);
-      LLVM_DEBUG(dbgs() << "newgep: ");
+      LLVM_DEBUG(dbgs() << "Replacing gep: ");
       LLVM_DEBUG(newgep->dump());
-      // replace the gep
+      // replace the address
       BasicBlock::iterator ii(gep);
       ReplaceInstWithInst(gep->getParent()->getInstList(), ii, newgep);
     }
+
   }
 }
 
 
 
-PreservedAnalyses AggPeel::runImpl(Function &F, DominatorTree &RunDT,
+PreservedAnalyses AggPeel::runImpl(Function &RunF, DominatorTree &RunDT,
                                 AssumptionCache &RunAC) {
-  LLVM_DEBUG(dbgs() << "AggPeel function: " << F.getName() << "\n");
-  C = &F.getContext();
+  LLVM_DEBUG(dbgs() << "AggPeel function: " << RunF.getName() << "\n");
+  C = &RunF.getContext();
   DT = &RunDT;
   AC = &RunAC;
+  F = &RunF;
 
   bool Changed = false;
 
-  BasicBlock &EntryBB = F.getEntryBlock();
+  SetVector<AllocaInst *, SmallVector<AllocaInst *, 16>> Worklist;
+  BasicBlock &EntryBB = RunF.getEntryBlock();
   for (BasicBlock::iterator I = EntryBB.begin(), E = std::prev(EntryBB.end());
        I != E; ++I) {
     if (AllocaInst *AI = dyn_cast<AllocaInst>(I)) {
@@ -951,10 +977,12 @@ PreservedAnalyses AggPeel::runImpl(Function &F, DominatorTree &RunDT,
         //if (isAllocaPromotable(AI))
         //  PromotableAllocas.push_back(AI);
       } else {
-        Changed |= runOnAlloca(*AI);
+        Worklist.insert(AI);
       }
     }
   }
+  for (AllocaInst *AI : Worklist)
+    Changed |= runOnAlloca(*AI);
 
   if (!Changed)
     return PreservedAnalyses::all();

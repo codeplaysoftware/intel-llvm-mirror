@@ -499,6 +499,7 @@ void PassManagerBuilder::addFunctionSimplificationPasses(
   }
 
   // Break up allocas that may now be splittable after loop unrolling.
+  MPM.add(createAggPeelPass());
   MPM.add(createSROAPass());
 
   if (OptLevel > 1) {
@@ -1122,6 +1123,7 @@ void PassManagerBuilder::addLTOOptimizationPasses(legacy::PassManagerBase &PM) {
   PM.add(createJumpThreadingPass(/*FreezeSelectCond*/ true));
 
   // Break up allocas
+  PM.add(createAggPeelPass());
   PM.add(createSROAPass());
 
   // LTO provides additional opportunities for tailcall elimination due to
