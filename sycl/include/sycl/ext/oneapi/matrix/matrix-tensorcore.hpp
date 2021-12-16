@@ -1,7 +1,7 @@
 #pragma once
 
-#include <CL/sycl/detail/defines_elementary.hpp>
-#include <immintrin.h>
+
+#include <CL/sycl/detail/defines_elementary.hpp> //TODO: is this also unnecessary??
 
 __SYCL_INLINE_NAMESPACE(cl) {
   namespace sycl {
@@ -35,13 +35,11 @@ __SYCL_INLINE_NAMESPACE(cl) {
   __SYCL_JOINT_MATRIX_OVERLOAD(double, b, 4, 8, double, 1)
   __SYCL_JOINT_MATRIX_OVERLOAD(double, accumulator, 8, 8, double, 2)
 
-  // m8n32k16 //TODO: will there be bf16 object introduced?
+  // m8n32k16 //TODO: do this using bf16 object instead of unsigned short?
   __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, a, 8, 16, int32_t, 2)
   __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, b, 16, 32, int32_t, 8)
-
-  /*__SYCL_JOINT_MATRIX_OVERLOAD(fp16, a, 8, 16, int32_t, 2)
-  __SYCL_JOINT_MATRIX_OVERLOAD(fp16, b, 16, 32, int32_t, 8)*/
-
+  __SYCL_JOINT_MATRIX_OVERLOAD(half, a, 8, 16, int32_t, 2)
+  __SYCL_JOINT_MATRIX_OVERLOAD(half, b, 16, 32, int32_t, 8)
   __SYCL_JOINT_MATRIX_OVERLOAD(float, accumulator, 8, 32, float, 8)
 
   __SYCL_JOINT_MATRIX_OVERLOAD(int8_t, a, 8, 16, int32_t, 1)
@@ -49,8 +47,23 @@ __SYCL_INLINE_NAMESPACE(cl) {
   __SYCL_JOINT_MATRIX_OVERLOAD(uint8_t, a, 8, 16, int32_t, 1)
   __SYCL_JOINT_MATRIX_OVERLOAD(uint8_t, b, 16, 32, int32_t, 4)
   __SYCL_JOINT_MATRIX_OVERLOAD(int32_t, accumulator, 8, 32, int32_t, 8)
+ // m32n8k16
 
-  // m16n16k16
+  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, a, 32, 16, int32_t, 8)
+  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, b, 16, 8, int32_t, 2)
+  __SYCL_JOINT_MATRIX_OVERLOAD(half, a, 32, 16, int32_t, 8)
+  __SYCL_JOINT_MATRIX_OVERLOAD(half, b, 16, 8, int32_t, 2)
+  __SYCL_JOINT_MATRIX_OVERLOAD(float, accumulator, 32, 8, float, 8)
+
+  __SYCL_JOINT_MATRIX_OVERLOAD(int8_t, a, 32, 16, int32_t, 4)
+  __SYCL_JOINT_MATRIX_OVERLOAD(int8_t, b, 16, 8, int32_t, 1)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint8_t, a, 32, 16, int32_t, 4)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint8_t, b, 16, 8, int32_t, 1)
+  __SYCL_JOINT_MATRIX_OVERLOAD(int32_t, accumulator, 32, 8, int32_t, 8)
+// m16n16k16
+
+  __SYCL_JOINT_MATRIX_OVERLOAD(half, a, 16, 16, int32_t, 4)
+  __SYCL_JOINT_MATRIX_OVERLOAD(half, b, 16, 16, int32_t, 4)
   __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, a, 16, 16, int32_t, 4)
   __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, b, 16, 16, int32_t, 4)
   __SYCL_JOINT_MATRIX_OVERLOAD(float, accumulator, 16, 16, float, 8)
@@ -60,6 +73,11 @@ __SYCL_INLINE_NAMESPACE(cl) {
   __SYCL_JOINT_MATRIX_OVERLOAD(uint8_t, a, 16, 16, int32_t, 2)
   __SYCL_JOINT_MATRIX_OVERLOAD(uint8_t, b, 16, 16, int32_t, 2)
   __SYCL_JOINT_MATRIX_OVERLOAD(int32_t, accumulator, 16, 16, int32_t, 8)
+
+  // m16n16k8 tf32
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint32_t, a, 16, 8, int32_t, 4)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint32_t, b, 8, 16, int32_t, 4)
+
 
 #undef __SYCL_JOINT_MATRIX_OVERLOAD
   } // namespace experimental::matrix
@@ -96,12 +114,14 @@ __SYCL_INLINE_NAMESPACE(cl) {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
 
-      if constexpr (NumRows == 16 && NumCols == 16) {
+if constexpr (std::is_same<T, unsigned short>::value) {
+  int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+          if constexpr (NumRows == 16 && NumCols == 16) {
         // //All m16n16k16 shape cases
 
         // A/B matrix cases
-        if constexpr (std::is_same<T, unsigned short>::value) {
-          int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+
+          
           if constexpr (Use == matrix::matrix_use::a) {
             __mma_bf16_m16n16k16_ld_a(res.data, tileptr, stride,
                                       get_layout_id<Layout>());
@@ -109,8 +129,39 @@ __SYCL_INLINE_NAMESPACE(cl) {
             __mma_bf16_m16n16k16_ld_b(res.data, tileptr, stride,
                                       get_layout_id<Layout>());
           }
-        } else if constexpr (std::is_same<T, uint8_t>::value) {
-          int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+          }
+        else if constexpr (NumRows == 8 && NumCols == 16) {
+
+          __mma_bf16_m8n32k16_ld_a(res.data, tileptr, stride,
+                                   get_layout_id<Layout>());
+        
+
+      }
+      else if constexpr (NumRows == 16 && NumCols == 32) {
+        
+          __mma_bf16_m8n32k16_ld_b(res.data, tileptr, stride,
+                                   get_layout_id<Layout>());
+
+      }
+      else if constexpr (NumRows == 32 && NumCols == 16) {
+
+          __mma_bf16_m32n8k16_ld_a(res.data, tileptr, stride,
+                                   get_layout_id<Layout>());
+        
+
+      }
+      else if constexpr (NumRows == 16 && NumCols == 8) {
+        
+          __mma_bf16_m32n8k16_ld_b(res.data, tileptr, stride,
+                                   get_layout_id<Layout>());
+
+      }
+}
+
+         else if constexpr (std::is_same<T, uint8_t>::value) {
+           int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+           if constexpr (NumRows == 16 && NumCols == 16) {
+          
           if constexpr (Use == matrix::matrix_use::a) {
             __imma_m16n16k16_ld_a_u8(res.data, tileptr, stride,
                                      get_layout_id<Layout>());
@@ -118,8 +169,39 @@ __SYCL_INLINE_NAMESPACE(cl) {
             __imma_m16n16k16_ld_b_u8(res.data, tileptr, stride,
                                      get_layout_id<Layout>());
           }
+           }
+                  else if constexpr (NumRows == 8 && NumCols == 16) {
+
+          __imma_m8n32k16_ld_a_u8(res.data, tileptr, stride,
+                                 get_layout_id<Layout>());
+        
+
+      }
+
+else if constexpr (NumRows == 16 && NumCols == 32) {
+        
+          __imma_m8n32k16_ld_b_u8(res.data, tileptr, stride,
+                                 get_layout_id<Layout>());
+        
+
+      }
+            else if constexpr (NumRows == 32 && NumCols == 16) {
+        
+            __imma_m32n8k16_ld_a_u8(res.data, tileptr, stride,
+                                     get_layout_id<Layout>());
+        
+      }
+      else if constexpr (NumRows == 16 && NumCols == 8) {
+         
+            __imma_m32n8k16_ld_b_u8(res.data, tileptr, stride,
+                                     get_layout_id<Layout>());
+        
+      }
+
         } else if constexpr (std::is_same<T, int8_t>::value) {
           int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+          if constexpr (NumRows == 16 && NumCols == 16) {
+          
           if constexpr (Use == matrix::matrix_use::a) {
             __imma_m16n16k16_ld_a_s8(res.data, tileptr, stride,
                                      get_layout_id<Layout>());
@@ -127,37 +209,120 @@ __SYCL_INLINE_NAMESPACE(cl) {
             __imma_m16n16k16_ld_b_s8(res.data, tileptr, stride,
                                      get_layout_id<Layout>());
           }
-          /// Accumulator cases
-        } else if constexpr (std::is_same<T, int32_t>::value) {
+          }
+                 else if constexpr (NumRows == 8 && NumCols == 16) {
+        
+          __imma_m8n32k16_ld_a_s8(res.data, tileptr, stride,
+                                 get_layout_id<Layout>());
+        
+
+      }
+      else if constexpr (NumRows == 16 && NumCols == 32) {
+        
+          __imma_m8n32k16_ld_b_s8(res.data, tileptr, stride,
+                                 get_layout_id<Layout>());
+      }
+
+            else if constexpr (NumRows == 32 && NumCols == 16) {
+       
+            __imma_m32n8k16_ld_a_s8(res.data, tileptr, stride,
+                                     get_layout_id<Layout>());
+        
+      }
+      else if constexpr (NumRows == 16 && NumCols == 8) {
+         
+            __imma_m32n8k16_ld_b_s8(res.data, tileptr, stride,
+                                     get_layout_id<Layout>());
+        
+      }
+        }
+        else if constexpr(std::is_same<T, half>::value)
+        {
+          int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+          if constexpr (NumRows == 16 && NumCols == 16) {
+          
+         if constexpr (Use == matrix::matrix_use::a) {
+        __hmma_m16n16k16_ld_a(res.data, tileptr, stride, get_layout_id<Layout>());
+         }
+         else if constexpr (Use == matrix::matrix_use::b) {
+         __hmma_m16n16k16_ld_b(res.data, tileptr, stride, get_layout_id<Layout>());
+         }
+          }
+                 else if constexpr (NumRows == 8 && NumCols == 16) {
+        
+        __hmma_m8n32k16_ld_a(res.data, tileptr, stride, get_layout_id<Layout>());
+
+
+      }
+      else if constexpr (NumRows == 16 && NumCols == 32) {
+
+          __hmma_m8n32k16_ld_b(res.data, tileptr, stride, get_layout_id<Layout>());
+
+      }
+      else if constexpr (NumRows == 32 && NumCols == 16) {
+
+          __hmma_m32n8k16_ld_a(res.data, tileptr, stride, get_layout_id<Layout>());
+
+      }
+            else if constexpr (NumRows == 16 && NumCols == 8) {
+
+          __hmma_m32n8k16_ld_b(res.data, tileptr, stride, get_layout_id<Layout>());
+
+      }
+        }
+         /// Accumulator cases
+         else if constexpr (std::is_same<T, int32_t>::value) {
+           if constexpr (NumRows == 16 && NumCols == 16) {
           __imma_m16n16k16_ld_c(res.data, src.get(), stride,
                                 get_layout_id<Layout>());
+           }
+           else if constexpr (NumRows == 8 && NumCols == 32) {
+        
+          __imma_m8n32k16_ld_c(res.data, src.get(), stride,
+                                get_layout_id<Layout>());
+        
+
+      }
+            else if constexpr (NumRows == 32 && NumCols == 8) {
+        
+          __imma_m32n8k16_ld_c(res.data, src.get(), stride,
+                                get_layout_id<Layout>());
+        
+      } 
         } else if constexpr (std::is_same<T, float>::value) {
+          if constexpr (NumRows == 16 && NumCols == 16) {
+          /*__mma_tf32_m16n16k8_ld_c(res.data, src.get(), stride,
+                                    get_layout_id<Layout>());*/
           __hmma_m16n16k16_ld_c_f32(res.data, src.get(), stride,
                                     get_layout_id<Layout>());
-        }
-      } else if constexpr (NumRows == 8 && NumCols == 16) {
-        int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
-        if constexpr (std::is_same<T, unsigned short>::value) {
-          __mma_bf16_m8n32k16_ld_a(res.data, tileptr, stride,
-                                   get_layout_id<Layout>());
-        } else if constexpr (std::is_same<T, uint8_t>::value) {
-          __imma_m8n32k16_mma_u8(res.data, tileptr, stride,
-                                 get_layout_id<Layout>());
-        }
-
-      } else if constexpr (NumRows == 16 && NumCols == 32) {
-        int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
-        if constexpr (std::is_same<T, unsigned short>::value) {
-          __mma_bf16_m8n32k16_ld_b(res.data, tileptr, stride,
-                                   get_layout_id<Layout>());
-        }
-
-      } else if constexpr (NumRows == 8 && NumCols == 32) {
+          }
+          else if constexpr (NumRows == 8 && NumCols == 32) {
         // int32_t* tileptr = reinterpret_cast<int32_t*>(src.get());
+        
         __hmma_m8n32k16_ld_c_f32(res.data, src.get(), stride,
                                  get_layout_id<Layout>());
+      
 
-      } else if constexpr (std::is_same<T, double>::value) {
+      } 
+            else if constexpr (NumRows == 32 && NumCols == 8) {
+        
+        __hmma_m32n8k16_ld_c_f32(res.data, src.get(), stride,
+                                 get_layout_id<Layout>());
+        
+      }
+        }
+        else if constexpr (std::is_same<T, uint32_t>::value) {
+          int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+         if constexpr (NumRows == 16 && NumCols == 8) {
+           __mma_tf32_m16n16k8_ld_a(res.data, tileptr, stride,
+                                 get_layout_id<Layout>());
+        }
+        else if constexpr (NumRows == 8 && NumCols == 16) {
+           __mma_tf32_m16n16k8_ld_b(res.data, tileptr, stride,
+                                 get_layout_id<Layout>());
+        }
+        }
+      else if constexpr (std::is_same<T, double>::value) { //TODO: can improve this by reducing to size check? but there are two to  check so no! mayhbe better for consistency though!
         if constexpr (Use == matrix::matrix_use::a) {
           __dmma_m8n8k4_ld_a(res.data, src.get(), stride,
                              get_layout_id<Layout>());
@@ -169,7 +334,6 @@ __SYCL_INLINE_NAMESPACE(cl) {
                              get_layout_id<Layout>());
         }
       }
-
 #endif
 #endif
     }
@@ -198,6 +362,8 @@ __SYCL_INLINE_NAMESPACE(cl) {
 #ifdef __SYCL_DEVICE_ONLY__
       if (NumRows == 16 && NumCols == 16) {
         if constexpr (std::is_same<T, float>::value) {
+          /*__mma_m16n16k8_st_c_f32(dst.get(), src.data, stride,
+                                    get_layout_id<Layout>());*/
           __hmma_m16n16k16_st_c_f32(dst.get(), src.data, stride,
                                     get_layout_id<Layout>());
         } else if constexpr (std::is_same<T, int32_t>::value) {
@@ -209,11 +375,34 @@ __SYCL_INLINE_NAMESPACE(cl) {
           __hmma_m8n32k16_st_c_f32(dst.get(), src.data, stride,
                                    get_layout_id<Layout>());
         }
+        else if constexpr (std::is_same<T, int32_t>::value) {
+          __imma_m8n32k16_st_c_i32(dst.get(), src.data, stride,
+                                    get_layout_id<Layout>());
+        }
+
+      } 
+      else if (NumRows == 32 && NumCols == 8) {
+        if constexpr (std::is_same<T, float>::value) {
+          __hmma_m32n8k16_st_c_f32(dst.get(), src.data, stride,
+                                   get_layout_id<Layout>());
+        }
+        else if constexpr (std::is_same<T, int32_t>::value) {
+          __imma_m32n8k16_st_c_i32(dst.get(), src.data, stride,
+                                    get_layout_id<Layout>());
+        }
 
       } else if constexpr (std::is_same<T, double>::value) {
         __dmma_m8n8k4_st_c_f64(dst.get(), src.data, stride,
                                get_layout_id<Layout>());
       }
+      /*else if constexpr (std::is_same<T, int4>::value) {
+        __imma_m8n8k32_st_c_i32(dst.get(), src.data, stride,
+                               get_layout_id<Layout>());
+      }
+      else if constexpr (std::is_same<T, uint4>::value) {
+        __imma_m8n8k32_st_c_i32(dst.get(), src.data, stride,
+                               get_layout_id<Layout>());
+      }*/
 #endif
 #endif
     }
@@ -283,7 +472,6 @@ __SYCL_INLINE_NAMESPACE(cl) {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
       if constexpr (M == 16 && N == 16 && K == 16) {
-        if constexpr (std::is_same<T2, int32_t>::value) {
           if constexpr (std::is_same<T1, int8_t>::value) {
             __imma_m16n16k16_mma_s8(D.data, A.data, B.data, C.data,
                                     get_layout_pair_id<LayoutA, LayoutB>(), 0);
@@ -291,15 +479,20 @@ __SYCL_INLINE_NAMESPACE(cl) {
             __imma_m16n16k16_mma_u8(D.data, A.data, B.data, C.data,
                                     get_layout_pair_id<LayoutA, LayoutB>(), 0);
           }
-        } else if constexpr (std::is_same<T2, float>::value) {
+        //}
+         else if constexpr (std::is_same<T1, half>::value) {
+      __hmma_m16n16k16_mma_f32f32(D.data, A.data, B.data, C.data,
+                                     get_layout_pair_id<LayoutA, LayoutB>(), 0);
+      }
+         //else if constexpr (std::is_same<T2, float>::value) {
           if constexpr (std::is_same<T1, unsigned short>::value) {
             __mma_bf16_m16n16k16_mma_f32(D.data, A.data, B.data, C.data,
                                          get_layout_pair_id<LayoutA, LayoutB>(),
                                          0);
           }
-        }
+        //}
       } else if constexpr (M == 8 && N == 32 && K == 16) {
-        if constexpr (std::is_same<T2, int32_t>::value) {
+        //if constexpr (std::is_same<T2, int32_t>::value) {
           if constexpr (std::is_same<T1, int8_t>::value) {
             __imma_m8n32k16_mma_s8(D.data, A.data, B.data, C.data,
                                    get_layout_pair_id<LayoutA, LayoutB>(), 0);
@@ -307,62 +500,56 @@ __SYCL_INLINE_NAMESPACE(cl) {
             __imma_m8n32k16_mma_u8(D.data, A.data, B.data, C.data,
                                    get_layout_pair_id<LayoutA, LayoutB>(), 0);
           }
-        } else if constexpr (std::is_same<T2, float>::value) {
-          if constexpr (std::is_same<T1, unsigned short>::value) {
+        //}
+         else if constexpr (std::is_same<T1, half>::value) {
+      __hmma_m8n32k16_mma_f32f32(D.data, A.data, B.data, C.data,
+                                     get_layout_pair_id<LayoutA, LayoutB>(), 0);
+      }
+         //else if constexpr (std::is_same<T2, float>::value) {
+         else if constexpr (std::is_same<T1, unsigned short>::value) {
             __mma_bf16_m8n32k16_mma_f32(D.data, A.data, B.data, C.data,
                                         get_layout_pair_id<LayoutA, LayoutB>(),
                                         0);
           }
-        }
-      } else if constexpr (std::is_same<T1, double>::value) {
+       // }
+        
+      }else if constexpr (M == 32 && N == 8 && K == 16) {
+       // if constexpr (std::is_same<T2, int32_t>::value) {
+          if constexpr (std::is_same<T1, int8_t>::value) {
+            __imma_m32n8k16_mma_s8(D.data, A.data, B.data, C.data,
+                                   get_layout_pair_id<LayoutA, LayoutB>(), 0);
+          } else if constexpr (std::is_same<T1, uint8_t>::value) {
+            __imma_m32n8k16_mma_u8(D.data, A.data, B.data, C.data,
+                                   get_layout_pair_id<LayoutA, LayoutB>(), 0);
+          }
+       // } 
+        //else if constexpr (std::is_same<T2, float>::value) {
+          if constexpr (std::is_same<T1, unsigned short>::value) {
+            __mma_bf16_m32n8k16_mma_f32(D.data, A.data, B.data, C.data,
+                                        get_layout_pair_id<LayoutA, LayoutB>(),
+                                        0);
+          }
+          else if constexpr (std::is_same<T1, half>::value) {
+      __hmma_m32n8k16_mma_f32f32(D.data, A.data, B.data, C.data,
+                                     get_layout_pair_id<LayoutA, LayoutB>(), 0);
+      }
+        //}
+      } 
+      else if constexpr (std::is_same<T1, double>::value) {
         __dmma_m8n8k4_mma_f64(D.data, A.data, B.data, C.data,
                               get_layout_pair_id<LayoutA, LayoutB>(), 0);
       }
-
+      else if constexpr (M == 16 && N == 16 && K == 8) {
+__mma_tf32_m16n16k8_mma_f32(D.data, A.data, B.data, C.data,
+                              get_layout_pair_id<LayoutA, LayoutB>(), 0);
+      }
+//__bmma_m8n8k128_mma_and_popc_b1
 #endif
 #endif
 
       return D;
     }
   };
-
-  /* fp16 impl doesnt work
-     template <matrix::matrix_layout LayoutA, matrix::matrix_layout LayoutB,
-              matrix::matrix_layout LayoutC>
-    struct joint_matrix_mad_impl<
-        matrix::matrix_type::fp16, matrix::matrix_type::fp32, 8, 16, 32,
-  LayoutA, LayoutB, LayoutC, typename std::enable_if_t<(LayoutA ==
-  matrix::matrix_layout::row_major || LayoutA ==
-  matrix::matrix_layout::col_major) && (LayoutB ==
-  matrix::matrix_layout::row_major || LayoutB ==
-  matrix::matrix_layout::col_major) && (LayoutC ==
-  matrix::matrix_layout::row_major || LayoutC ==
-                                       matrix::matrix_layout::col_major)>> {
-      matrix::joint_matrix<matrix::matrix_type::fp32,
-                           matrix::matrix_use::accumulator, 8, 32, LayoutC>
-      mad(matrix::joint_matrix<matrix::matrix_type::fp16, matrix::matrix_use::a,
-                               8, 16, LayoutA>
-              A,
-          matrix::joint_matrix<matrix::matrix_type::fp16, matrix::matrix_use::b,
-                               16, 32, LayoutB>
-              B,
-          matrix::joint_matrix<matrix::matrix_type::fp32,
-                               matrix::matrix_use::accumulator, 8, 32, LayoutC>
-              C) {
-        matrix::joint_matrix<matrix::matrix_type::fp32,
-                             matrix::matrix_use::accumulator, 8, 32, LayoutC>
-            D;
-
-  #ifdef __NVPTX__
-  #ifdef __SYCL_DEVICE_ONLY__
-        __hmma_m32n8k16_mma_f32f32(D.data, A.data, B.data, C.data,
-                                     get_layout_pair_id<LayoutA, LayoutB>(), 0);
-  #endif
-  #endif
-
-        return D;
-      }
-    };*/
 
   } // namespace detail
 
