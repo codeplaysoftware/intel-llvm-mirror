@@ -114,8 +114,6 @@ STATISTIC(NumVectorized, "Number of vectorized aggregates");
 /// GEPs.
 static cl::opt<bool> SROAStrictInbounds("sroa-strict-inbounds", cl::init(false),
                                         cl::Hidden);
-static cl::opt<bool> SROAAggPeeling("sroa-agg-peeling", cl::init(true),
-                                    cl::Hidden);
 
 namespace {
 
@@ -302,7 +300,6 @@ public:
 private:
   template <typename DerivedT, typename RetT = void> class BuilderBase;
   class SliceBuilder;
-  class AggPeelerBuilder;
 
   friend class AllocaSlices::SliceBuilder;
   friend class peel::AllocaPeels;
@@ -644,8 +641,6 @@ static Value *foldPHINodeOrSelectInst(Instruction &I) {
   }
   return foldSelectInst(cast<SelectInst>(I));
 }
-
-#include "AggPeeling.hpp"
 
 /// Builder for the alloca slices.
 ///

@@ -75,6 +75,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Transforms/Utils/PromoteMemToReg.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -129,6 +130,7 @@ class PeelSlice {
   Use *UsePtr;
 
   llvm::SmallVector<uint64_t, 8> TypeOffsets;
+  Type *GEPType;
 
 public:
   PeelSlice(uint64_t BeginOffset, Use *U)
@@ -141,10 +143,19 @@ public:
   llvm::SmallVectorImpl<uint64_t> &getIndexes() { return TypeOffsets; }
   void pushIndex(uint64_t idx) { TypeOffsets.push_back(idx); }
 
+  Type *getGEPType() const { return GEPType; }
+  void setGEPType(Type *ty) {GEPType = ty; }
+
   Use *getUse() const { return UsePtr; }
 
   bool isDead() const { return getUse() == nullptr; }
   void kill() { UsePtr = nullptr; }
+
+  void dumpindices() const {
+      for (uint64_t i : TypeOffsets)
+        dbgs() << " " << i;
+      dbgs() << "\n";
+  }
 
   /// Support for ordering ranges.
   ///
@@ -153,28 +164,22 @@ public:
   /// decreasing. Thus the spanning range comes first in a cluster with the
   /// same start position.
   bool operator<(const PeelSlice &RHS) const {
-    size_t i = 0;
-    for (; i < TypeOffsets.size(); i++) {
-      if (TypeOffsets[i] == RHS.TypeOffsets[i]) {
-        break;
-      }
-    }
-    if (i == TypeOffsets.size()) {
-      return false;
-    }
-    uint64_t Offset = TypeOffsets[i];
-    uint64_t RHSOffset = TypeOffsets[i];
-    if (Offset < RHSOffset)
+    if (beginOffset() < RHS.beginOffset())
       return true;
-    if (Offset > RHSOffset)
+    if (beginOffset() > RHS.beginOffset())
       return false;
+    if (endOffset() > RHS.endOffset())
+      return true;
     return false;
+      return false;
   }
 
+#if 0
   bool operator==(const PeelSlice &RHS) const {
     return TypeOffsets == RHS.TypeOffsets;
   }
   bool operator!=(const PeelSlice &RHS) const { return !operator==(RHS); }
+#endif
 };
 
 class AllocaPeels {
@@ -368,12 +373,21 @@ private:
 
     Type *Ty = buildIndexListFromOffset(DL, AllocatedType, Slice.getIndexes(),
                                         Offset, LowerBoundType);
-    
+    Slice.setGEPType(Ty);
+    LLVM_DEBUG(dbgs() << "-> " << Slice.beginOffset() << ";" <<
+        Size << ": insertUse\n");
+    if (U) {
+        LLVM_DEBUG(U->get()->dump());
+        LLVM_DEBUG(U->getUser()->dump());
+    }
+    LLVM_DEBUG(dbgs() << "getGEP Type: ");
+    LLVM_DEBUG(Ty->dump());
+    LLVM_DEBUG(dbgs() << "GEP indices:");
+    LLVM_DEBUG(Slice.dumpindices());
     if (LowerBoundType) {
       Slice.setEndOffset(Slice.beginOffset() + DL.getTypeStoreSize(Ty));
-      if (U) {
-        llvm::errs() << "Here I am\n";
-      }
+      LLVM_DEBUG(dbgs() << "LowerBoundType: ");
+      LLVM_DEBUG(LowerBoundType->dump());
     } else {
       Slice.setEndOffset(Slice.beginOffset() + Size);
     }
@@ -738,6 +752,9 @@ AllocaPeels::AllocaPeels(const DataLayout &DL, AllocaInst &AI)
   AggPeelerBuilder PB(DL, AI, *this);
   detail::PtrUseVisitorBase::PtrInfo PtrI = PB.visitPtr(AI);
   if (PtrI.isEscaped() || PtrI.isAborted()) {
+    PointerEscapingInstr = PtrI.getEscapingInst() ? PtrI.getEscapingInst()
+                                                  : PtrI.getAbortingInst();
+    assert(PointerEscapingInstr && "Did not track a bad instruction");
     return;
   }
 
@@ -758,6 +775,9 @@ class AggPeel {
   SetVector<AllocaInst *, SmallVector<AllocaInst *, 16>> Worklist;
 
   bool runOnAlloca(AllocaInst &AI);
+  void rewrite(AllocaInst &NewAI,
+    AllocaPeels::iterator &itbegin,
+    AllocaPeels::iterator &itlast);
 public:
   PreservedAnalyses runImpl(Function &, DominatorTree &, AssumptionCache &);
 };
@@ -781,7 +801,135 @@ bool AggPeel::runOnAlloca(AllocaInst &AI) {
   peel::AllocaPeels AP(DL, AI);
   // AP has the slices
   LLVM_DEBUG(AP.print(dbgs()));
-  return false;
+  if (AP.isEscaped())
+    return false;
+
+  bool Changed = false;
+  // FIXME should use const_iterator but then we can't getIndexes so we'd
+  // have to use iterators for that... lazy
+  AllocaPeels::iterator it = AP.begin();
+  for (;;) {
+    for (; it != AP.end(); it++) {
+      uint64_t Size = it->endOffset() - it->beginOffset();
+      Use *U = it->getUse();
+      assert(U && "Don't have a use");
+      auto I = dyn_cast<Instruction>(U->getUser());
+      assert(I && "User is not an instruction");
+      if (LoadInst *LI = dyn_cast<LoadInst>(I)) {
+          if (DL.getTypeStoreSize(LI->getType()).getFixedSize() == Size) {
+            continue;
+          }
+          break;
+      }
+      if (StoreInst *SI = dyn_cast<StoreInst>(I)) {
+        Value *ValOp = SI->getValueOperand();
+        if (DL.getTypeStoreSize(ValOp->getType()).getFixedSize() == Size) {
+          continue;
+        }
+        break;
+      }
+      if (dyn_cast<MemTransferInst>(I)) {
+        break;
+      }
+      if (dyn_cast<MemSetInst>(I)) {
+        break;
+      }
+      if (dyn_cast<IntrinsicInst>(I)) {
+        continue;
+      }
+      if (isa<PHINode>(*I) || isa<SelectInst>(*I)) {
+        llvm::errs() << "Can't handle PHI or Select: ";
+        I->dump();
+        continue;
+      }
+      break;
+    }
+    if (it == AP.end())
+      break;
+    // now we should have the beginning of a partition to rewrite
+    Changed = true;
+    LLVM_DEBUG(llvm::dbgs() << "Begin partition: " << "[" <<
+      it->beginOffset() << "," << it->endOffset() <<
+      ")" << " slice #" << (it - AP.begin()) << "\n");
+    AllocaPeels::iterator itbegin = it;
+    AllocaPeels::iterator itend = it;
+    for (it++; it != AP.end(); itend = it, it++) {
+      if (it->beginOffset() >= itbegin->beginOffset() &&
+          it->endOffset() <= itbegin->endOffset())
+        continue;
+      break;
+    }
+    AllocaPeels::iterator itlast = it;
+    LLVM_DEBUG(llvm::dbgs() << "End partition: " << "[" <<
+      itend->beginOffset() << "," << itend->endOffset() <<
+      ")" << " slice #" << (itend - AP.begin()) << "\n");
+    // Now rewrite the slices from itbegin to itend
+    LLVM_DEBUG(llvm::dbgs() << "Alloca Type: ");
+    LLVM_DEBUG(itbegin->getGEPType()->dump());
+    AllocaInst *NewAI = new AllocaInst(
+      itbegin->getGEPType(), AI.getType()->getAddressSpace(), nullptr,
+      AI.getAlign(),
+      AI.getName() + ".aggpeel." + Twine(itbegin - AP.begin()),
+      &AI);
+    // Copy the old AI debug location over to the new one.
+    NewAI->setDebugLoc(AI.getDebugLoc());
+    LLVM_DEBUG(dbgs() << "New alloc: ");
+    LLVM_DEBUG(NewAI->dump());
+    rewrite(*NewAI, itbegin, itlast);
+
+    if (it == AP.end())
+      break;
+  }
+
+
+  return Changed;
+}
+
+void AggPeel::rewrite(AllocaInst &NewAI,
+    AllocaPeels::iterator &itbegin,
+    AllocaPeels::iterator &itlast) {
+  // save the indices for the aggrgate itself
+  llvm::SmallVectorImpl<uint64_t> &indices = itbegin->getIndexes();
+  // new geps so we don't replace them multiple times
+  SmallPtrSet<Instruction *, 4> newgeps;
+  for (AllocaPeels::iterator itrw = itbegin; itrw != itlast; itrw++) {
+    Use *U = itrw->getUse();
+    LLVM_DEBUG(llvm::dbgs() << "rewriting use: ");
+    LLVM_DEBUG(U->get()->dump());
+    GetElementPtrInst *gep;
+    // FIXME? Is there a better way to do this?
+    if (BitCastInst *BI = dyn_cast<BitCastInst>(U->get()))
+      gep = dyn_cast<GetElementPtrInst>(BI->getOperand(0));
+    else
+      gep = dyn_cast<GetElementPtrInst>(U->get());
+    assert(gep && "Can't find GEP instruction");
+    LLVM_DEBUG(gep->dump());
+
+    if (indices.size() == gep->getNumIndices()) {
+      LLVM_DEBUG(dbgs() << "Replacing gep with alloca value\n");
+      BasicBlock::iterator ii(gep);
+      ReplaceInstWithValue(gep->getParent()->getInstList(), ii, &NewAI);
+    }
+    else {
+      // make the new gep
+      if (newgeps.contains(gep)) {
+        LLVM_DEBUG(dbgs() << "gep already rewritten\n:");
+        continue;
+      }
+      SmallVector<Value *, 4> newindices;
+      newindices.push_back(ConstantInt::get(*C, APInt(64, 0L, true)));
+      newindices.append(gep->idx_begin() + indices.size(), gep->idx_end());
+      GetElementPtrInst *newgep = GetElementPtrInst::Create(
+        NewAI.getAllocatedType(), &NewAI, newindices);
+      newgep->setIsInBounds(gep->isInBounds());
+      newgeps.insert(newgep);
+      LLVM_DEBUG(dbgs() << "newgep: ");
+      LLVM_DEBUG(newgep->dump());
+      // replace the gep
+      BasicBlock::iterator ii(gep);
+      ReplaceInstWithInst(gep->getParent()->getInstList(), ii, newgep);
+    }
+  }
 }
 
 
