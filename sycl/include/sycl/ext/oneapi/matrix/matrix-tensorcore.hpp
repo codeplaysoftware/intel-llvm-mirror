@@ -35,9 +35,9 @@ __SYCL_INLINE_NAMESPACE(cl) {
   __SYCL_JOINT_MATRIX_OVERLOAD(double, b, 4, 8, double, 1)
   __SYCL_JOINT_MATRIX_OVERLOAD(double, accumulator, 8, 8, double, 2)
 
-  // m8n32k16 //TODO: do this using bf16 object instead of unsigned short?
-  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, a, 8, 16, int32_t, 2)
-  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, b, 16, 32, int32_t, 8)
+  // m8n32k16 //TODO: do this using bf16 object instead of uint16_t?
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint16_t, a, 8, 16, int32_t, 2)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint16_t, b, 16, 32, int32_t, 8)
   __SYCL_JOINT_MATRIX_OVERLOAD(half, a, 8, 16, int32_t, 2)
   __SYCL_JOINT_MATRIX_OVERLOAD(half, b, 16, 32, int32_t, 8)
   __SYCL_JOINT_MATRIX_OVERLOAD(float, accumulator, 8, 32, float, 8)
@@ -49,8 +49,8 @@ __SYCL_INLINE_NAMESPACE(cl) {
   __SYCL_JOINT_MATRIX_OVERLOAD(int32_t, accumulator, 8, 32, int32_t, 8)
  // m32n8k16
 
-  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, a, 32, 16, int32_t, 8)
-  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, b, 16, 8, int32_t, 2)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint16_t, a, 32, 16, int32_t, 8)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint16_t, b, 16, 8, int32_t, 2)
   __SYCL_JOINT_MATRIX_OVERLOAD(half, a, 32, 16, int32_t, 8)
   __SYCL_JOINT_MATRIX_OVERLOAD(half, b, 16, 8, int32_t, 2)
   __SYCL_JOINT_MATRIX_OVERLOAD(float, accumulator, 32, 8, float, 8)
@@ -64,8 +64,8 @@ __SYCL_INLINE_NAMESPACE(cl) {
 
   __SYCL_JOINT_MATRIX_OVERLOAD(half, a, 16, 16, int32_t, 4)
   __SYCL_JOINT_MATRIX_OVERLOAD(half, b, 16, 16, int32_t, 4)
-  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, a, 16, 16, int32_t, 4)
-  __SYCL_JOINT_MATRIX_OVERLOAD(unsigned short, b, 16, 16, int32_t, 4)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint16_t, a, 16, 16, uint32_t, 4)
+  __SYCL_JOINT_MATRIX_OVERLOAD(uint16_t, b, 16, 16, uint32_t, 4)
   __SYCL_JOINT_MATRIX_OVERLOAD(float, accumulator, 16, 16, float, 8)
 
   __SYCL_JOINT_MATRIX_OVERLOAD(int8_t, a, 16, 16, int32_t, 2)
@@ -114,8 +114,8 @@ __SYCL_INLINE_NAMESPACE(cl) {
 #ifdef __NVPTX__
 #ifdef __SYCL_DEVICE_ONLY__
 
-if constexpr (std::is_same<T, unsigned short>::value) {
-  int32_t *tileptr = reinterpret_cast<int32_t *>(src.get());
+if constexpr (std::is_same<T, uint16_t>::value) {
+  uint32_t *tileptr = reinterpret_cast<uint32_t *>(src.get());
           if constexpr (NumRows == 16 && NumCols == 16) {
         // //All m16n16k16 shape cases
 
@@ -485,7 +485,7 @@ else if constexpr (NumRows == 16 && NumCols == 32) {
                                      get_layout_pair_id<LayoutA, LayoutB>(), 0);
       }
          //else if constexpr (std::is_same<T2, float>::value) {
-          if constexpr (std::is_same<T1, unsigned short>::value) {
+          if constexpr (std::is_same<T1, uint16_t>::value) {
             __mma_bf16_m16n16k16_mma_f32(D.data, A.data, B.data, C.data,
                                          get_layout_pair_id<LayoutA, LayoutB>(),
                                          0);
@@ -506,7 +506,7 @@ else if constexpr (NumRows == 16 && NumCols == 32) {
                                      get_layout_pair_id<LayoutA, LayoutB>(), 0);
       }
          //else if constexpr (std::is_same<T2, float>::value) {
-         else if constexpr (std::is_same<T1, unsigned short>::value) {
+         else if constexpr (std::is_same<T1, uint16_t>::value) {
             __mma_bf16_m8n32k16_mma_f32(D.data, A.data, B.data, C.data,
                                         get_layout_pair_id<LayoutA, LayoutB>(),
                                         0);
@@ -524,7 +524,7 @@ else if constexpr (NumRows == 16 && NumCols == 32) {
           }
        // } 
         //else if constexpr (std::is_same<T2, float>::value) {
-          if constexpr (std::is_same<T1, unsigned short>::value) {
+          if constexpr (std::is_same<T1, uint16_t>::value) {
             __mma_bf16_m32n8k16_mma_f32(D.data, A.data, B.data, C.data,
                                         get_layout_pair_id<LayoutA, LayoutB>(),
                                         0);
@@ -589,6 +589,33 @@ __mma_tf32_m16n16k8_mma_f32(D.data, A.data, B.data, C.data,
                                          LayoutC>{}
         .mad(A, B, C);
   }
+
+uint16_t convert(float val)
+{
+  #ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+  return __nvvm_f2us_rn(val);
+  #endif
+#endif
+};
+
+uint32_t convert2(float val1, float val2)
+{
+  #ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+  return __nvvm_ff2ui_rn(val1, val2);
+  #endif
+#endif
+};
+
+uint32_t converttf(float val1)
+{
+  #ifdef __NVPTX__
+#ifdef __SYCL_DEVICE_ONLY__
+  return __nvvm_f2tf_rna(val1);
+  #endif
+#endif
+};
 
   } // namespace experimental::matrix
   } // namespace oneapi

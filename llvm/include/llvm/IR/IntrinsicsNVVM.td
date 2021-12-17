@@ -980,6 +980,8 @@ let TargetPrefix = "nvvm" in {
 // Convert
 //
 
+
+
   def int_nvvm_d2f_rn_ftz : GCCBuiltin<"__nvvm_d2f_rn_ftz">,
       Intrinsic<[llvm_float_ty], [llvm_double_ty], [IntrNoMem]>;
   def int_nvvm_d2f_rn : GCCBuiltin<"__nvvm_d2f_rn">,
@@ -1053,6 +1055,13 @@ let TargetPrefix = "nvvm" in {
 
   def int_nvvm_ff2ui_rn : GCCBuiltin<"__nvvm_ff2ui_rn">,
       Intrinsic<[llvm_i32_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+    
+    def int_nvvm_f2us_rn : GCCBuiltin<"__nvvm_f2us_rn">,
+      Intrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem]>;
+
+    def int_nvvm_f2tf_rna : GCCBuiltin<"__nvvm_f2tf_rna">,
+      Intrinsic<[llvm_i32_ty], [llvm_float_ty], [IntrNoMem]>;
+
 
   def int_nvvm_f2ui_rn_ftz : GCCBuiltin<"__nvvm_f2ui_rn_ftz">,
       Intrinsic<[llvm_i32_ty], [llvm_float_ty], [IntrNoMem]>;
