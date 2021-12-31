@@ -4688,6 +4688,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back("-sycl-opt");
     }
 
+    // turn on aggregate peeling to help SROA
+    CmdArgs.push_back("-mllvm");
+    CmdArgs.push_back("-aggregate-peeling");
     // Turn on Dead Parameter Elimination Optimization with early optimizations
     if (!(RawTriple.isAMDGCN()) &&
         Args.hasFlag(options::OPT_fsycl_dead_args_optimization,

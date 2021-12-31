@@ -76,6 +76,10 @@ static cl::opt<bool>
     SYCLOptimizationMode("sycl-opt", cl::init(false), cl::Hidden,
                          cl::desc("Enable SYCL optimization mode."));
 
+static cl::opt<bool>
+RunAggPeel("aggregate-peeling", cl::init(false), cl::Hidden,
+           cl::desc("Enable aggregate peeling pass."));
+
 cl::opt<bool> RunNewGVN("enable-newgvn", cl::init(false), cl::Hidden,
                         cl::desc("Run the NewGVN pass"));
 
@@ -499,7 +503,8 @@ void PassManagerBuilder::addFunctionSimplificationPasses(
   }
 
   // Break up allocas that may now be splittable after loop unrolling.
-  MPM.add(createAggPeelPass());
+  if (RunAggPeel)       // probably want this only for SYCL device compilation
+    MPM.add(createAggPeelPass());
   MPM.add(createSROAPass());
 
   if (OptLevel > 1) {
@@ -1123,7 +1128,8 @@ void PassManagerBuilder::addLTOOptimizationPasses(legacy::PassManagerBase &PM) {
   PM.add(createJumpThreadingPass(/*FreezeSelectCond*/ true));
 
   // Break up allocas
-  PM.add(createAggPeelPass());
+  if (RunAggPeel)       // probably want this only for SYCL device compilation
+      PM.add(createAggPeelPass());
   PM.add(createSROAPass());
 
   // LTO provides additional opportunities for tailcall elimination due to
