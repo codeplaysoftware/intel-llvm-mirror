@@ -1046,6 +1046,32 @@ def : Pat<(int_nvvm_ui2f_rm Int32Regs:$a),
 def : Pat<(int_nvvm_ui2f_rp Int32Regs:$a),
           (CVT_f32_u32 Int32Regs:$a, CvtRP)>;
 
+// This guy takes two arguments: doesn't match pattern of existing cvt's
+def CVT_F32_bf16x2 :
+  NVPTXInst<(outs Int32Regs:$dest), (ins Float32Regs:$a, Float32Regs:$b),
+                  "cvt.rn.bf16x2.f32 \t$dest, $a , $b;",
+      [(set Int32Regs:$dest, (int_nvvm_ff2bfx2_rn Float32Regs:$a, Float32Regs:$b))]>;
+
+// This guy works
+def : Pat<(int_nvvm_f2bf_rn Float32Regs:$a),
+          (CVT_bf16_f32 Float32Regs:$a, CvtRN)>;
+
+/*def CVT_bf16_f32 :
+  NVPTXInst<(outs Int16Regs:$dest), (ins Float32Regs:$a),
+                  "cvt.rn.bf16.f32 \t$dest, $a;",
+      [(set Int16Regs:$dest, (int_nvvm_f2us_rn Float32Regs:$a))]>;
+*/
+
+// This guy doesn't work since CvtRNA doesn't result in .rna modifier
+/*def : Pat<(int_nvvm_f2tf_rna Float32Regs:$a),
+          (CVT_tf32_f32 Float32Regs:$a, CvtRNA)>;*/
+
+// This works
+def CVT_tf32_f32 :
+  NVPTXInst<(outs Int32Regs:$dest), (ins Float32Regs:$a),
+                  "cvt.rna.tf32.f32 \t$dest, $a;",
+      [(set Int32Regs:$dest, (int_nvvm_f2tf_rna Float32Regs:$a))]>;
+
 def INT_NVVM_LOHI_I2D : F_MATH_2<"mov.b64 \t$dst, {{$src0, $src1}};",
   Float64Regs, Int32Regs, Int32Regs, int_nvvm_lohi_i2d>;
 

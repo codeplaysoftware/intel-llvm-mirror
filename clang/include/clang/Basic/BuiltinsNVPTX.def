@@ -405,6 +405,10 @@ BUILTIN(__nvvm_ull2d_rp, "dULLi", "")
 BUILTIN(__nvvm_f2h_rn_ftz, "Usf", "")
 BUILTIN(__nvvm_f2h_rn, "Usf", "")
 
+BUILTIN(__nvvm_ff2bfx2_rn, "Uiff", "")
+BUILTIN(__nvvm_f2bf_rn, "ZUsf", "")
+BUILTIN(__nvvm_f2tf_rna, "Uif", "")
+
 // Bitcast
 
 BUILTIN(__nvvm_bitcast_f2i, "if", "")

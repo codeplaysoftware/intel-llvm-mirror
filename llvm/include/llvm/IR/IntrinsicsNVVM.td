@@ -1185,6 +1185,15 @@ let TargetPrefix = "nvvm" in {
   def int_nvvm_f2h_rn : GCCBuiltin<"__nvvm_f2h_rn">,
       DefaultAttrsIntrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem, IntrSpeculatable]>;
 
+  def int_nvvm_ff2bfx2_rn : GCCBuiltin<"__nvvm_ff2bfx2_rn">,
+      Intrinsic<[llvm_i32_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+    
+  def int_nvvm_f2bf_rn : GCCBuiltin<"__nvvm_f2bf_rn">,
+      Intrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_f2tf_rna : GCCBuiltin<"__nvvm_f2tf_rna">,
+      Intrinsic<[llvm_i32_ty], [llvm_float_ty], [IntrNoMem]>;
+
 //
 // Bitcast
 //

@@ -137,6 +137,7 @@ enum CvtMode {
   RZ,
   RM,
   RP,
+  RNA,
 
   BASE_MASK = 0x0F,
   FTZ_FLAG = 0x10,

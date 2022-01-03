@@ -48,6 +48,8 @@ def CvtRN   : PatLeaf<(i32 0x5)>;
 def CvtRZ   : PatLeaf<(i32 0x6)>;
 def CvtRM   : PatLeaf<(i32 0x7)>;
 def CvtRP   : PatLeaf<(i32 0x8)>;
+// How do I make CvtRNA add .rna modifier?
+def CvtRNA   : PatLeaf<(i32 0x9)>;
 
 def CvtNONE_FTZ : PatLeaf<(i32 0x10)>;
 def CvtRNI_FTZ  : PatLeaf<(i32 0x11)>;
@@ -486,6 +488,7 @@ let hasSideEffects = false in {
   defm CVT_f16 : CVT_FROM_ALL<"f16", Float16Regs>;
   defm CVT_f32 : CVT_FROM_ALL<"f32", Float32Regs>;
   defm CVT_f64 : CVT_FROM_ALL<"f64", Float64Regs>;
+  defm CVT_bf16 : CVT_FROM_ALL<"bf16", Int16Regs>;
 
   // These cvts are different from those above: The source and dest registers
   // are of the same type.
