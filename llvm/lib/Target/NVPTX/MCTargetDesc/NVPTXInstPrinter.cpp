@@ -139,6 +139,9 @@ void NVPTXInstPrinter::printCvtMode(const MCInst *MI, int OpNum, raw_ostream &O,
     case NVPTX::PTXCvtMode::RP:
       O << ".rp";
       break;
+    case NVPTX::PTXCvtMode::RNA:
+      O << ".rna";
+      break;
     }
   } else {
     llvm_unreachable("Invalid conversion modifier");
