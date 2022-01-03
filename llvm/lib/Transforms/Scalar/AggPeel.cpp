@@ -778,7 +778,7 @@ class AggPeel {
   bool runOnAlloca(AllocaInst &AI);
   void rewrite(AllocaInst &NewAI,
     AllocaPeels::iterator &itbegin,
-    AllocaPeels::iterator &itlast);
+    AllocaPeels::iterator &itend);
 public:
   PreservedAnalyses runImpl(Function &, DominatorTree &, AssumptionCache &);
 };
@@ -860,17 +860,18 @@ bool AggPeel::runOnAlloca(AllocaInst &AI) {
       it->beginOffset() << "," << it->endOffset() <<
       ")" << " slice #" << (it - AP.begin()) << "\n");
     AllocaPeels::iterator itbegin = it;
-    AllocaPeels::iterator itend = it;
-    for (it++; it != AP.end(); itend = it, it++) {
-      if (it->beginOffset() >= itbegin->beginOffset() &&
-          it->endOffset() <= itbegin->endOffset())
-        continue;
-      break;
+    // the peel list is ordered so find all of those peels contained in the
+    // first (and largest) peel
+    for (it++; it != AP.end(); it++) {
+      assert(it->beginOffset() >= itbegin->beginOffset() && 
+        "slice list not sorted");
+      if (it->endOffset() > itbegin->endOffset())
+        break;
     }
-    AllocaPeels::iterator itlast = it;
+    AllocaPeels::iterator itend = it;
     LLVM_DEBUG(llvm::dbgs() << "End partition: " << "[" <<
-      itend->beginOffset() << "," << itend->endOffset() <<
-      ")" << " slice #" << (itend - AP.begin()) << "\n");
+      itend[-1].beginOffset() << "," << itend[-1].endOffset() <<
+      ")" << " slice #" << (itend - AP.begin() - 1) << "\n");
 
     // skip if the first partition is the same size as the original alloca
     Optional<TypeSize> allocsize = AI.getAllocationSizeInBits(DL);
@@ -897,7 +898,7 @@ bool AggPeel::runOnAlloca(AllocaInst &AI) {
     NewAI->setDebugLoc(AI.getDebugLoc());
     LLVM_DEBUG(dbgs() << "New alloc: ");
     LLVM_DEBUG(NewAI->dump());
-    rewrite(*NewAI, itbegin, itlast);
+    rewrite(*NewAI, itbegin, itend);
 
     if (it == AP.end())
       break;
@@ -909,14 +910,14 @@ bool AggPeel::runOnAlloca(AllocaInst &AI) {
 
 void AggPeel::rewrite(AllocaInst &NewAI,
     AllocaPeels::iterator &itbegin,
-    AllocaPeels::iterator &itlast) {
-  // save the indices for the aggrgate itself
+    AllocaPeels::iterator &itend) {
+  // save the indices for the aggregate itself
   LLVM_DEBUG(dbgs() << "Aggregate indices: ");
   LLVM_DEBUG(itbegin->dumpindices());
   llvm::SmallVectorImpl<uint64_t> &indices = itbegin->getIndexes();
   // new geps so we don't replace them multiple times
   SmallPtrSet<Instruction *, 4> newgeps;
-  for (AllocaPeels::iterator itrw = itbegin; itrw != itlast; itrw++) {
+  for (AllocaPeels::iterator itrw = itbegin; itrw != itend; itrw++) {
     Use *U = itrw->getUse();
     LLVM_DEBUG(llvm::dbgs() << "rewriting use: ");
     LLVM_DEBUG(U->get()->dump());
