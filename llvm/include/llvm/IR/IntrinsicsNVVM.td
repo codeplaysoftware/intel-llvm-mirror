@@ -1185,11 +1185,41 @@ let TargetPrefix = "nvvm" in {
   def int_nvvm_f2h_rn : GCCBuiltin<"__nvvm_f2h_rn">,
       DefaultAttrsIntrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem, IntrSpeculatable]>;
 
-  def int_nvvm_ff2bfx2_rn : GCCBuiltin<"__nvvm_ff2bfx2_rn">,
+  def int_nvvm_ff2v2bf_rn : GCCBuiltin<"__nvvm_ff2v2bf_rn">,
+       Intrinsic<[llvm_i32_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_ff2v2bf_rn_relu : GCCBuiltin<"__nvvm_ff2v2bf_rn_relu">,
       Intrinsic<[llvm_i32_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
-    
+
+  def int_nvvm_ff2v2bf_rz : GCCBuiltin<"__nvvm_ff2v2bf_rz">,
+      Intrinsic<[llvm_i32_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_ff2v2bf_rz_relu : GCCBuiltin<"__nvvm_ff2v2bf_rz_relu">,
+      Intrinsic<[llvm_i32_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_ff2v2f16_rn : GCCBuiltin<"__nvvm_ff2v2f16_rn">,
+      Intrinsic<[llvm_v2f16_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_ff2v2f16_rn_relu : GCCBuiltin<"__nvvm_ff2v2f16_rn_relu">,
+      Intrinsic<[llvm_v2f16_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_ff2v2f16_rz : GCCBuiltin<"__nvvm_ff2v2f16_rz">,
+      Intrinsic<[llvm_v2f16_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_ff2v2f16_rz_relu : GCCBuiltin<"__nvvm_ff2v2f16_rz_relu">,
+      Intrinsic<[llvm_v2f16_ty], [llvm_float_ty, llvm_float_ty], [IntrNoMem]>;
+
   def int_nvvm_f2bf_rn : GCCBuiltin<"__nvvm_f2bf_rn">,
       Intrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_f2bf_rn_relu : GCCBuiltin<"__nvvm_f2bf_rn_relu">,
+      Intrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_f2bf_rz : GCCBuiltin<"__nvvm_f2bf_rz">,
+      Intrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem]>;
+
+  def int_nvvm_f2bf_rz_relu : GCCBuiltin<"__nvvm_f2bf_rz_relu">,
+       Intrinsic<[llvm_i16_ty], [llvm_float_ty], [IntrNoMem]>;
 
   def int_nvvm_f2tf_rna : GCCBuiltin<"__nvvm_f2tf_rna">,
       Intrinsic<[llvm_i32_ty], [llvm_float_ty], [IntrNoMem]>;

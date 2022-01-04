@@ -63,6 +63,10 @@ def CvtRP_FTZ   : PatLeaf<(i32 0x18)>;
 def CvtSAT      : PatLeaf<(i32 0x20)>;
 def CvtSAT_FTZ  : PatLeaf<(i32 0x30)>;
 
+def CvtNONE_RELU   : PatLeaf<(i32 0x40)>;
+def CvtRN_RELU   : PatLeaf<(i32 0x45)>;
+def CvtRZ_RELU   : PatLeaf<(i32 0x46)>;
+
 def CvtMode : Operand<i32> {
   let PrintMethod = "printCvtMode";
 }
@@ -487,7 +491,27 @@ let hasSideEffects = false in {
   defm CVT_f16 : CVT_FROM_ALL<"f16", Float16Regs>;
   defm CVT_f32 : CVT_FROM_ALL<"f32", Float32Regs>;
   defm CVT_f64 : CVT_FROM_ALL<"f64", Float64Regs>;
-  defm CVT_bf16 : CVT_FROM_ALL<"bf16", Int16Regs>;
+
+  multiclass CVT_FROM_FLOAT_RELU<string FromName, RegisterClass RC> {
+    def _f32 :
+      NVPTXInst<(outs RC:$dst),
+                (ins Float32Regs:$src, CvtMode:$mode),
+                !strconcat("cvt${mode:base}${mode:relu}.",
+                FromName, ".f32 \t$dst, $src;"), []>;
+  }
+
+  defm CVT_bf16 : CVT_FROM_FLOAT_RELU<"bf16", Int16Regs>;
+
+    multiclass CVT_FROM_FLOAT_V2<string FromName, RegisterClass RC> {
+    def _f32 :
+      NVPTXInst<(outs RC:$dst),
+                (ins Float32Regs:$src1, Float32Regs:$src2,  CvtMode:$mode),
+                !strconcat("cvt${mode:base}${mode:relu}.",
+                FromName, ".f32 \t$dst, $src1, $src2;"), []>;
+  }
+
+  defm CVT_v2bf16 : CVT_FROM_FLOAT_V2<"bf16x2", Int32Regs>;
+  defm CVT_v2f16 : CVT_FROM_FLOAT_V2<"f16x2", Float16x2Regs>;
 
   // These cvts are different from those above: The source and dest registers
   // are of the same type.
