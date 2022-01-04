@@ -497,7 +497,8 @@ let hasSideEffects = false in {
       NVPTXInst<(outs RC:$dst),
                 (ins Float32Regs:$src, CvtMode:$mode),
                 !strconcat("cvt${mode:base}${mode:relu}.",
-                FromName, ".f32 \t$dst, $src;"), []>;
+                FromName, ".f32 \t$dst, $src;"), []>, 
+                Requires<[hasPTX70, hasSM80]>;
   }
 
   defm CVT_bf16 : CVT_FROM_FLOAT_RELU<"bf16", Int16Regs>;
@@ -507,7 +508,8 @@ let hasSideEffects = false in {
       NVPTXInst<(outs RC:$dst),
                 (ins Float32Regs:$src1, Float32Regs:$src2,  CvtMode:$mode),
                 !strconcat("cvt${mode:base}${mode:relu}.",
-                FromName, ".f32 \t$dst, $src1, $src2;"), []>;
+                FromName, ".f32 \t$dst, $src1, $src2;"), []>,
+    Requires<[hasPTX70, hasSM80]>;
   }
 
   defm CVT_v2bf16 : CVT_FROM_FLOAT_V2<"bf16x2", Int32Regs>;

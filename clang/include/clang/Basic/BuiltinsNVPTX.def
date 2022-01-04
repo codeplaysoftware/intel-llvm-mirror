@@ -406,22 +406,22 @@ BUILTIN(__nvvm_f2h_rn_ftz, "Usf", "")
 BUILTIN(__nvvm_f2h_rn, "Usf", "")
 
 
-BUILTIN(__nvvm_ff2v2bf_rn, "Uiff", "")
-BUILTIN(__nvvm_ff2v2bf_rn_relu, "Uiff", "")
-BUILTIN(__nvvm_ff2v2bf_rz, "Uiff", "")
-BUILTIN(__nvvm_ff2v2bf_rz_relu, "Uiff", "")
+TARGET_BUILTIN(__nvvm_ff2v2bf_rn, "ZUiff", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_ff2v2bf_rn_relu, "ZUiff", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_ff2v2bf_rz, "ZUiff", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_ff2v2bf_rz_relu, "ZUiff", "", AND(SM_80,PTX70))
 
-BUILTIN(__nvvm_ff2v2f16_rn, "Uiff", "")
-BUILTIN(__nvvm_ff2v2f16_rn_relu, "Uiff", "")
-BUILTIN(__nvvm_ff2v2f16_rz, "Uiff", "")
-BUILTIN(__nvvm_ff2v2f16_rz_relu, "Uiff", "")
+TARGET_BUILTIN(__nvvm_ff2v2f16_rn, "Uiff", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_ff2v2f16_rn_relu, "Uiff", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_ff2v2f16_rz, "Uiff", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_ff2v2f16_rz_relu, "Uiff", "", AND(SM_80,PTX70))
 
-BUILTIN(__nvvm_f2bf_rn, "ZUsf", "")
-BUILTIN(__nvvm_f2bf_rn_relu, "ZUsf", "")
-BUILTIN(__nvvm_f2bf_rz, "ZUsf", "")
-BUILTIN(__nvvm_f2bf_rz_relu, "ZUsf", "")
+TARGET_BUILTIN(__nvvm_f2bf_rn, "ZUsf", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_f2bf_rn_relu, "ZUsf", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_f2bf_rz, "ZUsf", "", AND(SM_80,PTX70))
+TARGET_BUILTIN(__nvvm_f2bf_rz_relu, "ZUsf", "", AND(SM_80,PTX70))
 
-BUILTIN(__nvvm_f2tf_rna, "Uif", "")
+TARGET_BUILTIN(__nvvm_f2tf_rna, "ZUif", "", AND(SM_80,PTX70))
 
 // Bitcast
 
