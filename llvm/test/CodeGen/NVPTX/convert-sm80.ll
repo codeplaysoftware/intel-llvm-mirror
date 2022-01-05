@@ -135,4 +135,3 @@ ret i32 %val
 
 declare i32 @llvm.nvvm.f2tf.rna(float)
 
-

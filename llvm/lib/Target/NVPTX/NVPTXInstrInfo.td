@@ -512,7 +512,6 @@ let hasSideEffects = false in {
     Requires<[hasPTX70, hasSM80]>;
   }
 
-
   defm CVT_v2f16 : CVT_FROM_FLOAT_V2_SM80<"f16x2", Float16x2Regs>;
   defm CVT_v2bf16 : CVT_FROM_FLOAT_V2_SM80<"bf16x2", Int32Regs>;
 

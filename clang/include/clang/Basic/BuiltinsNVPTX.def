@@ -405,7 +405,6 @@ BUILTIN(__nvvm_ull2d_rp, "dULLi", "")
 BUILTIN(__nvvm_f2h_rn_ftz, "Usf", "")
 BUILTIN(__nvvm_f2h_rn, "Usf", "")
 
-
 TARGET_BUILTIN(__nvvm_ff2v2bf_rn, "ZUiff", "", AND(SM_80,PTX70))
 TARGET_BUILTIN(__nvvm_ff2v2bf_rn_relu, "ZUiff", "", AND(SM_80,PTX70))
 TARGET_BUILTIN(__nvvm_ff2v2bf_rz, "ZUiff", "", AND(SM_80,PTX70))

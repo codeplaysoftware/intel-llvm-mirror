@@ -3569,6 +3569,7 @@ __device__ void nvvm_cvt_sm80() {
 
   // CHECK_PTX70_SM80: call i32 @llvm.nvvm.f2tf.rna(float 1.000000e+00)
   __nvvm_f2tf_rna(1);
+  
 #endif
 }
 
