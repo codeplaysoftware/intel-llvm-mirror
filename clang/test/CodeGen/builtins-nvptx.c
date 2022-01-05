@@ -3549,15 +3549,14 @@ __device__ void nvvm_cvt_sm80() {
   // CHECK_PTX70_SM80: call i32 @llvm.nvvm.ff2v2bf.rz.relu(float 1.000000e+00, float 1.000000e+00)
   __nvvm_ff2v2bf_rz_relu(1, 1);
 
-  // TODO: f16x2 builtins fail
-  // CaHECK_PTX70_SM80: call i32 @llvm.nvvm.ff2v2f16.rn(float 1.000000e+00, float 1.000000e+00)
-  //__nvvm_ff2v2f16_rn(1, 1);
-  // CaHECK_PTX70_SM80: call i32 @llvm.nvvm.ff2v2f16.rn.relu(float 1.000000e+00, float 1.000000e+00)
-  //__nvvm_ff2v2f16_rn_relu(1, 1);
-  // CaHECK_PTX70_SM80: call i32 @llvm.nvvm.ff2v2f16.rz(float 1.000000e+00, float 1.000000e+00)
-  //__nvvm_ff2v2f16_rz(1, 1);
-  // CaHECK_PTX70_SM80: call i32 @llvm.nvvm.ff2v2f16.rz.relu(float 1.000000e+00, float 1.000000e+00)
-  //__nvvm_ff2v2f16_rz_relu(1, 1);
+  // CHECK_PTX70_SM80: call <2 x half> @llvm.nvvm.ff2v2f16.rn(float 1.000000e+00, float 1.000000e+00)
+  __nvvm_ff2v2f16_rn(1, 1);
+  // CHECK_PTX70_SM80: call <2 x half> @llvm.nvvm.ff2v2f16.rn.relu(float 1.000000e+00, float 1.000000e+00)
+  __nvvm_ff2v2f16_rn_relu(1, 1);
+  // CHECK_PTX70_SM80: call <2 x half> @llvm.nvvm.ff2v2f16.rz(float 1.000000e+00, float 1.000000e+00)
+  __nvvm_ff2v2f16_rz(1, 1);
+  // CHECK_PTX70_SM80: call <2 x half> @llvm.nvvm.ff2v2f16.rz.relu(float 1.000000e+00, float 1.000000e+00)
+  __nvvm_ff2v2f16_rz_relu(1, 1);
 
   // CHECK_PTX70_SM80: call i16 @llvm.nvvm.f2bf.rn(float 1.000000e+00)
   __nvvm_f2bf_rn(1);

@@ -492,7 +492,7 @@ let hasSideEffects = false in {
   defm CVT_f32 : CVT_FROM_ALL<"f32", Float32Regs>;
   defm CVT_f64 : CVT_FROM_ALL<"f64", Float64Regs>;
 
-  multiclass CVT_FROM_FLOAT_RELU<string FromName, RegisterClass RC> {
+  multiclass CVT_FROM_FLOAT_SM80<string FromName, RegisterClass RC> {
     def _f32 :
       NVPTXInst<(outs RC:$dst),
                 (ins Float32Regs:$src, CvtMode:$mode),
@@ -501,9 +501,9 @@ let hasSideEffects = false in {
                 Requires<[hasPTX70, hasSM80]>;
   }
 
-  defm CVT_bf16 : CVT_FROM_FLOAT_RELU<"bf16", Int16Regs>;
+  defm CVT_bf16 : CVT_FROM_FLOAT_SM80<"bf16", Int16Regs>;
 
-    multiclass CVT_FROM_FLOAT_V2<string FromName, RegisterClass RC> {
+    multiclass CVT_FROM_FLOAT_V2_SM80<string FromName, RegisterClass RC> {
     def _f32 :
       NVPTXInst<(outs RC:$dst),
                 (ins Float32Regs:$src1, Float32Regs:$src2,  CvtMode:$mode),
@@ -512,8 +512,9 @@ let hasSideEffects = false in {
     Requires<[hasPTX70, hasSM80]>;
   }
 
-  defm CVT_v2bf16 : CVT_FROM_FLOAT_V2<"bf16x2", Int32Regs>;
-  defm CVT_v2f16 : CVT_FROM_FLOAT_V2<"f16x2", Float16x2Regs>;
+
+  defm CVT_v2f16 : CVT_FROM_FLOAT_V2_SM80<"f16x2", Float16x2Regs>;
+  defm CVT_v2bf16 : CVT_FROM_FLOAT_V2_SM80<"bf16x2", Int32Regs>;
 
   // These cvts are different from those above: The source and dest registers
   // are of the same type.
