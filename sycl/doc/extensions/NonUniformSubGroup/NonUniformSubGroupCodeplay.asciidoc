@@ -327,7 +327,6 @@ Both `sycl::ext::oneapi::experimental::async_group_copy` and `sycl::ext::oneapi:
 . do we want a memory scope for each new class or just non_uniform_sub_group?
 . Creating a non_uniform_sub_group when already in divergent control flow.
 . Potentially `ext_oneapi_get_opportunistic_group`, `ext_oneapi_get_ballot_group`, and `ext_oneapi_get_cluster_group` could be free functions. This would avoid the slightly weird pattern where the sub-group uses itself as the first argument to `sub_group::ext_oneapi_get_ballot_group` i.e. `subgroup.ext_oneapi_get_ballot_group(subgroup, predicate);`
-. Should the `sub_group` member functions be prefixed with "ext_oneapi_".
 . Could work-items that provide `ext_oneapi_get_ballot_group` with false use the ballot group to query the size of the group?
 
 == Notes
