@@ -134,7 +134,7 @@ NOTE: `opportunistic_group` does not have a group id or group range because the 
 
 Currently in SYCL the control flow of a group must be converged to synchronize the work-items in the group.
 This makes it impossible to have a synchronization point when work-items follow divergent control flow (e.g. when using if statements) without reconverging the group.
-A ballot-group will allow the programmer to group the work-items in a sub-group or non-uniform sub-group that match a runtime predicate, allowing for the synchronization of work-items following the same control flow.
+A ballot-group will allow the programmer to group the work-items in a sub-group or non-uniform sub-group that match a runtime predicate, allowing for the synchronization of a subset of work-items in a sub-group or non-uniform sub-group which all following the same control flow.
 The sub-group or non-uniform sub-group that is divided will be referred to as the source group.
 The creation of a ballot-group requires the synchronization of the source group since details of the other work-items in the ballot-group will be broadcast to participating work-items.
 Work-items that supply a false value for the predicate must not use the `ballot_group`.
@@ -267,7 +267,7 @@ public:
 
     // get the number of cluster-groups in the sub-group
     range_type get_group_range() const;
-    linear_id_type get_group_range_id() const;
+    linear_id_type get_group_linear_range() const;
 
     // true for only one work-item in the group
     bool leader() const;
@@ -324,10 +324,24 @@ Both `sycl::ext::oneapi::experimental::async_group_copy` and `sycl::ext::oneapi:
 
 == Issues
 . What happens when work-items in different control-flow call ext_oneapi_get_opportunistic_group?
+. The conditions for calling the group functions and algorithms need to be decided on. It makes sense that reaching a group algorithm from a different control-flow should be undefined behaviour, but is that at all enforcable or detectable? Should it be possible to call group algorithms and group functions with different group at the same time? Multiple ballot-groups with non-overlapping members trying to do a reduce at the same time seems like a common use case, but will hardware support it?
 . do we want a memory scope for each new class or just non_uniform_sub_group?
-. Creating a non_uniform_sub_group when already in divergent control flow.
-. Potentially `ext_oneapi_get_opportunistic_group`, `ext_oneapi_get_ballot_group`, and `ext_oneapi_get_cluster_group` could be free functions. This would avoid the slightly weird pattern where the sub-group uses itself as the first argument to `sub_group::ext_oneapi_get_ballot_group` i.e. `subgroup.ext_oneapi_get_ballot_group(subgroup, predicate);`
+. Potentially `ext_oneapi_get_opportunistic_group`, `ext_oneapi_get_ballot_group`, and `ext_oneapi_get_cluster_group` could be free functions. This would avoid the slightly weird pattern where the sub-group uses itself as the first argument to `sub_group::ext_oneapi_get_ballot_group` i.e. `subgroup.ext_oneapi_get_ballot_group(subgroup, predicate);`. On the other hand, this would be inconsistent with the method of querying a sub-group from a work-group.
 . Could work-items that provide `ext_oneapi_get_ballot_group` with false use the ballot group to query the size of the group?
 
 == Notes
 . It is intentionally not possible to query the work-items location in the sub-group from `opportunistic_group`, `ballot_group`, or `cluster_group`. Since it is not possible to query a work-items id in the work-group from the sub-group, it follows that it is not possible to query a work-items id in the sub-group from the sub-sub-group.
+. If the main purpose of `group_ballot` from the link:https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/SubGroupMask/SubGroupMask.asciidoc[sub group mask proposal] is to represent subsets of sub-groups, then this work would make that redundant.
+
+== Sub-dividing groups
+It would be nice to be able to sub-divide these non-uniform sub-groups but it is likely only reasonable to be able to create ballot-groups from the other groups.
+
+=== Ballot-Group
+To create a ballot-group, members of a sub-groups, ballot-groups, opportunistic-groups, and cluster-groups could all broadcast the result of some predicate function.
+
+=== Cluster-Group
+The creation of a cluster-group only depends on the size of a sub-group and the location of a work-item within that sub-group, meaning any work-item can calculate the cluster-group it belongs in with no synchronization. It is indirect to use another group in the creation of a cluster-group when the implementation will be querying the containing sub-group and ignoring other information.
+
+=== Opportunistic-Group
+To create an opportunistic-group from another group, would likely involve finding the intersection of a new opportunistic-group and another group. Without hardware support, this would require synchronization between work-items and is effectively equal to creating a ballot-group, so a ballot-group should be used instead.
+ 
