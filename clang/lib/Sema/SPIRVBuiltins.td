@@ -440,7 +440,7 @@ foreach name  = ["acos", "acosh", "acospi",
                  "sin", "sinh", "sinpi",
                  "sqrt",
                  "tan", "tanh", "tanpi",
-                 "tgamma", "trunc"] in {
+                 "tgamma", "trunc", "native_tanh"] in {
   def : ConstOCLSPVBuiltin<name, [FGenTypeN, FGenTypeN]>;
 }
 

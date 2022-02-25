@@ -915,6 +915,15 @@ __SYCL_EXPORT s::cl_float native_tan(s::cl_float x) __NOEXC {
 }
 MAKE_1V(native_tan, s::cl_float, s::cl_float)
 
+// native_tanh <---------------------------------------------------------------
+
+__SYCL_EXPORT s::cl_float native_tanh(s::cl_float x) __NOEXC { return std::tanh(x); }
+__SYCL_EXPORT s::cl_double native_tanh(s::cl_double x) __NOEXC { return std::tanh(x); }
+__SYCL_EXPORT s::cl_half native_tanh(s::cl_half x) __NOEXC { return std::tanh(x); }
+MAKE_1V(native_tanh, s::cl_float, s::cl_float)
+MAKE_1V(native_tanh, s::cl_double, s::cl_double)
+MAKE_1V(native_tanh, s::cl_half, s::cl_half)
+
 // ---------- 4.13.3 Half Precision Math functions. Host implementations. ------
 // half_cos
 __SYCL_EXPORT s::cl_float half_cos(s::cl_float x) __NOEXC {

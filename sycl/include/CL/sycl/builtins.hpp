@@ -469,11 +469,17 @@ detail::enable_if_t<detail::is_genfloat<T>::value, T> tan(T x) __NOEXC {
   return __sycl_std::__invoke_tan<T>(x);
 }
 
+// < --------------------------------------------------------------------------
 // genfloat tanh (genfloat x)
 template <typename T>
 detail::enable_if_t<detail::is_genfloat<T>::value, T> tanh(T x) __NOEXC {
+#ifdef SYCL_NATIVE_TANH
+  return __sycl_std::__invoke_native_tanh<T>(x);
+#else
   return __sycl_std::__invoke_tanh<T>(x);
+#endif
 }
+// < --------------------------------------------------------------------------
 
 // genfloat tanpi (genfloat x)
 template <typename T>
@@ -1462,6 +1468,14 @@ template <typename T>
 detail::enable_if_t<detail::is_genfloatf<T>::value, T> tan(T x) __NOEXC {
   return __sycl_std::__invoke_native_tan<T>(x);
 }
+
+// < ------------------------------------------------------------------- NATIVE
+// genfloat tanh (genfloat x)
+template <typename T>
+detail::enable_if_t<detail::is_genfloat<T>::value, T> tanh(T x) __NOEXC {
+  return __sycl_std::__invoke_native_tanh<T>(x);
+}
+// < ------------------------------------------------------------------- NATIVE
 
 } // namespace native
 namespace half_precision {
