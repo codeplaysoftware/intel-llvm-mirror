@@ -1,0 +1,128 @@
+= SYCL_ONEAPI_native_macros
+:source-highlighter: coderay
+:coderay-linenums-mode: table
+
+// This section needs to be after the document title.
+:doctype: book
+:toc2:
+:toc: left
+:encoding: utf-8
+:lang: en
+
+
+:blank: pass:[ +]
+
+// Set the default source code type in this document to C++,
+// for syntax highlighting purposes.  This is needed because
+// docbook uses c++ and html5 uses cpp.
+:language: {basebackend@docbook:c++:cpp}
+
+== Notice
+
+IMPORTANT: This specification is a draft.
+
+Copyright (c) 2022 Intel Corporation.  All rights reserved.
+
+NOTE: Khronos(R) is a registered trademark and SYCL(TM) and SPIR(TM) are trademarks of The Khronos Group Inc.  OpenCL(TM) is a trademark of Apple Inc. used by permission by Khronos.
+
+NOTE: This document is better viewed when rendered as html with asciidoctor.  GitHub does not render image icons.
+
+== Status
+
+Working Draft
+
+This is a preview extension specification, intended to provide early access to a
+feature for review and community feedback. When the feature matures, this
+specification may be released as a formal extension.
+
+Because the interfaces defined by this specification are not final and are
+subject to change they are not intended to be used by shipping software
+products.
+
+== Version
+
+Revision: 1
+
+== Dependencies
+
+This extension is written against the SYCL 2020 Specification, Revision 4.
+
+== Overview
+
+This extension provides a set of preprocessor macros making the regular SYCL
+math built-ins call their native implementation instead.
+
+The SYCL specification provides a set of math built-ins defined in Table 171,
+section 4.17.5, with strict precision requirements inherited from the OpenCL 1.2
+specification. In table 172 of the same section, the SYCL specification also
+provides a subset of these math built-ins, for a subset of the types, in the
+native namespace. These native functions have implementation defined precisions
+and are commonly used to call into faster hardware instructions for the
+corresponding math operations.
+
+This approach gives users control over which precisions they would like to use,
+however swapping between the two requires modifying the application. Therefore
+this extension builds on top of this native mechanism to allow a fine grained
+control over which version of the built-in is called without any application
+modification.
+
+== Native macros
+
+The native macros are provided for all the math built-ins that have a
+specialization in the native namespace.
+
+And they match the following format:
+
+* `SYCL_EXT_ONEAPI_NATIVE_<BUILTIN>`
+
+With `<BUILTIN>` replaced by the capitalized name of the specific built-in.
+
+== Extension header
+
+As this extension is experimental it provides a header to re-implement the
+built-ins affected by the native macros, so the following file should be
+included, and the builtins in the `sycl::ext::oneapi::experimental` namespace
+should be used.
+
+The extension header can be found here:
+
+* `<sycl/ext/oneapi/experimental/native_macros.hpp>`
+
+== Example
+
+[source]
+----
+#define SYCL_EXT_ONEAPI_NATIVE_COS
+
+#include <sycl/sycl.hpp>
+#include <sycl/ext/oneapi/experimental/native_macros.hpp>
+
+
+int main (int argc, char *argv[]) {
+  float f = 1.0f;
+
+  sycl::device dev;
+  sycl::queue deviceQueue{dev};
+  sycl::buffer<float, 1> buf{&f, sycl::range<1>{1}};
+
+  deviceQueue.submit ([&] (sycl::handler& cgh) {
+    auto numbers = buf.get_access<sycl::access::mode::read_write> (cgh);
+    cgh.single_task<class simple_kernel>([=]() {
+      numbers[0] = sycl::ext::oneapi::experimental::cos(numbers[0]);
+    });
+  });
+
+  return 0;
+}
+
+----
+
+== Revision History
+
+[cols="5,15,15,70"]
+[grid="rows"]
+[options="header"]
+|========================================
+|Rev|Date|Author|Changes
+|1|2022-02-25|Nicolas Miller |Initial public working draft
+|========================================

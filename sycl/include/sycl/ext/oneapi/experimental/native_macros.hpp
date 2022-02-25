@@ -38,7 +38,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> cos(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> cos(T x) __NOEXC {
-#ifdef SYCL_NATIVE_COS
+#ifdef SYCL_EXT_ONEAPI_NATIVE_COS
   return __sycl_std::__invoke_native_cos<T>(x);
 #else
   return __sycl_std::__invoke_cos<T>(x);
@@ -53,7 +53,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> exp(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> exp(T x) __NOEXC {
-#ifdef SYCL_NATIVE_EXP
+#ifdef SYCL_EXT_ONEAPI_NATIVE_EXP
   return __sycl_std::__invoke_native_exp<T>(x);
 #else
   return __sycl_std::__invoke_exp<T>(x);
@@ -68,7 +68,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> exp2(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> exp2(T x) __NOEXC {
-#ifdef SYCL_NATIVE_EXP2
+#ifdef SYCL_EXT_ONEAPI_NATIVE_EXP2
   return __sycl_std::__invoke_native_exp2<T>(x);
 #else
   return __sycl_std::__invoke_exp2<T>(x);
@@ -83,7 +83,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> exp10(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> exp10(T x) __NOEXC {
-#ifdef SYCL_NATIVE_EXP10
+#ifdef SYCL_EXT_ONEAPI_NATIVE_EXP10
   return __sycl_std::__invoke_native_exp10<T>(x);
 #else
   return __sycl_std::__invoke_exp10<T>(x);
@@ -98,7 +98,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> log(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> log(T x) __NOEXC {
-#ifdef SYCL_NATIVE_LOG
+#ifdef SYCL_EXT_ONEAPI_NATIVE_LOG
   return __sycl_std::__invoke_native_log<T>(x);
 #else
   return __sycl_std::__invoke_log<T>(x);
@@ -113,7 +113,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> log2(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> log2(T x) __NOEXC {
-#ifdef SYCL_NATIVE_LOG2
+#ifdef SYCL_EXT_ONEAPI_NATIVE_LOG2
   return __sycl_std::__invoke_native_log2<T>(x);
 #else
   return __sycl_std::__invoke_log2<T>(x);
@@ -128,7 +128,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> log10(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> log10(T x) __NOEXC {
-#ifdef SYCL_NATIVE_LOG10
+#ifdef SYCL_EXT_ONEAPI_NATIVE_LOG10
   return __sycl_std::__invoke_native_log10<T>(x);
 #else
   return __sycl_std::__invoke_log10<T>(x);
@@ -143,7 +143,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> powr(T x, T y) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> powr(T x, T y) __NOEXC {
-#ifdef SYCL_NATIVE_POWR
+#ifdef SYCL_EXT_ONEAPI_NATIVE_POWR
   return __sycl_std::__invoke_native_powr<T>(x, y);
 #else
   return __sycl_std::__invoke_powr<T>(x, y);
@@ -158,7 +158,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> rsqrt(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> rsqrt(T x) __NOEXC {
-#ifdef SYCL_NATIVE_RSQRT
+#ifdef SYCL_EXT_ONEAPI_NATIVE_RSQRT
   return __sycl_std::__invoke_native_rsqrt<T>(x);
 #else
   return __sycl_std::__invoke_rsqrt<T>(x);
@@ -173,7 +173,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> sin(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> sin(T x) __NOEXC {
-#ifdef SYCL_NATIVE_SIN
+#ifdef SYCL_EXT_ONEAPI_NATIVE_SIN
   return __sycl_std::__invoke_native_sin<T>(x);
 #else
   return __sycl_std::__invoke_sin<T>(x);
@@ -188,7 +188,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> sqrt(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> sqrt(T x) __NOEXC {
-#ifdef SYCL_NATIVE_SQRT
+#ifdef SYCL_EXT_ONEAPI_NATIVE_SQRT
   return __sycl_std::__invoke_native_sqrt<T>(x);
 #else
   return __sycl_std::__invoke_sqrt<T>(x);
@@ -203,7 +203,7 @@ sycl::detail::enable_if_t<is_genfloatxf<T>::value, T> tan(T x) __NOEXC {
 
 template <typename T>
 sycl::detail::enable_if_t<sycl::detail::is_genfloatf<T>::value, T> tan(T x) __NOEXC {
-#ifdef SYCL_NATIVE_TAN
+#ifdef SYCL_EXT_ONEAPI_NATIVE_TAN
   return __sycl_std::__invoke_native_tan<T>(x);
 #else
   return __sycl_std::__invoke_tan<T>(x);

@@ -7,18 +7,18 @@
 //
 // RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm %s -o - | FileCheck %s
 
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_COS %s -o - | FileCheck --check-prefix=CHECK-NATIVE-COS %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_EXP %s -o - | FileCheck --check-prefix=CHECK-NATIVE-EXP %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_EXP2 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-EXP2 %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_EXP10 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-EXP10 %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_LOG %s -o - | FileCheck --check-prefix=CHECK-NATIVE-LOG %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_LOG2 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-LOG2 %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_LOG10 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-LOG10 %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_POWR %s -o - | FileCheck --check-prefix=CHECK-NATIVE-POWR %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_RSQRT %s -o - | FileCheck --check-prefix=CHECK-NATIVE-RSQRT %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_SIN %s -o - | FileCheck --check-prefix=CHECK-NATIVE-SIN %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_SQRT %s -o - | FileCheck --check-prefix=CHECK-NATIVE-SQRT %s
-// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_TAN %s -o - | FileCheck --check-prefix=CHECK-NATIVE-TAN %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_COS %s -o - | FileCheck --check-prefix=CHECK-NATIVE-COS %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_EXP %s -o - | FileCheck --check-prefix=CHECK-NATIVE-EXP %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_EXP2 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-EXP2 %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_EXP10 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-EXP10 %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_LOG %s -o - | FileCheck --check-prefix=CHECK-NATIVE-LOG %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_LOG2 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-LOG2 %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_LOG10 %s -o - | FileCheck --check-prefix=CHECK-NATIVE-LOG10 %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_POWR %s -o - | FileCheck --check-prefix=CHECK-NATIVE-POWR %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_RSQRT %s -o - | FileCheck --check-prefix=CHECK-NATIVE-RSQRT %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_SIN %s -o - | FileCheck --check-prefix=CHECK-NATIVE-SIN %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_SQRT %s -o - | FileCheck --check-prefix=CHECK-NATIVE-SQRT %s
+// RUN: %clangxx -fsycl -S -fsycl-device-only -Xclang -emit-llvm -DSYCL_EXT_ONEAPI_NATIVE_TAN %s -o - | FileCheck --check-prefix=CHECK-NATIVE-TAN %s
 
 #include <CL/sycl.hpp>
 #include <sycl/ext/oneapi/experimental/native_macros.hpp>
