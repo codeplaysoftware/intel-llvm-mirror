@@ -21,8 +21,9 @@
 // RUN: %clangxx -fsycl -c -fsycl-device-only -Xclang -emit-llvm -DSYCL_NATIVE_TAN %s -o - | FileCheck --check-prefix=CHECK-NATIVE-TAN %s
 
 #include <CL/sycl.hpp>
+#include <sycl/ext/oneapi/experimental/native_macros.hpp>
 
-using namespace cl::sycl;
+using namespace cl::sycl::ext::oneapi::experimental;
 
 template <typename T>
 SYCL_EXTERNAL T builtins(T x) {
@@ -31,23 +32,23 @@ SYCL_EXTERNAL T builtins(T x) {
 
   // CHECK: call {{.*}}__spirv_ocl_cosf
   // CHECK-NATIVE-COS: call {{.*}}__spirv_ocl_native_cosf
-  ret = sycl::cos(x);
+  ret = cos(x);
 
   // CHECK: call {{.*}}__spirv_ocl_expf
   // CHECK-NATIVE-EXP: call {{.*}}__spirv_ocl_native_expf
-  ret = sycl::exp(ret);
+  ret = exp(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_exp2f
   // CHECK-NATIVE-EXP2: call {{.*}}__spirv_ocl_native_exp2f
-  ret = sycl::exp2(ret);
+  ret = exp2(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_exp10f
   // CHECK-NATIVE-EXP10: call {{.*}}__spirv_ocl_native_exp10f
-  ret = sycl::exp10(ret);
+  ret = exp10(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_logf
   // CHECK-NATIVE-LOG: call {{.*}}__spirv_ocl_native_logf
-  ret = sycl::log(ret);
+  ret = log(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_log2f
   // CHECK-NATIVE-LOG2: call {{.*}}__spirv_ocl_native_log2f
@@ -55,19 +56,19 @@ SYCL_EXTERNAL T builtins(T x) {
 
   // CHECK: call {{.*}}__spirv_ocl_log10f
   // CHECK-NATIVE-LOG10: call {{.*}}__spirv_ocl_native_log10f
-  ret = sycl::log10(ret);
+  ret = log10(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_powrf
   // CHECK-NATIVE-POWR: call {{.*}}__spirv_ocl_native_powrf
-  ret = sycl::powr(ret, y);
+  ret = powr(ret, y);
 
   // CHECK: call {{.*}}__spirv_ocl_rsqrtf
   // CHECK-NATIVE-RSQRT: call {{.*}}__spirv_ocl_native_rsqrtf
-  ret = sycl::rsqrt(ret);
+  ret = rsqrt(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_sinf
   // CHECK-NATIVE-SIN: call {{.*}}__spirv_ocl_native_sinf
-  ret = sycl::sin(ret);
+  ret = sin(ret);
 
   // CHECK: call {{.*}}__spirv_ocl_sqrtf
   // CHECK-NATIVE-SQRT: call {{.*}}__spirv_ocl_native_sqrtf
@@ -75,7 +76,7 @@ SYCL_EXTERNAL T builtins(T x) {
 
   // CHECK: call {{.*}}__spirv_ocl_tanf
   // CHECK-NATIVE-TAN: call {{.*}}__spirv_ocl_native_tanf
-  ret = sycl::tan(ret);
+  ret = tan(ret);
 
   return ret;
 }
