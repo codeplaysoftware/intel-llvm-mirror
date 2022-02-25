@@ -86,6 +86,8 @@ using marray_floating_list =
 using floating_list =
     type_list<scalar_floating_list, vector_floating_list, marray_floating_list>;
 
+using floating_ex_float_list = type_list<half_list, double_list>;
+
 // geometric floating point types
 using scalar_geo_half_list = type_list<half>;
 

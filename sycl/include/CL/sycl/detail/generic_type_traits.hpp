@@ -37,6 +37,9 @@ template <typename T> using is_genfloath = is_contained<T, gtl::half_list>;
 template <typename T> using is_genfloat = is_contained<T, gtl::floating_list>;
 
 template <typename T>
+using is_genfloatxf = is_contained<T, gtl::floating_ex_float_list>;
+
+template <typename T>
 using is_sgenfloat = is_contained<T, gtl::scalar_floating_list>;
 
 template <typename T>
