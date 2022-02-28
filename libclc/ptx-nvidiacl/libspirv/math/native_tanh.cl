@@ -40,16 +40,12 @@ _CLC_DEF _CLC_OVERLOAD half __spirv_ocl_native_tanh(half x) {
   return (__USE_TANH_APPROX) ? __nvvm_tanh_approx_f16(x) : __nv_tanhf(x);
 }
 
-/*
 _CLC_DEF _CLC_OVERLOAD half2 __spirv_ocl_native_tanh(half2 x) {
   return (__USE_TANH_APPROX) ? __nvvm_tanh_approx_f16x2(x)
                              : (half2)(__nv_tanhf(x.x), __nv_tanhf(x.y));
 }
 
 _CLC_UNARY_VECTORIZE_HAVE2(_CLC_OVERLOAD _CLC_DEF, half, __spirv_ocl_native_tanh, half)
-*/
-
-_CLC_UNARY_VECTORIZE(_CLC_OVERLOAD _CLC_DEF, half, __spirv_ocl_native_tanh, half)
 
 #endif
 
