@@ -1473,7 +1473,11 @@ detail::enable_if_t<detail::is_genfloatf<T>::value, T> tan(T x) __NOEXC {
 // genfloat tanh (genfloat x)
 template <typename T>
 detail::enable_if_t<detail::is_genfloat<T>::value, T> tanh(T x) __NOEXC {
+#ifdef __NVPTX__ 
   return __sycl_std::__invoke_native_tanh<T>(x);
+#else
+  return __sycl_std::__invoke_tanh<T>(x);
+#endif
 }
 // < ------------------------------------------------------------------- NATIVE
 
