@@ -42,6 +42,7 @@ SYCL specification refer to that revision.
 ## Introduction
 
 This document proposes extending the `sycl::na­tive::exp2` function (that supports `genfloatf` types) to support `genfloath` types in the `sycl::ext::oneapi::experimental` namespace. It also proposes introducing a new native `tanh` function supporting `genfloath` and `genfloatf` types in the `sycl::ext::oneapi::experimental` namespace.
+
 NOTE: This document does not propose `genfloatd` support for either `sycl::ext::oneapi::experimental::exp2` or `sycl::ext::oneapi::experimental::tanh`. 
 
 ## Feature test macro
