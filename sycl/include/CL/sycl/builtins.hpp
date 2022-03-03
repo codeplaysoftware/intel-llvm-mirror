@@ -191,6 +191,18 @@ detail::enable_if_t<detail::is_genfloat<T>::value, T> fma(T a, T b,
   return __sycl_std::__invoke_fma<T>(a, b, c);
 }
 
+// genfloath fma_relu (genfloath a, genfloath b, genfloath c)
+// ugenshort fma_relu (ugenshort a, ugenshort b, ugenshort c)
+// ugenint fma_relu (ugenint a, ugenint b, ugenint c)
+template <typename T>
+detail::enable_if_t<detail::is_genfloath<T>::value ||
+                        detail::is_ugenshort<T>::value ||
+                        detail::is_ugenint<T>::value,
+                    T>
+fma(T a, T b, T c) __NOEXC {
+  return __sycl_std::__invoke_fma<T>(a, b, c);
+}
+
 // genfloat fmax (genfloat x, genfloat y)
 template <typename T>
 detail::enable_if_t<detail::is_genfloat<T>::value, T> fmax(T x, T y) __NOEXC {
