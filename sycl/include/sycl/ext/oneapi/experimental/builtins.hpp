@@ -25,8 +25,11 @@ namespace oneapi {
 namespace experimental {
 
 template <typename T>
-sycl::detail::enable_if_t<sycl::detail::is_genfloath<T>::value, T> fma_relu(T a, T b,
-                                                                T c) __NOEXC {
+sycl::detail::enable_if_t<sycl::detail::is_genfloath<T>::value ||
+                              sycl::detail::is_ugenshort<T>::value ||
+                              sycl::detail::is_ugenint<T>::value,
+                          T>
+fma_relu(T a, T b, T c) __NOEXC {
   return __sycl_std::__invoke_fma_relu<T>(a, b, c);
 }
 
