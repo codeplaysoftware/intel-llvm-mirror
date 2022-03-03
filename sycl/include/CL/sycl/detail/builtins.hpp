@@ -28,6 +28,7 @@
 #else
 #define __FUNC_PREFIX_OCL
 #define __FUNC_PREFIX_CORE
+#define __FUNC_PREFIX_GENERIC
 #define __SYCL_EXTERN_IT1(Ret, prefix, call, Arg)                              \
   extern Ret __SYCL_PPCAT(prefix, call)(Arg)
 #define __SYCL_EXTERN_IT2_SAME(Ret, prefix, call, Arg)                         \
