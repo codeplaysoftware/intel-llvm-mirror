@@ -359,17 +359,19 @@ MAKE_1V_2V_3V(fma, s::cl_float, s::cl_float, s::cl_float, s::cl_float)
 MAKE_1V_2V_3V(fma, s::cl_double, s::cl_double, s::cl_double, s::cl_double)
 MAKE_1V_2V_3V(fma, s::cl_half, s::cl_half, s::cl_half, s::cl_half)
 
-// fma_rel
+// fma_relu
 __SYCL_EXPORT s::cl_half fma_relu(s::cl_half a, s::cl_half b,
-                              s::cl_half c) __NOEXC {
-  return 0; //TODO do software implementation of fma_relu
+                                  s::cl_half c) __NOEXC {
+  auto ans = std::fma(a, b, c);
+  return (ans > 0) ? ans : 0;
 }
 __SYCL_EXPORT s::cl_uint fma_relu(s::cl_uint a, s::cl_uint b,
-                               s::cl_uint c) __NOEXC {
-  return 0; //TODO do software implementation of fma_relu
+                                  s::cl_uint c) __NOEXC {
+  return 0; // TODO do software implementation of fma_relu
 }
-__SYCL_EXPORT s::cl_ushort fma_relu(s::cl_ushort a, s::cl_ushort b, s::cl_ushort c) __NOEXC {
-  return 0; //TODO do software implementation of fma_relu
+__SYCL_EXPORT s::cl_ushort fma_relu(s::cl_ushort a, s::cl_ushort b,
+                                    s::cl_ushort c) __NOEXC {
+  return 0; // TODO do software implementation of fma_relu
 }
 MAKE_1V_2V_3V(fma_relu, s::cl_ushort, s::cl_ushort, s::cl_ushort, s::cl_ushort)
 MAKE_1V_2V_3V(fma_relu, s::cl_uint, s::cl_uint, s::cl_uint, s::cl_uint)

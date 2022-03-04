@@ -759,6 +759,9 @@ extern SYCL_EXTERNAL _Float16 __clc_fma_relu(_Float16, _Float16, _Float16);
 extern SYCL_EXTERNAL __ocl_vec_t<_Float16, 2>
     __clc_fma_relu(__ocl_vec_t<_Float16, 2>, __ocl_vec_t<_Float16, 2>,
                    __ocl_vec_t<_Float16, 2>);
+extern SYCL_EXTERNAL __ocl_vec_t<_Float16, 3>
+    __clc_fma_relu(__ocl_vec_t<_Float16, 3>, __ocl_vec_t<_Float16, 3>,
+                   __ocl_vec_t<_Float16, 3>);
 extern SYCL_EXTERNAL __ocl_vec_t<_Float16, 4>
     __clc_fma_relu(__ocl_vec_t<_Float16, 4>, __ocl_vec_t<_Float16, 4>,
                    __ocl_vec_t<_Float16, 4>);
@@ -773,6 +776,9 @@ extern SYCL_EXTERNAL uint16_t __clc_fma_relu(uint16_t, uint16_t, uint16_t);
 extern SYCL_EXTERNAL __ocl_vec_t<uint16_t, 2>
     __clc_fma_relu(__ocl_vec_t<uint16_t, 2>, __ocl_vec_t<uint16_t, 2>,
                    __ocl_vec_t<uint16_t, 2>);
+extern SYCL_EXTERNAL __ocl_vec_t<uint16_t, 3>
+    __clc_fma_relu(__ocl_vec_t<uint16_t, 3>, __ocl_vec_t<uint16_t, 3>,
+                   __ocl_vec_t<uint16_t, 3>);
 extern SYCL_EXTERNAL __ocl_vec_t<uint16_t, 4>
     __clc_fma_relu(__ocl_vec_t<uint16_t, 4>, __ocl_vec_t<uint16_t, 4>,
                    __ocl_vec_t<uint16_t, 4>);
@@ -787,6 +793,9 @@ extern SYCL_EXTERNAL uint32_t __clc_fma_relu(uint32_t, uint32_t, uint32_t);
 extern SYCL_EXTERNAL __ocl_vec_t<uint32_t, 2>
     __clc_fma_relu(__ocl_vec_t<uint32_t, 2>, __ocl_vec_t<uint32_t, 2>,
                    __ocl_vec_t<uint32_t, 2>);
+extern SYCL_EXTERNAL __ocl_vec_t<uint32_t, 3>
+    __clc_fma_relu(__ocl_vec_t<uint32_t, 3>, __ocl_vec_t<uint32_t, 3>,
+                   __ocl_vec_t<uint32_t, 3>);
 extern SYCL_EXTERNAL __ocl_vec_t<uint32_t, 4>
     __clc_fma_relu(__ocl_vec_t<uint32_t, 4>, __ocl_vec_t<uint32_t, 4>,
                    __ocl_vec_t<uint32_t, 4>);
