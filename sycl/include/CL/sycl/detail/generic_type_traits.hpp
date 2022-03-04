@@ -42,6 +42,16 @@ using is_sgenfloat = is_contained<T, gtl::scalar_floating_list>;
 template <typename T>
 using is_vgenfloat = is_contained<T, gtl::vector_floating_list>;
 
+#if defined(__FAST_MATH__)
+template <typename T> using is_genfloat_fast = is_genfloatf<T>;
+template <typename T>
+using is_genfloat_nofast = is_contained<T, gtl::floating_nofloat_list>;
+#else
+template <typename T>
+using is_genfloat_fast = std::integral_constant<bool, false>;
+template <typename T> using is_genfloat_nofast = is_genfloat<T>;
+#endif
+
 template <typename T>
 using is_gengeofloat = is_contained<T, gtl::geo_float_list>;
 

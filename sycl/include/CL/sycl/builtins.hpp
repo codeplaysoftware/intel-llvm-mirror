@@ -114,8 +114,14 @@ detail::enable_if_t<detail::is_genfloat<T>::value, T> copysign(T x,
 
 // genfloat cos (genfloat x)
 template <typename T>
-detail::enable_if_t<detail::is_genfloat<T>::value, T> cos(T x) __NOEXC {
+detail::enable_if_t<detail::is_genfloat_nofast<T>::value, T> cos(T x) __NOEXC {
   return __sycl_std::__invoke_cos<T>(x);
+}
+
+// genfloatf cos (genfloatf x) --fast-math
+template <typename T>
+detail::enable_if_t<detail::is_genfloat_fast<T>::value, T> cos(T x) __NOEXC {
+  return __sycl_std::__invoke_native_cos<T>(x);
 }
 
 // genfloat cosh (genfloat x)
@@ -432,8 +438,14 @@ detail::enable_if_t<detail::is_genfloat<T>::value, T> rsqrt(T x) __NOEXC {
 
 // genfloat sin (genfloat x)
 template <typename T>
-detail::enable_if_t<detail::is_genfloat<T>::value, T> sin(T x) __NOEXC {
+detail::enable_if_t<detail::is_genfloat_nofast<T>::value, T> sin(T x) __NOEXC {
   return __sycl_std::__invoke_sin<T>(x);
+}
+
+// genfloatf sin (genfloatf x) --fast-math
+template <typename T>
+detail::enable_if_t<detail::is_genfloat_fast<T>::value, T> sin(T x) __NOEXC {
+  return __sycl_std::__invoke_native_sin<T>(x);
 }
 
 // genfloat sincos (genfloat x, genfloatptr cosval)
