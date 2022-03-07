@@ -40,7 +40,7 @@ This extension is written against the SYCL 2020 revision 4 specification.  All
 references below to the "core SYCL specification" or to section numbers in the
 SYCL specification refer to that revision.
 
-This extension depends on the following other SYCL extensions:
+For the `bfloat16` cases this extension depends on the following other SYCL extensions:
 
 * link:./sycl_ext_intel_bf16_conversion.asciidoc[
   sycl_ext_*_bf16_conversion]
