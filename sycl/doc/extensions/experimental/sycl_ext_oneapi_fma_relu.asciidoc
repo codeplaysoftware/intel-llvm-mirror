@@ -87,7 +87,7 @@ T fma_relu(T a, T b, T c);
 }
 ```
 
-`fma_relu` returns `a*b+c > 0 ? a*b+c : 0`. 
+`fma_relu` returns `a * b + c > 0 ? a * b + c : 0`. 
 
 == Specification
 
