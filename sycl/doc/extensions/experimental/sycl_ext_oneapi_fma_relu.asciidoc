@@ -40,9 +40,13 @@ This extension is written against the SYCL 2020 revision 4 specification.  All
 references below to the "core SYCL specification" or to section numbers in the
 SYCL specification refer to that revision.
 
-This extension also depends on the following other SYCL extensions:
+This extension depends on the following other SYCL extensions:
 
-* https://github.com/intel/llvm/pull/5645/files[bf16_extension]
+* link:./sycl_ext_intel_bf16_conversion.asciidoc[
+  sycl_ext_*_bf16_conversion]
+
+For the `bfloat16` case, however using the function for `sycl::half` only
+requires the runtime aspect `sycl::aspect::fp16`.
 
 == Contributors
 
@@ -69,9 +73,10 @@ this happens.
 == Overview
 
 This extension introduces the `fma_relu` function for datatypes `sycl::half`,
-`bf16` and `bf16x2`. `bf16` and `bf16x2` currently use `uint16_t` and 
-`uint32_t`, respectively, as storage types. This extension allows users to 
-access PTX the 7.0 instruction `fma.relu` through {dpcpp}. 
+`bfloat16` and `bfloat16x2`. `bfloat16` and `bfloat16x2` refer to the bfloat16
+class from the `sycl_ext_*_bf16_conversion` extension, and currently use 
+`uint16_t` and `uint32_t`, respectively, as storage types. This extension 
+allows users to access PTX the 7.0 instruction `fma.relu` through {dpcpp}. 
 
 ```c++
 namespace sycl::ext::oneapi::experimental {
@@ -98,8 +103,10 @@ supports.
 
 If `fma_relu` is to be used with either the `bf16` or `bf16x2` datatypes, then
 an implementation must additionally predefine the macro 
-`SYCL_ONEAPI_BF16_MATH`, as detailed in 
-https://github.com/intel/llvm/pull/5645/files[this PR].
+`SYCL_EXT_INTEL_BF16_CONVERSION`, as detailed in 
+link:./sycl_ext_intel_bf16_conversion.asciidoc[
+  sycl_ext_*_bf16_conversion].
+
 
 [%header,cols="1,5"]
 |===
