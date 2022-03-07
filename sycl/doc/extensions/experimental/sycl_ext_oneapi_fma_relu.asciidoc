@@ -46,8 +46,8 @@ extensions:
 * link:./sycl_ext_intel_bf16_conversion.asciidoc[
   sycl_ext_*_bf16_conversion]
 
-For the `half` cases this extension requires the runtime aspect `sycl::aspect::fp16`.
-requires the runtime aspect `sycl::aspect::fp16`.
+For the `half` cases this extension requires the runtime aspect 
+`sycl::aspect::fp16`.
 
 == Contributors
 
