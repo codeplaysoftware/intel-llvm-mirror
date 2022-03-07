@@ -1,4 +1,4 @@
-= sycl_ext_oneapi_myextension
+= sycl_ext_oneapi_fma_relu
 
 :source-highlighter: coderay
 :coderay-linenums-mode: table
