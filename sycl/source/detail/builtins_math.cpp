@@ -367,11 +367,14 @@ __SYCL_EXPORT s::cl_half fma_relu(s::cl_half a, s::cl_half b,
 }
 __SYCL_EXPORT s::cl_uint fma_relu(s::cl_uint a, s::cl_uint b,
                                   s::cl_uint c) __NOEXC {
-  return 0; // TODO do software implementation of fma_relu
+  // TODO implement this once bf16x2 datatype is supported on host
+  throw std::runtime_error(
+      "fma_relu not supported on host for BF16x2 datatype.");
 }
 __SYCL_EXPORT s::cl_ushort fma_relu(s::cl_ushort a, s::cl_ushort b,
                                     s::cl_ushort c) __NOEXC {
-  return 0; // TODO do software implementation of fma_relu
+  // TODO implement this once bf16 datatype is supported on host
+  throw std::runtime_error("fma_relu not supported on host for BF16 datatype.");
 }
 MAKE_1V_2V_3V(fma_relu, s::cl_ushort, s::cl_ushort, s::cl_ushort, s::cl_ushort)
 MAKE_1V_2V_3V(fma_relu, s::cl_uint, s::cl_uint, s::cl_uint, s::cl_uint)
