@@ -40,7 +40,8 @@ This extension is written against the SYCL 2020 revision 4 specification.  All
 references below to the "core SYCL specification" or to section numbers in the
 SYCL specification refer to that revision.
 
-For the `bfloat16` cases this extension depends on the following other SYCL extensions:
+For the `bfloat16` cases this extension depends on the following other SYCL
+extensions:
 
 * link:./sycl_ext_intel_bf16_conversion.asciidoc[
   sycl_ext_*_bf16_conversion]
@@ -75,8 +76,7 @@ this happens.
 This extension introduces the `fma_relu` function for datatypes `sycl::half`,
 `bfloat16` and `bfloat16x2`. `bfloat16` and `bfloat16x2` refer to the bfloat16
 class from the `sycl_ext_*_bf16_conversion` extension, and currently use 
-`uint16_t` and `uint32_t`, respectively, as storage types. This extension 
-allows users to access PTX the 7.0 instruction `fma.relu` through {dpcpp}. 
+`uint16_t` and `uint32_t`, respectively, as storage types. 
 
 ```c++
 namespace sycl::ext::oneapi::experimental {
