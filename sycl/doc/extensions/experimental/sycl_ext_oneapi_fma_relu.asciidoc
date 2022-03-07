@@ -81,7 +81,7 @@ allows users to access PTX the 7.0 instruction `fma.relu` through {dpcpp}.
 ```c++
 namespace sycl::ext::oneapi::experimental {
 
-// Available when T is sycl::half, uint16_t (bf16) or unit32_t (bf16x2)
+// Available when T is sycl::half, uint16_t (bfloat16) or uint32_t (bfloat16x2)
 template <typename T>
 T fma_relu(T a, T b, T c);
 }
