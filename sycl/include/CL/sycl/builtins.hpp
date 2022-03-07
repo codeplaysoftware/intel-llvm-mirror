@@ -192,12 +192,12 @@ detail::enable_if_t<detail::is_genfloat<T>::value, T> fma(T a, T b,
 }
 
 // genfloath fma_relu (genfloath a, genfloath b, genfloath c)
-// ugenshort fma_relu (ugenshort a, ugenshort b, ugenshort c)
-// ugenint fma_relu (ugenint a, ugenint b, ugenint c)
+// BF16 : uint16_t fma_relu (uint16_t a, uint16_t b, uint16_t c)
+// BF16X2 : uint32_t fma_relu (uint32_t a, uint32_t b, uint32_t c)
 template <typename T>
 detail::enable_if_t<detail::is_genfloath<T>::value ||
-                        detail::is_ugenshort<T>::value ||
-                        detail::is_ugenint<T>::value,
+                        std::is_same<T, uint16_t>::value ||
+                        std::is_same<T, uint32_t>::value,
                     T>
 fma(T a, T b, T c) __NOEXC {
   return __sycl_std::__invoke_fma<T>(a, b, c);
