@@ -45,7 +45,7 @@ For the `bfloat16` cases this extension depends on the following other SYCL exte
 * link:./sycl_ext_intel_bf16_conversion.asciidoc[
   sycl_ext_*_bf16_conversion]
 
-For the `bfloat16` case, however using the function for `sycl::half` only
+For the `half` cases this extension requires the runtime aspect `sycl::aspect::fp16`.
 requires the runtime aspect `sycl::aspect::fp16`.
 
 == Contributors
