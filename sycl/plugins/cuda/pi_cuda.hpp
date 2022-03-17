@@ -422,10 +422,12 @@ public:
   using native_type = CUevent;
 
   pi_result record();
+  pi_result record(CUstream);
 
   pi_result wait();
 
   pi_result start();
+  pi_result start(CUstream);
 
   native_type get() const noexcept { return evEnd_; };
 

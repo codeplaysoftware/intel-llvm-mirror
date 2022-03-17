@@ -369,6 +369,25 @@ pi_result _pi_event::start() {
   return result;
 }
 
+// duplicated for passing cuStream
+pi_result _pi_event::start(CUstream cuStream) {
+  assert(!is_started());
+  pi_result result = PI_SUCCESS;
+
+  try {
+    if (queue_->properties_ & PI_QUEUE_PROFILING_ENABLE) {
+      // NOTE: This relies on the default stream to be unused.
+      result = PI_CHECK_ERROR(cuEventRecord(evQueued_, 0));
+      result = PI_CHECK_ERROR(cuEventRecord(evStart_, cuStream));
+    }
+  } catch (pi_result error) {
+    result = error;
+  }
+
+  isStarted_ = true;
+  return result;
+}
+
 bool _pi_event::is_completed() const noexcept {
   if (!isRecorded_) {
     return false;
@@ -424,6 +443,37 @@ pi_result _pi_event::record() {
   }
 
   CUstream cuStream = queue_->get();
+
+  try {
+    eventId_ = queue_->get_next_event_id();
+    if (eventId_ == 0) {
+      cl::sycl::detail::pi::die(
+          "Unrecoverable program state reached in event identifier overflow");
+    }
+    result = PI_CHECK_ERROR(cuEventRecord(evEnd_, cuStream));
+  } catch (pi_result error) {
+    result = error;
+  }
+
+  if (result == PI_SUCCESS) {
+    isRecorded_ = true;
+  }
+
+  return result;
+}
+
+// duplicated for passing cuStream
+pi_result _pi_event::record(CUstream cuStream) {
+
+  if (is_recorded() || !is_started()) {
+    return PI_INVALID_EVENT;
+  }
+
+  pi_result result = PI_INVALID_OPERATION;
+
+  if (!queue_) {
+    return PI_INVALID_QUEUE;
+  }
 
   try {
     eventId_ = queue_->get_next_event_id();
@@ -2753,13 +2803,13 @@ pi_result cuda_piEnqueueKernelLaunch(
 
     std::unique_ptr<_pi_event> retImplEv{nullptr};
 
-    CUstream cuStream = command_queue->get();
+    CUstream cuStream;
+    PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
     CUfunction cuFunc = kernel->get();
 
-    if (event_wait_list) {
-      retError = cuda_piEnqueueEventsWait(
-          command_queue, num_events_in_wait_list, event_wait_list, nullptr);
-    }
+    for (size_t i = 0; i < num_events_in_wait_list; ++i)
+      retError = PI_CHECK_ERROR(
+          cuStreamWaitEvent(cuStream, event_wait_list[i]->get(), 0));
 
     // Set the implicit global offset parameter if kernel has offset variant
     if (kernel->get_with_offset_parameter()) {
@@ -2782,7 +2832,7 @@ pi_result cuda_piEnqueueKernelLaunch(
     if (event) {
       retImplEv = std::unique_ptr<_pi_event>(_pi_event::make_native(
           PI_COMMAND_TYPE_NDRANGE_KERNEL, command_queue));
-      retImplEv->start();
+      retImplEv->start(cuStream);
     }
 
     retError = PI_CHECK_ERROR(cuLaunchKernel(
@@ -2793,9 +2843,12 @@ pi_result cuda_piEnqueueKernelLaunch(
       kernel->clear_local_size();
 
     if (event) {
-      retError = retImplEv->record();
+      retError = retImplEv->record(cuStream);
       *event = retImplEv.release();
     }
+
+    retError = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+
   } catch (pi_result err) {
     retError = err;
   }
