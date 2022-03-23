@@ -522,10 +522,10 @@ pi_result enqueueEventWait(pi_queue queue, pi_event event) {
   // for native events, the cuStreamWaitEvent call is used.
   // This makes all future work submitted to stream wait for all
   // work captured in event.
-//  if (queue->get() != event->get_queue()->get()) {
+  if (queue->get() != event->get_queue()->get()) {
     return PI_CHECK_ERROR(cuStreamWaitEvent(queue->get(), event->get(), 0));
-//  }
-//  return PI_SUCCESS;
+  }
+  return PI_SUCCESS;
 }
 
 _pi_program::_pi_program(pi_context ctxt)
@@ -2803,9 +2803,17 @@ pi_result cuda_piEnqueueKernelLaunch(
 
     std::unique_ptr<_pi_event> retImplEv{nullptr};
 
+    const bool is_ooo =
+        command_queue->properties_ & PI_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+
     CUstream cuStream;
-    PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
     CUfunction cuFunc = kernel->get();
+
+    if (is_ooo)
+      retError =
+          PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
+    else
+      cuStream = command_queue->get();
 
     for (size_t i = 0; i < num_events_in_wait_list; ++i)
       retError = PI_CHECK_ERROR(
@@ -2847,7 +2855,11 @@ pi_result cuda_piEnqueueKernelLaunch(
       *event = retImplEv.release();
     }
 
-    retError = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+    if (is_ooo) {
+      retError = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+      retError = PI_CHECK_ERROR(
+          cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+    }
 
   } catch (pi_result err) {
     retError = err;
