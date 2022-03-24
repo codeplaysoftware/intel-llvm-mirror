@@ -3939,20 +3939,27 @@ pi_result cuda_piEnqueueMemBufferReadRect(
   assert(command_queue != nullptr);
 
   pi_result retErr = PI_SUCCESS;
-  CUstream cuStream = command_queue->get();
-  CUdeviceptr devPtr = buffer->mem_.buffer_mem_.get();
+  const bool is_ooo =
+      command_queue->properties_ & PI_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+  CUstream cuStream;
+  if (is_ooo)
+    retErr = PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
+  else
+    cuStream = command_queue->get();
+   CUdeviceptr devPtr = buffer->mem_.buffer_mem_.get();
   std::unique_ptr<_pi_event> retImplEv{nullptr};
 
   try {
     ScopedContext active(command_queue->get_context());
 
-    retErr = cuda_piEnqueueEventsWait(command_queue, num_events_in_wait_list,
-                                      event_wait_list, nullptr);
+    for (size_t i = 0; i < num_events_in_wait_list; ++i)
+      retErr = PI_CHECK_ERROR(
+          cuStreamWaitEvent(cuStream, event_wait_list[i]->get(), 0));
 
     if (event) {
       retImplEv = std::unique_ptr<_pi_event>(_pi_event::make_native(
           PI_COMMAND_TYPE_MEM_BUFFER_READ_RECT, command_queue));
-      retImplEv->start();
+      retImplEv->start(cuStream);
     }
 
     retErr = commonEnqueueMemBufferCopyRect(
@@ -3961,7 +3968,7 @@ pi_result cuda_piEnqueueMemBufferReadRect(
         host_offset, host_row_pitch, host_slice_pitch);
 
     if (event) {
-      retErr = retImplEv->record();
+      retErr = retImplEv->record(cuStream);
     }
 
     if (blocking_read) {
@@ -3970,6 +3977,13 @@ pi_result cuda_piEnqueueMemBufferReadRect(
 
     if (event) {
       *event = retImplEv.release();
+    }
+
+    if (is_ooo) {
+      if (event)
+        retErr = PI_CHECK_ERROR(
+            cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
   } catch (pi_result err) {
@@ -3990,20 +4004,27 @@ pi_result cuda_piEnqueueMemBufferWriteRect(
   assert(command_queue != nullptr);
 
   pi_result retErr = PI_SUCCESS;
-  CUstream cuStream = command_queue->get();
+  const bool is_ooo =
+      command_queue->properties_ & PI_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+  CUstream cuStream;
+  if (is_ooo)
+    retErr = PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
+  else
+    cuStream = command_queue->get();
   CUdeviceptr devPtr = buffer->mem_.buffer_mem_.get();
   std::unique_ptr<_pi_event> retImplEv{nullptr};
 
   try {
     ScopedContext active(command_queue->get_context());
 
-    retErr = cuda_piEnqueueEventsWait(command_queue, num_events_in_wait_list,
-                                      event_wait_list, nullptr);
+    for (size_t i = 0; i < num_events_in_wait_list; ++i)
+      retErr = PI_CHECK_ERROR(
+          cuStreamWaitEvent(cuStream, event_wait_list[i]->get(), 0));
 
     if (event) {
       retImplEv = std::unique_ptr<_pi_event>(_pi_event::make_native(
           PI_COMMAND_TYPE_MEM_BUFFER_WRITE_RECT, command_queue));
-      retImplEv->start();
+      retImplEv->start(cuStream);
     }
 
     retErr = commonEnqueueMemBufferCopyRect(
@@ -4012,7 +4033,7 @@ pi_result cuda_piEnqueueMemBufferWriteRect(
         buffer_row_pitch, buffer_slice_pitch);
 
     if (event) {
-      retErr = retImplEv->record();
+      retErr = retImplEv->record(cuStream);
     }
 
     if (blocking_write) {
@@ -4022,6 +4043,14 @@ pi_result cuda_piEnqueueMemBufferWriteRect(
     if (event) {
       *event = retImplEv.release();
     }
+
+    if (is_ooo) {
+      if (event)
+        retErr = PI_CHECK_ERROR(
+            cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+    }
+
 
   } catch (pi_result err) {
     retErr = err;
@@ -4100,7 +4129,13 @@ pi_result cuda_piEnqueueMemBufferCopyRect(
   assert(command_queue != nullptr);
 
   pi_result retErr = PI_SUCCESS;
-  CUstream cuStream = command_queue->get();
+   const bool is_ooo =
+      command_queue->properties_ & PI_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+  CUstream cuStream;
+  if (is_ooo)
+    retErr = PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
+  else
+    cuStream = command_queue->get();
   CUdeviceptr srcPtr = src_buffer->mem_.buffer_mem_.get();
   CUdeviceptr dstPtr = dst_buffer->mem_.buffer_mem_.get();
   std::unique_ptr<_pi_event> retImplEv{nullptr};
@@ -4108,13 +4143,14 @@ pi_result cuda_piEnqueueMemBufferCopyRect(
   try {
     ScopedContext active(command_queue->get_context());
 
-    retErr = cuda_piEnqueueEventsWait(command_queue, num_events_in_wait_list,
-                                      event_wait_list, nullptr);
+    for (size_t i = 0; i < num_events_in_wait_list; ++i)
+      retErr = PI_CHECK_ERROR(
+          cuStreamWaitEvent(cuStream, event_wait_list[i]->get(), 0));
 
     if (event) {
       retImplEv = std::unique_ptr<_pi_event>(_pi_event::make_native(
           PI_COMMAND_TYPE_MEM_BUFFER_COPY_RECT, command_queue));
-      retImplEv->start();
+      retImplEv->start(cuStream);
     }
 
     retErr = commonEnqueueMemBufferCopyRect(
@@ -4123,8 +4159,15 @@ pi_result cuda_piEnqueueMemBufferCopyRect(
         dst_origin, dst_row_pitch, dst_slice_pitch);
 
     if (event) {
-      retImplEv->record();
+      retImplEv->record(cuStream);
       *event = retImplEv.release();
+    }
+
+    if (is_ooo) {
+      if (event)
+        retErr = PI_CHECK_ERROR(
+            cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
   } catch (pi_result err) {
@@ -4156,6 +4199,12 @@ pi_result cuda_piEnqueueMemBufferFill(pi_queue command_queue, pi_mem buffer,
   (void)pattern_is_valid;
   (void)pattern_size_is_valid;
 
+  CUstream cuStream;
+  if (is_ooo)
+    retErr = PI_CHECK_ERROR(cuStreamCreate(&cuStream, CU_STREAM_NON_BLOCKING));
+  else
+    cuStream = command_queue->get();
+
   std::unique_ptr<_pi_event> retImplEv{nullptr};
 
   try {
@@ -4166,33 +4215,32 @@ pi_result cuda_piEnqueueMemBufferFill(pi_queue command_queue, pi_mem buffer,
                                event_wait_list, nullptr);
     }
 
-    pi_result result;
+    pi_result retErr;
 
+    auto dstDevice = buffer->mem_.buffer_mem_.get() + offset;
     if (event) {
       retImplEv = std::unique_ptr<_pi_event>(_pi_event::make_native(
           PI_COMMAND_TYPE_MEM_BUFFER_FILL, command_queue));
-      result = retImplEv->start();
+      retErr = retImplEv->start(cuStream);
     }
 
-    auto dstDevice = buffer->mem_.buffer_mem_.get() + offset;
-    auto stream = command_queue->get();
     auto N = size / pattern_size;
 
     // pattern size in bytes
     switch (pattern_size) {
     case 1: {
       auto value = *static_cast<const uint8_t *>(pattern);
-      result = PI_CHECK_ERROR(cuMemsetD8Async(dstDevice, value, N, stream));
+      retErr = PI_CHECK_ERROR(cuMemsetD8Async(dstDevice, value, N, cuStream));
       break;
     }
     case 2: {
       auto value = *static_cast<const uint16_t *>(pattern);
-      result = PI_CHECK_ERROR(cuMemsetD16Async(dstDevice, value, N, stream));
+      retErr = PI_CHECK_ERROR(cuMemsetD16Async(dstDevice, value, N, cuStream));
       break;
     }
     case 4: {
       auto value = *static_cast<const uint32_t *>(pattern);
-      result = PI_CHECK_ERROR(cuMemsetD32Async(dstDevice, value, N, stream));
+      retErr = PI_CHECK_ERROR(cuMemsetD32Async(dstDevice, value, N, cuStream));
       break;
     }
     default: {
@@ -4215,8 +4263,8 @@ pi_result cuda_piEnqueueMemBufferFill(pi_queue command_queue, pi_mem buffer,
         auto offset_ptr = dstDevice + (step * sizeof(uint32_t));
 
         // set all of the pattern chunks
-        result = PI_CHECK_ERROR(
-            cuMemsetD2D32Async(offset_ptr, pattern_size, value, 1, N, stream));
+        retErr = PI_CHECK_ERROR(
+            cuMemsetD2D32Async(offset_ptr, pattern_size, value, 1, N, cuStream));
       }
 
       break;
@@ -4224,11 +4272,18 @@ pi_result cuda_piEnqueueMemBufferFill(pi_queue command_queue, pi_mem buffer,
     }
 
     if (event) {
-      result = retImplEv->record();
+      retErr = retImplEv->record(cuStream);
       *event = retImplEv.release();
     }
 
-    return result;
+    if (is_ooo) {
+      if (event)
+        retErr = PI_CHECK_ERROR(
+            cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+    }
+
+    return retErr;
   } catch (pi_result err) {
     return err;
   } catch (...) {
