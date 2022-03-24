@@ -2466,10 +2466,10 @@ pi_result cuda_piEnqueueMemBufferWrite(pi_queue command_queue, pi_mem buffer,
     }
 
     if (is_ooo) {
-      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
   } catch (pi_result err) {
@@ -2527,10 +2527,10 @@ pi_result cuda_piEnqueueMemBufferRead(pi_queue command_queue, pi_mem buffer,
     }
 
     if (is_ooo) {
-      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
   } catch (pi_result err) {
@@ -2885,10 +2885,10 @@ pi_result cuda_piEnqueueKernelLaunch(
     }
 
     if (is_ooo) {
-      retError = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
       if (event)
         retError = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retError = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
   } catch (pi_result err) {
@@ -4073,10 +4073,10 @@ pi_result cuda_piEnqueueMemBufferCopy(pi_queue command_queue, pi_mem src_buffer,
     }
 
     if (is_ooo) {
-      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
     return retErr;
@@ -4841,10 +4841,10 @@ pi_result cuda_piextUSMEnqueueMemcpy(pi_queue command_queue, pi_bool blocking,
     }
 
     if (is_ooo) {
-      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+      retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
     }
 
   } catch (pi_result err) {
