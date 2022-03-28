@@ -10,7 +10,7 @@
 /// Implementation of CUDA Plugin.
 ///
 /// \ingroup sycl_pi_cuda
-
+#define ENQUEUE_CUSTREAM_DESTROY
 #include <CL/sycl/detail/cuda_definitions.hpp>
 #include <CL/sycl/detail/defines.hpp>
 #include <CL/sycl/detail/pi.hpp>
@@ -2345,6 +2345,10 @@ pi_result cuda_piQueueRelease(pi_queue command_queue) {
     PI_CHECK_ERROR(cuStreamSynchronize(stream));
     PI_CHECK_ERROR(cuStreamDestroy(stream));
 
+    for(auto s : command_queue->_streams_to_destroy) 
+      PI_CHECK_ERROR(cuStreamDestroy(s));
+    command_queue->_streams_to_destroy.clear();   
+
     return PI_SUCCESS;
   } catch (pi_result err) {
     return err;
@@ -2469,7 +2473,11 @@ pi_result cuda_piEnqueueMemBufferWrite(pi_queue command_queue, pi_mem buffer,
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+#ifndef ENQUEUE_CUSTREAM_DESTROY         
+      command_queue->_streams_to_destroy.push_back(cuStream);
+#else
       retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+#endif
     }
 
   } catch (pi_result err) {
@@ -2530,7 +2538,11 @@ pi_result cuda_piEnqueueMemBufferRead(pi_queue command_queue, pi_mem buffer,
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+#ifndef ENQUEUE_CUSTREAM_DESTROY         
+      command_queue->_streams_to_destroy.push_back(cuStream);
+#else
       retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+#endif
     }
 
   } catch (pi_result err) {
@@ -2888,7 +2900,15 @@ pi_result cuda_piEnqueueKernelLaunch(
       if (event)
         retError = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+#ifndef ENQUEUE_CUSTREAM_DESTROY         
+      command_queue->_streams_to_destroy.push_back(cuStream);
+/*      if(command_queue->_streams_to_destroy.size()>1024){
+        retError = PI_CHECK_ERROR(cuStreamDestroy(command_queue->_streams_to_destroy.front()));
+        command_queue->_streams_to_destroy.pop_front();
+      }*/
+#else
       retError = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+#endif
     }
 
   } catch (pi_result err) {
@@ -3983,8 +4003,12 @@ pi_result cuda_piEnqueueMemBufferReadRect(
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+    #ifndef ENQUEUE_CUSTREAM_DESTROY         
+      command_queue->_streams_to_destroy.push_back(cuStream);
+#else
       retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
-    }
+#endif
+}
 
   } catch (pi_result err) {
     retErr = err;
@@ -4048,8 +4072,12 @@ pi_result cuda_piEnqueueMemBufferWriteRect(
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+#ifndef ENQUEUE_CUSTREAM_DESTROY         
+      command_queue->_streams_to_destroy.push_back(cuStream);
+#else
       retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
-    }
+#endif
+}
 
 
   } catch (pi_result err) {
@@ -4105,7 +4133,11 @@ pi_result cuda_piEnqueueMemBufferCopy(pi_queue command_queue, pi_mem src_buffer,
       if (event)
         retErr = PI_CHECK_ERROR(
             cuStreamWaitEvent(command_queue->get(), (*event)->get(), 0));
+#ifndef ENQUEUE_CUSTREAM_DESTROY         
+      command_queue->_streams_to_destroy.push_back(cuStream);
+#else
       retErr = PI_CHECK_ERROR(cuStreamDestroy(cuStream));
+#endif
     }
 
     return retErr;

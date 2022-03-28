@@ -374,12 +374,13 @@ struct _pi_mem {
 
   pi_uint32 get_reference_count() const noexcept { return refCount_; }
 };
-
+#include<list>
 /// PI queue mapping on to CUstream objects.
 ///
 struct _pi_queue {
   using native_type = CUstream;
-
+  
+  std::list<CUstream> _streams_to_destroy;
   native_type stream_;
   _pi_context *context_;
   _pi_device *device_;
