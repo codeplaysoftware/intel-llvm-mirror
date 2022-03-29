@@ -10,7 +10,7 @@
 /// Implementation of CUDA Plugin.
 ///
 /// \ingroup sycl_pi_cuda
-#define ENQUEUE_CUSTREAM_DESTROY
+//#define ENQUEUE_CUSTREAM_DESTROY
 #include <CL/sycl/detail/cuda_definitions.hpp>
 #include <CL/sycl/detail/defines.hpp>
 #include <CL/sycl/detail/pi.hpp>
