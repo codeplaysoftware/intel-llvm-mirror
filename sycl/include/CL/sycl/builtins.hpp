@@ -19,13 +19,6 @@
 
 __SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
-namespace detail {
-template <class T, size_t N> vec<T, 2> to_vec2(marray<T, N> x, size_t start) {
-  vec<T, 2> res;
-  std::memcpy(&res, &x[start], sizeof(vec<T, 2>));
-  return res;
-}
-} // namespace detail
 
 #ifdef __SYCL_DEVICE_ONLY__
 #define __sycl_std
@@ -46,9 +39,7 @@ namespace __sycl_std = __host_std;
 // size two as a simple general optimization. A more complex implementation
 // using larger vectorizations for large marray sizes is possible; however more
 // testing is required in order to ascertain the performance implications for
-// all backends. Currently the compiler does not produce vectorized loads and
-// stores from this implementation for all backends. It would be wise to
-// investigate how this can be fixed first.
+// all backends.
 #define __SYCL_MATH_FUNCTION_OVERLOAD(NAME)                                    \
   template <typename T, size_t N>                                              \
   inline __SYCL_ALWAYS_INLINE                                                  \
@@ -56,9 +47,9 @@ namespace __sycl_std = __host_std;
       NAME(marray<T, N> x) __NOEXC {                                           \
     marray<T, N> res;                                                          \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      vec<T, 2> partial_res =                                                  \
-          __sycl_std::__invoke_##NAME<vec<T, 2>>(detail::to_vec2(x, i * 2));   \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<T, 2>));               \
+      vec<T, 2> *x_vec = reinterpret_cast<vec<T, 2> *>(&x[i * 2]);             \
+      vec<T, 2> *res_vec = reinterpret_cast<vec<T, 2> *>(&res[i * 2]);         \
+      *res_vec = __sycl_std::__invoke_##NAME<vec<T, 2>>(*x_vec);               \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] = __sycl_std::__invoke_##NAME<T>(x[N - 1]);                   \
@@ -115,9 +106,10 @@ __SYCL_MATH_FUNCTION_OVERLOAD(trunc)
       NAME(marray<T, N> x, marray<T, N> y) __NOEXC {                           \
     marray<T, N> res;                                                          \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      auto partial_res = __sycl_std::__invoke_##NAME<vec<T, 2>>(               \
-          detail::to_vec2(x, i * 2), detail::to_vec2(y, i * 2));               \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<T, 2>));               \
+      vec<T, 2> *x_vec = reinterpret_cast<vec<T, 2> *>(&x[i * 2]);             \
+      vec<T, 2> *y_vec = reinterpret_cast<vec<T, 2> *>(&y[i * 2]);             \
+      vec<T, 2> *res_vec = reinterpret_cast<vec<T, 2> *>(&res[i * 2]);         \
+      *res_vec = __sycl_std::__invoke_##NAME<vec<T, 2>>(*x_vec, *y_vec);       \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] = __sycl_std::__invoke_##NAME<T>(x[N - 1], y[N - 1]);         \
@@ -149,10 +141,12 @@ __SYCL_MATH_FUNCTION_2_OVERLOAD(remainder)
       NAME(marray<T, N> x, marray<T, N> y, marray<T, N> z) __NOEXC {           \
     marray<T, N> res;                                                          \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      auto partial_res = __sycl_std::__invoke_##NAME<vec<T, 2>>(               \
-          detail::to_vec2(x, i * 2), detail::to_vec2(y, i * 2),                \
-          detail::to_vec2(z, i * 2));                                          \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<T, 2>));               \
+      vec<T, 2> *x_vec = reinterpret_cast<vec<T, 2> *>(&x[i * 2]);             \
+      vec<T, 2> *y_vec = reinterpret_cast<vec<T, 2> *>(&y[i * 2]);             \
+      vec<T, 2> *z_vec = reinterpret_cast<vec<T, 2> *>(&z[i * 2]);             \
+      vec<T, 2> *res_vec = reinterpret_cast<vec<T, 2> *>(&res[i * 2]);         \
+      *res_vec =                                                               \
+          __sycl_std::__invoke_##NAME<vec<T, 2>>(*x_vec, *y_vec, *z_vec);      \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] =                                                             \
@@ -1545,9 +1539,9 @@ namespace native {
       __NOEXC {                                                                \
     marray<float, N> res;                                                      \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      auto partial_res = __sycl_std::__invoke_native_##NAME<vec<float, 2>>(    \
-          detail::to_vec2(x, i * 2));                                          \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<float, 2>));           \
+      vec<float, 2> *x_vec = reinterpret_cast<vec<float, 2> *>(&x[i * 2]);     \
+      vec<float, 2> *res_vec = reinterpret_cast<vec<float, 2> *>(&res[i * 2]); \
+      *res_vec = __sycl_std::__invoke_native_##NAME<vec<float, 2>>(*x_vec);    \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] = __sycl_std::__invoke_native_##NAME<float>(x[N - 1]);        \
@@ -1576,9 +1570,11 @@ __SYCL_NATIVE_MATH_FUNCTION_OVERLOAD(recip)
       marray<float, N> x, marray<float, N> y) __NOEXC {                        \
     marray<float, N> res;                                                      \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      auto partial_res = __sycl_std::__invoke_native_##NAME<vec<float, 2>>(    \
-          detail::to_vec2(x, i * 2), detail::to_vec2(y, i * 2));               \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<float, 2>));           \
+      vec<float, 2> *x_vec = reinterpret_cast<vec<float, 2> *>(&x[i * 2]);     \
+      vec<float, 2> *y_vec = reinterpret_cast<vec<float, 2> *>(&y[i * 2]);     \
+      vec<float, 2> *res_vec = reinterpret_cast<vec<float, 2> *>(&res[i * 2]); \
+      *res_vec =                                                               \
+          __sycl_std::__invoke_native_##NAME<vec<float, 2>>(*x_vec, *y_vec);   \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] =                                                             \
@@ -1686,9 +1682,9 @@ namespace half_precision {
       __NOEXC {                                                                \
     marray<float, N> res;                                                      \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      auto partial_res = __sycl_std::__invoke_half_##NAME<vec<float, 2>>(      \
-          detail::to_vec2(x, i * 2));                                          \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<float, 2>));           \
+      vec<float, 2> *x_vec = reinterpret_cast<vec<float, 2> *>(&x[i * 2]);     \
+      vec<float, 2> *res_vec = reinterpret_cast<vec<float, 2> *>(&res[i * 2]); \
+      *res_vec = __sycl_std::__invoke_half_##NAME<vec<float, 2>>(*x_vec);      \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] = __sycl_std::__invoke_half_##NAME<float>(x[N - 1]);          \
@@ -1717,9 +1713,11 @@ __SYCL_HALF_PRECISION_MATH_FUNCTION_OVERLOAD(recip)
       marray<float, N> x, marray<float, N> y) __NOEXC {                        \
     marray<float, N> res;                                                      \
     for (size_t i = 0; i < N / 2; i++) {                                       \
-      auto partial_res = __sycl_std::__invoke_half_##NAME<vec<float, 2>>(      \
-          detail::to_vec2(x, i * 2), detail::to_vec2(y, i * 2));               \
-      std::memcpy(&res[i * 2], &partial_res, sizeof(vec<float, 2>));           \
+      vec<float, 2> *x_vec = reinterpret_cast<vec<float, 2> *>(&x[i * 2]);     \
+      vec<float, 2> *y_vec = reinterpret_cast<vec<float, 2> *>(&y[i * 2]);     \
+      vec<float, 2> *res_vec = reinterpret_cast<vec<float, 2> *>(&res[i * 2]); \
+      *res_vec =                                                               \
+          __sycl_std::__invoke_half_##NAME<vec<float, 2>>(*x_vec, *y_vec);     \
     }                                                                          \
     if (N % 2) {                                                               \
       res[N - 1] =                                                             \
