@@ -88,7 +88,9 @@ supports.
 
 The `marray` class is specialized for the `sycl::ext::oneapi::complex`
 class. The user interface of the `marray<sycl::ext::oneapi::complex, {N}>`
-class is identical to the SYCL-2020 generic `marray` interface.
+class is similar to the SYCL-2020 generic `marray` interface. Some logical,
+bitwise, and arithmetic operators are deleted for the complex class as there is
+no equivalent.
 
 The marray complex specialization is trivially copyable, and the type trait
 `is_device_copyable` should resolve to `std::true_type`.
@@ -139,82 +141,86 @@ namespace oneapi {
             iterator end();
             const_iterator end() const;
 
-            // OP is: +, -, *, /, %
-            /* If OP is %, available only when: DataT != float && DataT != double && DataT != half.*/
+            // OP is: +, -, *, /
             friend marray operatorOP(const marray &lhs, const marray &rhs) { /* ... */ }
             friend marray operatorOP(const marray &lhs, const DataT &rhs) { /* ... */ }
+
+            // OP is: %
+            friend marray operatorOP(const marray &lhs, const DataT &rhs) = delete;
          
-            // OP is: +=, -=, *=, /=, %=
-            /* If OP is %=, available only when: DataT != float && DataT != double && DataT != half.*/
+            // OP is: +=, -=, *=, /=
             friend marray &operatorOP(marray &lhs, const marray &rhs) { /* ... */ }
             friend marray &operatorOP(marray &lhs, const DataT &rhs) { /* ... */ }
+
+            // OP is: %=
+            friend marray &operatorOP(marray &lhs, const marray &rhs) = delete;
+            friend marray &operatorOP(marray &lhs, const DataT &rhs) = delete;
          
             // OP is prefix ++, --
-            friend marray &operatorOP(marray &rhs) { /* ... */ }
+            friend marray &operatorOP(marray &rhs) = delete;
          
             // OP is postfix ++, --
-            friend marray operatorOP(marray& lhs, int) { /* ... */ }
+            friend marray operatorOP(marray& lhs, int) = delete;
          
             // OP is unary +, -
-            friend marray operatorOP(marray &rhs) { /* ... */ }
+            friend marray operatorOP(marray &rhs) = delete;
          
             // OP is: &, |, ^
-            /* Available only when: DataT != float && DataT != double && DataT != half. */
-            friend marray operatorOP(const marray &lhs, const marray &rhs) { /* ... */ }
-            friend marray operatorOP(const marray &lhs, const DataT &rhs) { /* ... */ }
+            friend marray operatorOP(const marray &lhs, const marray &rhs) = delete;
+            friend marray operatorOP(const marray &lhs, const DataT &rhs) = delete;
          
             // OP is: &=, |=, ^=
-            /* Available only when: DataT != float && DataT != double && DataT != half. */
-            friend marray &operatorOP(marray &lhs, const marray &rhs) { /* ... */ }
-            friend marray &operatorOP(marray &lhs, const DataT &rhs) { /* ... */ }
+            friend marray &operatorOP(marray &lhs, const marray &rhs) = delete;
+            friend marray &operatorOP(marray &lhs, const DataT &rhs) = delete;
          
             // OP is: &&, ||
-            friend marray<bool, NumElements> operatorOP(const marray &lhs, const marray &rhs) {
-            /* ... */ }
-            friend marray<bool, NumElements> operatorOP(const marray& lhs, const DataT &rhs) {
-            /* ... */ }
+            friend marray<bool, NumElements> operatorOP(const marray &lhs, const marray &rhs) = delete;
+            friend marray<bool, NumElements> operatorOP(const marray& lhs, const DataT &rhs) = delete;
          
             // OP is: <<, >>
-            /* Available only when: DataT != float && DataT != double && DataT != half. */
-            friend marray operatorOP(const marray &lhs, const marray &rhs) { /* ... */ }
-            friend marray operatorOP(const marray &lhs, const DataT &rhs) { /* ... */ }
+            friend marray operatorOP(const marray &lhs, const marray &rhs) = delete;
+            friend marray operatorOP(const marray &lhs, const DataT &rhs) = delete;
          
             // OP is: <<=, >>=
-            /* Available only when: DataT != float && DataT != double && DataT != half. */
-            friend marray &operatorOP(marray &lhs, const marray &rhs) { /* ... */ }
-            friend marray &operatorOP(marray &lhs, const DataT &rhs) { /* ... */ }
+            friend marray &operatorOP(marray &lhs, const marray &rhs) = delete;
+            friend marray &operatorOP(marray &lhs, const DataT &rhs) = delete;
          
-            // OP is: ==, !=, <, >, <=, >=
+            // OP is: ==, !=
             friend marray<bool, NumElements> operatorOP(const marray &lhs, const marray &rhs) {
             /* ... */ }
             friend marray<bool, NumElements> operatorOP(const marray &lhs, const DataT &rhs) {
             /* ... */ }
+
+            // OP is: <, >, <=, >=
+            friend marray<bool, NumElements> operatorOP(const marray &lhs, const marray &rhs) = delete;
+            friend marray<bool, NumElements> operatorOP(const marray &lhs, const DataT &rhs) = delete;
          
-            /* Available only when: DataT != float && DataT != double && DataT != half. */
-            friend marray operator~(const marray &v) { /* ... */ }
+            friend marray operator~(const marray &v) = delete;
          
-            // OP is: +, -, *, /, %
-            /* operator% is only available when: DataT != float && DataT != double && DataT != half.*/
+            // OP is: +, -, *, /
             friend marray operatorOP(const DataT &lhs, const marray &rhs) { /* ... */ }
+
+            // OP is: %
+            friend marray operatorOP(const DataT &lhs, const marray &rhs) = delete;
          
             // OP is: &, |, ^
-            /* Available only when: DataT != float && DataT != double
-            && DataT != half. */
-            friend marray operatorOP(const DataT &lhs, const marray &rhs) { /* ... */ }
+            friend marray operatorOP(const DataT &lhs, const marray &rhs) = delete;
          
             // OP is: &&, ||
             friend marray<bool, NumElements> operatorOP(const DataT &lhs, const marray &rhs) {
             /* ... */ }
          
             // OP is: <<, >>
-            /* Available only when: DataT != float && DataT != double && DataT != half. */
-            friend marray operatorOP(const DataT &lhs, const marray &rhs) { /* ... */ }
+            friend marray operatorOP(const DataT &lhs, const marray &rhs) = delete;
          
-            // OP is: ==, !=, <, >, <=, >=
+            // OP is: ==, !=
             friend marray<bool, NumElements> operatorOP(const DataT &lhs, const marray &rhs) {
             /* ... */ }
+
+            // OP is: <, >, <=, >=
+            friend marray<bool, NumElements> operatorOP(const DataT &lhs, const marray &rhs)  = delete;
          
-            friend marray<bool, NumElements> operator!(const marray &v) { /* ... */ }
+            friend marray<bool, NumElements> operator!(const marray &v) = delete;
     }
 
 } // namespace oneapi
@@ -222,12 +228,15 @@ namespace oneapi {
 } // namespace sycl
 ```
 
+The list of deleted operators are: %, %=, ++, --, +, -, &, |, ^, &=, |=, ^=,
+&&, ||, <<, >>, <<=, >>=, <, >, <=, >=, ~, !
+
 The `make_complex_marray` free function is added to construct complex marrays from real and
 imaginary components. Additionally, the free functions `get_real` and
 `get_imag` are added to access the real and imaginary components of the
 `marray` class without modifying the existing `marray` interface. The usage
 of free functions does cause a deviation from the `std::complex` interface.
-However, it does maintain the `marray` interface.
+However, it does reduce this extensions impact on the `marray` interface.
 
 ```C++
 namespace sycl {
@@ -307,8 +316,8 @@ The generic type `mgencomplex` is defined as types
 `complex<complex<sycl::half>, {N}>`.
 
 The table below shows the free functions operating on the `marray` complex
-specialized class. No table is provided for the `marray` class as no changes
-to the existing marray interface are being proposed.
+specialized class. No table is provided for the `marray` class as only
+functions are removed and the underlying function defintion stays the same.
 
 [%header,cols="5,5"]
 |===
