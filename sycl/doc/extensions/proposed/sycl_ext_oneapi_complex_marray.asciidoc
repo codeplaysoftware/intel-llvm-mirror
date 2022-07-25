@@ -237,43 +237,43 @@ namespace oneapi {
   // Merge
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> merge(marray<T, NumElements> real, marray<T, NumElements> imag);
+  marray<sycl::ext::oneapi::complex<T> merge(marray<T, NumElements> &real, marray<T, NumElements> &imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> merge(marray<T, NumElements> real, T imag);
+  marray<sycl::ext::oneapi::complex<T> merge(marray<T, NumElements> &real, T imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> merge(T real, marray<T, NumElements> imag);
+  marray<sycl::ext::oneapi::complex<T> merge(T real, marray<T, NumElements> &imag);
 
   // Get
 
   // return marray of component
   template <class T, std::size_t NumElements>
-  marray<T> get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> input);
+  marray<T> get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
 
   template <class T, std::size_t NumElements>
-  marray<T> get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> input);
+  marray<T> get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
 
   // return element of component
   template <class T, std::size_t NumElements>
-  marray<T> get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> input, std::size_t index);
+  marray<T> get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
 
   template <class T, std::size_t NumElements>
-  marray<T> get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> input, std::size_t index);
+  marray<T> get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
 
   // Set
 
   template <class T, std::size_t NumElements>
-  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> input, marray<sycl::ext::oneapi::complex<T>, NumElements> values);
+  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
 
   template <class T, std::size_t NumElements>
-  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> input, marray<sycl::ext::oneapi::complex<T>, NumElements> values);
+  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
 
   template <class T, std::size_t NumElements>
-  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> input, std::size_t index, T value);
+  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index, T value);
 
   template <class T, std::size_t NumElements>
-  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> input, std::size_t index, T value);
+  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index, T value);
 
 } // namespace oneapi
 } // namespace ext
