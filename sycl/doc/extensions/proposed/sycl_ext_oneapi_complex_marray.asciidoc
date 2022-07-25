@@ -110,7 +110,7 @@ namespace oneapi {
 
             marray();
 
-            explicit constexpr marray(const DataT &arg)
+            explicit constexpr marray(const DataT &arg);
 
             template <typename... ArgTN>
             constexpr marray(const ArgTN&... args);
