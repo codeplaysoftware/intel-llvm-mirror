@@ -222,7 +222,7 @@ namespace oneapi {
 } // namespace sycl
 ```
 
-The merge free function is added to construct complex marrays from real and
+The `make_complex_marray` free function is added to construct complex marrays from real and
 imaginary components. Additionally, the free functions `get_real` and
 `get_imag` are added to access the real and imaginary components of the
 `marray` class without modifying the existing `marray` interface. The usage
@@ -234,16 +234,16 @@ namespace sycl {
 namespace ext {
 namespace oneapi {
 
-  // Merge
+  // Make_complex_marray
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> merge(marray<T, NumElements> &real, marray<T, NumElements> &imag);
+  marray<sycl::ext::oneapi::complex<T> make_complex_marray(marray<T, NumElements> &real, marray<T, NumElements> &imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> merge(marray<T, NumElements> &real, T imag);
+  marray<sycl::ext::oneapi::complex<T> make_complex_marray(marray<T, NumElements> &real, T imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> merge(T real, marray<T, NumElements> &imag);
+  marray<sycl::ext::oneapi::complex<T> make_complex_marray(T real, marray<T, NumElements> &imag);
 
   // Get
 
@@ -315,11 +315,11 @@ to the existing marray interface are being proposed.
 |Function
 |Description
 
-|`mgencomplex merge(mgenfloat& x, mgenfloat& y);`
+|`mgencomplex make_complex_marray(mgenfloat& x, mgenfloat& y);`
 |Constructs a marray of complex numbers with real values in marray x, and the imaginary values in marray y.
-|`mgencomplex merge(mgenfloat& x, genfloat& y);`
+|`mgencomplex make_complex_marray(mgenfloat& x, genfloat& y);`
 |Constructs a marray of complex numbers with real values in marray x, and the imaginary value y.
-|`mgencomplex merge(genfloat& x, mgenfloat& y);`
+|`mgencomplex make_complex_marray(genfloat& x, mgenfloat& y);`
 |Constructs a marray of complex numbers with real value x, and the imaginary values in marray y.
 |`mgenfloat get_real(mgencomplex& x);`
 |Returns an marray of the real components for marray of complex numbers.
