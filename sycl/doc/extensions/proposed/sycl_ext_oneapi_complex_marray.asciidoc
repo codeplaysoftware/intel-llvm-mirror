@@ -101,6 +101,8 @@ namespace oneapi {
     // Specialization of exiting `marray` class for `sycl::ext::oneapi::complex`
     template <typename T, std::size_t NumElements>
     class marray <sycl::ext::oneapi::complex<T>, NumElements> {
+        private:
+            using DataT = sycl::ext::oneapi::complex<T>;
         public:
             using value_type = DataT;
             using reference = DataT&;
