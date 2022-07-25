@@ -227,8 +227,7 @@ imaginary components. Additionally, the free functions `get_real` and
 `get_imag` are added to access the real and imaginary components of the
 `marray` class without modifying the existing `marray` interface. The usage
 of free functions does cause a deviation from the `std::complex` interface.
-However, it does maintain the `marray` interface. The real and merge functions
-are necessary for a complete interface.
+However, it does maintain the `marray` interface.
 
 ```C++
 namespace sycl {
