@@ -222,7 +222,7 @@ namespace oneapi {
 } // namespace sycl
 ```
 
-The merge free function is added to construct complex marrrays from real and
+The merge free function is added to construct complex marrays from real and
 imaginary components. Additionally, the free functions `get_real` and
 `get_imag` are added to access the real and imaginary components of the
 `marray` class without modifying the existing `marray` interface. The usage
@@ -348,7 +348,7 @@ This proposal extends `sycl::ext::oneapi` namespace math functions to accept
 For math functions with two parameters marray-scalar and scalar-marray overloads
 are added.
 
-The functions should execute the math operation elementwise across the
+The functions execute as-if the math operation is performed elementwise across the
 marray. The math function between each element should follow the C++ 
 standard for handling NaN's and Inf values. 
 
