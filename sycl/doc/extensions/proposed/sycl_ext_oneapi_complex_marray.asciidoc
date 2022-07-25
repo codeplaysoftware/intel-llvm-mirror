@@ -256,10 +256,10 @@ namespace oneapi {
 
   // return element of component
   template <class T, std::size_t NumElements>
-  marray<T> get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
+  T get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
 
   template <class T, std::size_t NumElements>
-  marray<T> get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
+  T get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
 
   // Set
 
