@@ -207,8 +207,7 @@ namespace oneapi {
             friend marray operatorOP(const DataT &lhs, const marray &rhs) = delete;
          
             // OP is: &&, ||
-            friend marray<bool, NumElements> operatorOP(const DataT &lhs, const marray &rhs) {
-            /* ... */ }
+            friend marray<bool, NumElements> operatorOP(const DataT &lhs, const marray &rhs) = delete;
          
             // OP is: <<, >>
             friend marray operatorOP(const DataT &lhs, const marray &rhs) = delete;
@@ -246,43 +245,49 @@ namespace oneapi {
   // Make_complex_marray
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> make_complex_marray(marray<T, NumElements> &real, marray<T, NumElements> &imag);
+  marray<sycl::ext::oneapi::complex<T> make_complex_marray(const marray<T, NumElements> &real, const marray<T, NumElements> &imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> make_complex_marray(marray<T, NumElements> &real, T imag);
+  marray<sycl::ext::oneapi::complex<T> make_complex_marray(const marray<T, NumElements> &real, const T &imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> make_complex_marray(T real, marray<T, NumElements> &imag);
+  marray<sycl::ext::oneapi::complex<T> make_complex_marray(const T &real, const marray<T, NumElements> &imag);
 
   // Get
 
   // return marray of component
   template <class T, std::size_t NumElements>
-  marray<T> get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
+  marray<T> get_real(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
 
   template <class T, std::size_t NumElements>
-  marray<T> get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
+  marray<T> get_imag(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
 
   // return element of component
   template <class T, std::size_t NumElements>
-  T get_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
+  T get_real(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
 
   template <class T, std::size_t NumElements>
-  T get_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
+  T get_imag(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
 
   // Set
 
   template <class T, std::size_t NumElements>
-  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
+  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
 
   template <class T, std::size_t NumElements>
-  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
+  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
 
   template <class T, std::size_t NumElements>
-  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index, T value);
+  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const T value);
 
   template <class T, std::size_t NumElements>
-  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index, T value);
+  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const T value);
+
+  template <class T, std::size_t NumElements>
+  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index, const T value);
+
+  template <class T, std::size_t NumElements>
+  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index, const T value);
 
 } // namespace oneapi
 } // namespace ext
@@ -324,28 +329,32 @@ functions are removed and the underlying function defintion stays the same.
 |Function
 |Description
 
-|`mgencomplex make_complex_marray(mgenfloat& x, mgenfloat& y);`
+|`mgencomplex make_complex_marray(const mgenfloat& x, const mgenfloat& y);`
 |Constructs a marray of complex numbers with real values in marray x, and the imaginary values in marray y.
-|`mgencomplex make_complex_marray(mgenfloat& x, genfloat& y);`
+|`mgencomplex make_complex_marray(const mgenfloat& x, const genfloat& y);`
 |Constructs a marray of complex numbers with real values in marray x, and the imaginary value y.
-|`mgencomplex make_complex_marray(genfloat& x, mgenfloat& y);`
+|`mgencomplex make_complex_marray(const genfloat& x, const mgenfloat& y);`
 |Constructs a marray of complex numbers with real value x, and the imaginary values in marray y.
-|`mgenfloat get_real(mgencomplex& x);`
+|`mgenfloat get_real(const mgencomplex& x);`
 |Returns an marray of the real components for marray of complex numbers.
-|`mgenfloat get_imag(mgencomplex& x);`
+|`mgenfloat get_imag(const mgencomplex& x);`
 |Returns an marray of the imaginary components for marray of complex numbers.
-|`mgenfloat get_real(mgencomplex& x, std::size_t idx);`
+|`mgenfloat get_real(const mgencomplex& x, std::size_t idx);`
 |Returns the real component of the complex number for element idx in marray x.
-|`mgenfloat get_imag(mgencomplex& x, std::size_t idx);`
+|`mgenfloat get_imag(const mgencomplex& x, std::size_t idx);`
 |Returns the imaginary component of the complex number for element idx in marray x.
-|`void set_real(mgencomplex& x, mgenfloat& y);`
+|`void set_real(mgencomplex& x, const mgenfloat& y);`
 |Set each element of the real components in x to the corresponding element in y.
-|`void set_imag(mgencomplex& x, mgenfloat& y);`
+|`void set_imag(mgencomplex& x, const mgenfloat& y);`
 |Set each element of the imaginary components in x to the corresponding element in y.
-|`void set_real(mgencomplex& x, std::size_t idx, genfloat& y);`
+|`void set_real(mgencomplex& x, const genfloat& y);`
 |Set each element of the real components in x to the decimal number y.
-|`void set_imag(mgencomplex& x, std::size_t idx, genfloat& y);`
+|`void set_imag(mgencomplex& x, const genfloat& y);`
 |Set each element of the imaginary components in x to the decimal number y.
+|`void set_real(mgencomplex& x, std::size_t idx, const genfloat& y);`
+|Set the real value of element idx in x to the decimal number y.
+|`void set_imag(mgencomplex& x, std::size_t idx, const genfloat& y);`
+|Set the imaginary value of element idx in x to the decimal number y.
 
 
 === Mathematical operations
@@ -400,9 +409,9 @@ namespace oneapi {
 
     mgenfloat norm(const mgencomplex& x);
 
-    mgencomplex polar(const mgenfloat& rho, const mgenfloat& theta = 0);
+    mgencomplex polar(const mgenfloat& rho, const mgenfloat& theta);
     mgencomplex polar(const mgenfloat& rho, const genfloat& theta = 0);
-    mgencomplex polar(const genfloat& rho, const mgenfloat& theta = 0);
+    mgencomplex polar(const genfloat& rho, const mgenfloat& theta);
 
     mgencomplex pow(const mgencomplex& x, const mgenfloat& y);
     mgencomplex pow(const mgencomplex& x, const genfloat& y);
@@ -471,11 +480,11 @@ mathematical operation.
 |Compute the base-10 log for each complex number in marray x.
 |`mgenfloat norm(const mgencomplex& x)`
 |Compute the squared magnitude for each complex number in marray x.
-|`mgencomplex polar(const mgenfloat& rho, const mgenfloat& theta = 0)`
+|`mgencomplex polar(const mgenfloat& rho, const mgenfloat& theta)`
 |Construct an marray, elementwise, of complex numbers from each polar coordinate in marray rho and marray theta.
 |`mgencomplex polar(const mgenfloat& rho, const genfloat& theta = 0)`
 |Construct an marray, elementwise, of complex numbers from each polar coordinate in marray rho and scalar theta.
-|`mgencomplex polar(const genfloat& rho, const mgenfloat& theta = 0)`
+|`mgencomplex polar(const genfloat& rho, const mgenfloat& theta)`
 |Construct an marray, elementwise, of complex numbers from each polar coordinate in scalar rho and marray theta.
 |`mgencomplex pow(const mgencomplex& x, const mgenfloat& y)`
 |Raise each complex element in x to the power of the corresponding decimal element in y.
