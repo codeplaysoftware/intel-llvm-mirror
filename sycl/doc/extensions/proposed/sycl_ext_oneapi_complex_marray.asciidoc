@@ -245,22 +245,22 @@ namespace oneapi {
   // Make_complex_marray
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> make_complex_marray(const marray<T, NumElements> &real, const marray<T, NumElements> &imag);
+  marray<sycl::ext::oneapi::complex<T>, NumElements> make_complex_marray(const marray<T, NumElements> &real, const marray<T, NumElements> &imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> make_complex_marray(const marray<T, NumElements> &real, const T &imag);
+  marray<sycl::ext::oneapi::complex<T>, NumElements> make_complex_marray(const marray<T, NumElements> &real, const T &imag);
 
   template <class T, std::size_t NumElements>
-  marray<sycl::ext::oneapi::complex<T> make_complex_marray(const T &real, const marray<T, NumElements> &imag);
+  marray<sycl::ext::oneapi::complex<T>, NumElements> make_complex_marray(const T &real, const marray<T, NumElements> &imag);
 
   // Get
 
   // return marray of component
   template <class T, std::size_t NumElements>
-  marray<T> get_real(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
+  marray<T, NumElements> get_real(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
 
   template <class T, std::size_t NumElements>
-  marray<T> get_imag(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
+  marray<T, NumElements> get_imag(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input);
 
   // return element of component
   template <class T, std::size_t NumElements>
@@ -426,6 +426,7 @@ namespace oneapi {
     mgencomplex pow(const genfloat& x, const mgencomplex& y);
 
     mgencomplex proj(const mgencomplex& x);
+    mgencomplex proj(const mgenfloat& x);
 
     mgencomplex sin(const mgencomplex& x);
 
@@ -506,6 +507,8 @@ mathematical operation.
 |Raise decimal number x to the power of each complex element in y.
 |`mgencomplex proj(const mgencomplex& x)`
 |Compute the projection for each complex number in marray x.
+|`mgencomplex proj(const mgenfloat& x)`
+|Compute the projection for each real numer in marray x.
 |`mgencomplex sin(const mgencomplex& x)`
 |Compute the sine for each complex number in marray x.
 |`mgencomplex sinh(const mgencomplex& x)`
