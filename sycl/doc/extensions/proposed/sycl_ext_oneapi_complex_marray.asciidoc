@@ -253,6 +253,12 @@ namespace oneapi {
   template <class T, std::size_t NumElements>
   marray<sycl::ext::oneapi::complex<T>, NumElements> make_complex_marray(const T &real, const marray<T, NumElements> &imag);
 
+  template <class T, std::size_t NumElements, std::size_t... I>
+  marray<sycl::ext::oneapi::complex<T>, NumElements> make_complex_marray(const marray<T, NumElements> &real, const marray<T, NumElements> &imag, std::integer_sequence<std::size_t, I...> int_seq);
+
+  template <class T, std::size_t NumElements, std::size_t... I>
+  marray<sycl::ext::oneapi::complex<T>, NumElements> make_complex_marray(const marray<sycl::ext::oneapi::complex<T>, NumElements> &cmplx, std::integer_sequence<std::size_t, I...> int_seq);
+
   // Get
 
   // return marray of component
@@ -268,6 +274,13 @@ namespace oneapi {
 
   template <class T, std::size_t NumElements>
   T get_imag(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::size_t index);
+
+  // return sequence of elements of component
+  template <class T, std::size_t NumElements, std::size_t... I>
+  T get_real(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::integer_sequence<std::size_t, I...> int_seq);
+
+  template <class T, std::size_t NumElements, std::size_t... I>
+  T get_imag(const marray<sycl::ext::oneapi::complex<T>, NumElements> &input, std::integer_sequence<std::size_t, I...> int_seq);
 
   // Set
 
@@ -335,6 +348,10 @@ functions are removed and the underlying function defintion stays the same.
 |Constructs a marray of complex numbers with real values in marray x, and the imaginary value y.
 |`mgencomplex make_complex_marray(const genfloat& x, const mgenfloat& y);`
 |Constructs a marray of complex numbers with real value x, and the imaginary values in marray y.
+|`mgencomplex make_complex_marray(const mgenfloat& x, const mgenfloat& y, std::integer_sequence int_seq);`
+|Constructs a marray of complex numbers from real values in marray x, and the imaginary values in marray y. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
+|`mgencomplex make_complex_marray(const mgencomplex& x, std::integer_sequence int_seq);`
+|Constructs a marray of complex numbers from a complex marray x. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
 |`mgenfloat get_real(const mgencomplex& x);`
 |Returns an marray of the real components for marray of complex numbers.
 |`mgenfloat get_imag(const mgencomplex& x);`
@@ -343,6 +360,10 @@ functions are removed and the underlying function defintion stays the same.
 |Returns the real component of the complex number for element idx in marray x.
 |`mgenfloat get_imag(const mgencomplex& x, std::size_t idx);`
 |Returns the imaginary component of the complex number for element idx in marray x.
+|`mgenfloat get_real(const mgencomplex& x, std::integer_sequence int_seq);`
+|Returns a sequence of real components of the complex number x. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
+|`mgenfloat get_imag(const mgencomplex& x, std::integer_sequence int_seq);`
+|Returns a sequence of imaginary components of the complex number x. Each element should be constructed from the corresponding index within `int_seq` and the returned marray size should be the same as the `int_seq` size.
 |`void set_real(mgencomplex& x, const mgenfloat& y);`
 |Set each element of the real components in x to the corresponding element in y.
 |`void set_imag(mgencomplex& x, const mgenfloat& y);`
