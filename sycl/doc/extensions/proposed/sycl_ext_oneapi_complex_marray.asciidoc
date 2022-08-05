@@ -272,10 +272,10 @@ namespace oneapi {
   // Set
 
   template <class T, std::size_t NumElements>
-  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
+  void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const marray<T, NumElements> &values);
 
   template <class T, std::size_t NumElements>
-  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const marray<sycl::ext::oneapi::complex<T>, NumElements> &values);
+  void set_imag(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const marray<T, NumElements> &values);
 
   template <class T, std::size_t NumElements>
   void set_real(marray<sycl::ext::oneapi::complex<T>, NumElements> &input, const T value);
