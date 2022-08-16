@@ -5127,6 +5127,33 @@ pi_result piKernelGetInfo(pi_kernel Kernel, pi_kernel_info ParamName,
   return PI_SUCCESS;
 }
 
+pi_result piextImgHandleCreate(
+  pi_image_handle *result_handle, pi_context context,
+  pi_image_desc *image_desc, pi_image_format *image_format, void *ptr) {
+
+  assert(context != nullptr);
+  assert(image_desc != nullptr);
+  assert(image_format != nullptr);
+  assert(result_handle != nullptr);
+
+  die("piextImgHandleCreate not implemented on level zero backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
+pi_result piextImgHandleDestroy(
+  pi_context context,
+  pi_image_handle *handle){
+  assert(context != nullptr);
+  assert(handle != nullptr);
+
+  die("piextImgHandleDestroy not implemented on level zero backend.\n");
+  // Must be invalid since we can't create image handles yet for L0.
+  pi_result retErr = PI_ERROR_INVALID_ARG_VALUE;
+  return retErr;
+}
+
 pi_result piKernelGetGroupInfo(pi_kernel Kernel, pi_device Device,
                                pi_kernel_group_info ParamName,
                                size_t ParamValueSize, void *ParamValue,

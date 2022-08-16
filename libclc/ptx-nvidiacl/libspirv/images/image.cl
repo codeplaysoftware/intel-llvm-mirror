@@ -161,6 +161,11 @@ int __nvvm_suq_depth_3i(read_only image3d_t arg) {
   return -1;
 }
 
+// BINDLESS IMAGES PROTOTYPE
+float4 __nvvm_tex_1d_v4f32_f32(unsigned long, 
+                             float) __asm("llvm.nvvm.tex.1d.v4f32.f32");
+
+
 // Helpers
 
 inline int is_normalized_coords(int sampler) {
@@ -972,4 +977,10 @@ _CLC_DEF int3 _Z22__spirv_ImageQuerySizeIDv3_i14ocl_image3d_roET_T0_(
   int height = __nvvm_suq_height_3i(image);
   int depth = __nvvm_suq_depth_3i(image);
   return (int3)(width, height, depth);
+}
+
+// BINDLESS IMAGES PROTOTYPE
+_CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
+    unsigned long imageHandle, float coord){
+  return __nvvm_tex_1d_v4f32_f32(imageHandle, coord);
 }

@@ -194,3 +194,12 @@ entry:
   %1 = tail call <4 x i32> @__clc_struct32_to_vector({i32,i32,i32,i32} %0)
   ret <4 x i32> %1
 }
+
+
+declare {f32, f32, f32, f32} @llvm.nvvm.tex.1d.v4f32.f32(i64, f32)
+define <4 x f32> @__clc_llvm_nvvm_suld_3d_v4i32_zero(i64 %img, f32 %x) nounwind alwaysinline {
+entry:
+  %0 = tail call {f32,f32,f32,f32} @llvm.nvvm.tex.1d.v4f32.f32(i64 %img, f32 %x);
+  %1 = tail call <4 x f32> @__clc_struct32_to_vector({f32,f32,f32,f32} %0)
+  ret <4 x f32> %1
+}

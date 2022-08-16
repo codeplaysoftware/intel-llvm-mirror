@@ -328,6 +328,69 @@ pi_result enqueueEventsWait(pi_queue command_queue, CUstream stream,
   }
 }
 
+/// Convert a PI image format to a CUDA image format and
+/// get the pixel size in bytes.
+/// /param image_channel_type is the pi_image_channel_type.
+/// /param return_cuda_format will be set to the equivalent cuda
+/// format if not nullptr.
+/// /param return_pixel_types_size_bytes will be set to the pixel
+/// byte size if not nullptr.
+pi_result piToCudaImageChannelFormat(pi_image_channel_type image_channel_type,
+                                     CUarray_format *return_cuda_format,
+                                     size_t *return_pixel_types_size_bytes) {
+
+  CUarray_format cuda_format;
+  size_t pixel_type_size_bytes;
+  pi_result err = PI_SUCCESS;
+
+  switch (image_channel_type) {
+  case PI_IMAGE_CHANNEL_TYPE_UNORM_INT8:
+  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8:
+    cuda_format = CU_AD_FORMAT_UNSIGNED_INT8;
+    pixel_type_size_bytes = 1;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT8:
+    cuda_format = CU_AD_FORMAT_SIGNED_INT8;
+    pixel_type_size_bytes = 1;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNORM_INT16:
+  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16:
+    cuda_format = CU_AD_FORMAT_UNSIGNED_INT16;
+    pixel_type_size_bytes = 2;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT16:
+    cuda_format = CU_AD_FORMAT_SIGNED_INT16;
+    pixel_type_size_bytes = 2;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_HALF_FLOAT:
+    cuda_format = CU_AD_FORMAT_HALF;
+    pixel_type_size_bytes = 2;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT32:
+    cuda_format = CU_AD_FORMAT_UNSIGNED_INT32;
+    pixel_type_size_bytes = 4;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT32:
+    cuda_format = CU_AD_FORMAT_SIGNED_INT32;
+    pixel_type_size_bytes = 4;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_FLOAT:
+    cuda_format = CU_AD_FORMAT_FLOAT;
+    pixel_type_size_bytes = 4;
+    break;
+  default:
+    err = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  }
+
+  if (return_cuda_format) {
+    *return_cuda_format = cuda_format;
+  }
+  if (return_pixel_types_size_bytes) {
+    *return_pixel_types_size_bytes = pixel_type_size_bytes;
+  }
+  return err;
+}
+
 } // anonymous namespace
 
 /// ------ Error handling, matching OpenCL plugin semantics.
@@ -2856,6 +2919,76 @@ pi_result cuda_piextKernelSetArgSampler(pi_kernel kernel, pi_uint32 arg_index,
   return retErr;
 }
 
+pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
+                                    pi_context context,
+                                    pi_image_desc *image_desc,
+                                    pi_image_format *image_format, void *ptr) {
+
+  assert(context != nullptr);
+  assert(image_desc != nullptr);
+  assert(image_format != nullptr);
+  assert(result_handle != nullptr);
+
+  if (image_format->image_channel_order !=
+      pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGBA) {
+    sycl::detail::pi::die(
+        "cuda_piextImgHandleCreate only supports RGBA channel order");
+  }
+  pi_result retErr = PI_SUCCESS;
+
+  // CUDA API structs
+  CUDA_RESOURCE_DESC pResDesc;
+  CUDA_TEXTURE_DESC pTextDesc;
+
+  size_t pixel_type_size_bytes{0};
+  retErr = piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                      &pResDesc.res.linear.format,
+                                      &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piMemImageCreate given unsupported image_channel_data_type");
+  }
+
+  // Probably needs to become pitch2D for non-MVP.
+  pResDesc.resType = CU_RESOURCE_TYPE_LINEAR;
+  pResDesc.res.linear.devPtr = reinterpret_cast<CUdeviceptr>(ptr);
+  pResDesc.res.linear.numChannels =
+      4; //  Only 4 channels are supported, following pre-existing images.
+  pResDesc.res.linear.sizeInBytes =
+      4 * pixel_type_size_bytes * image_desc->image_width;
+
+  pTextDesc.addressMode[0] =
+      CU_TR_ADDRESS_MODE_WRAP; // Ignored for linear memory.
+  pTextDesc.addressMode[1] =
+      CU_TR_ADDRESS_MODE_WRAP; // Ignored for linear memory.
+  pTextDesc.addressMode[2] =
+      CU_TR_ADDRESS_MODE_WRAP;                    // Ignored for linear memory.
+  pTextDesc.filterMode = CU_TR_FILTER_MODE_POINT; // For now.
+  pTextDesc.flags = 0;                            // No flags required
+  pTextDesc.maxAnisotropy = 1;
+  // Not interested in mipmaps for MVP
+  pTextDesc.mipmapFilterMode = CU_TR_FILTER_MODE_POINT;
+  pTextDesc.mipmapLevelBias = 0;
+  pTextDesc.minMipmapLevelClamp = 0;
+  pTextDesc.maxMipmapLevelClamp = 0;
+
+  CUtexObject cudaResultHandle;
+  retErr = PI_CHECK_ERROR(
+      cuTexObjectCreate(&cudaResultHandle, &pResDesc, &pTextDesc, nullptr));
+  *result_handle = cudaResultHandle;
+  return retErr;
+}
+
+pi_result cuda_piextImgHandleDestroy(pi_context context,
+                                     pi_image_handle *handle) {
+  assert(context != nullptr);
+  assert(handle != nullptr);
+
+  pi_result retErr = PI_SUCCESS;
+  retErr = PI_CHECK_ERROR(cuTexObjectDestroy(*handle));
+  return retErr;
+}
+
 pi_result cuda_piKernelGetGroupInfo(pi_kernel kernel, pi_device device,
                                     pi_kernel_group_info param_name,
                                     size_t param_value_size, void *param_value,
@@ -3136,42 +3269,10 @@ pi_result cuda_piMemImageCreate(pi_context context, pi_mem_flags flags,
   // We need to get this now in bytes for calculating the total image size later
   size_t pixel_type_size_bytes;
 
-  switch (image_format->image_channel_data_type) {
-  case PI_IMAGE_CHANNEL_TYPE_UNORM_INT8:
-  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8:
-    array_desc.Format = CU_AD_FORMAT_UNSIGNED_INT8;
-    pixel_type_size_bytes = 1;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT8:
-    array_desc.Format = CU_AD_FORMAT_SIGNED_INT8;
-    pixel_type_size_bytes = 1;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_UNORM_INT16:
-  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16:
-    array_desc.Format = CU_AD_FORMAT_UNSIGNED_INT16;
-    pixel_type_size_bytes = 2;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT16:
-    array_desc.Format = CU_AD_FORMAT_SIGNED_INT16;
-    pixel_type_size_bytes = 2;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_HALF_FLOAT:
-    array_desc.Format = CU_AD_FORMAT_HALF;
-    pixel_type_size_bytes = 2;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT32:
-    array_desc.Format = CU_AD_FORMAT_UNSIGNED_INT32;
-    pixel_type_size_bytes = 4;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT32:
-    array_desc.Format = CU_AD_FORMAT_SIGNED_INT32;
-    pixel_type_size_bytes = 4;
-    break;
-  case PI_IMAGE_CHANNEL_TYPE_FLOAT:
-    array_desc.Format = CU_AD_FORMAT_FLOAT;
-    pixel_type_size_bytes = 4;
-    break;
-  default:
+  retErr =
+      piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                 &array_desc.Format, &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
     sycl::detail::pi::die(
         "cuda_piMemImageCreate given unsupported image_channel_data_type");
   }
@@ -5109,7 +5210,6 @@ pi_result cuda_piextUSMEnqueueMemAdvise(pi_queue queue, const void *ptr,
     // check that the device also has the
     // CU_DEVICE_ATTRIBUTE_PAGEABLE_MEMORY_ACCESS property.
   }
-
   unsigned int is_managed;
   PI_CHECK_ERROR(cuPointerGetAttribute(
       &is_managed, CU_POINTER_ATTRIBUTE_IS_MANAGED, (CUdeviceptr)ptr));
@@ -5440,6 +5540,10 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
 
   _PI_CL(piextKernelSetArgMemObj, cuda_piextKernelSetArgMemObj)
   _PI_CL(piextKernelSetArgSampler, cuda_piextKernelSetArgSampler)
+
+  _PI_CL(piextImgHandleCreate, cuda_piextImgHandleCreate)
+  _PI_CL(piextImgHandleDestroy, cuda_piextImgHandleDestroy)
+
   _PI_CL(piPluginGetLastError, cuda_piPluginGetLastError)
   _PI_CL(piTearDown, cuda_piTearDown)
 

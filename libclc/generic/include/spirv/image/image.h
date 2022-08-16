@@ -23,6 +23,10 @@ _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
 _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
     image2d_t image, int4 coord, int op1, int op2);
 
+// BINDLESS IMAGES PROTOTYPE
+_CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
+    unsigned long imageHandle, float coord);
+
 _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageSampleExplicitcoord__Rfloat4(
     sampler_t sampler, float coord, int op1, float op2);
 _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageSampleExplicitcoord__Rfloat4(
