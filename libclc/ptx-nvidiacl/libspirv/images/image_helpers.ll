@@ -42,6 +42,14 @@ define <4 x i32> @__clc_struct32_to_vector({i32,i32,i32,i32} %s) nounwind always
   ret <4 x i32> %v
 }
 
+define <4 x float> @__clc_structf32_to_vector({float,float,float,float} %s) nounwind alwaysinline {
+  %a = alloca {float,float,float,float}
+  store {float,float,float,float} %s, {float,float,float,float}* %a
+  %bc = bitcast {float,float,float,float} * %a to <4 x float> *
+  %v = load <4 x float>, <4 x float> * %bc, align 128
+  ret <4 x float> %v
+}
+
 define <4 x i16> @__clc_struct16_to_vector({i16,i16,i16,i16} %s) nounwind alwaysinline {
   %a = alloca {i16,i16,i16,i16}
   store {i16,i16,i16,i16} %s, {i16,i16,i16,i16}* %a
@@ -196,10 +204,10 @@ entry:
 }
 
 
-declare {f32, f32, f32, f32} @llvm.nvvm.tex.1d.v4f32.f32(i64, f32)
-define <4 x f32> @__clc_llvm_nvvm_suld_3d_v4i32_zero(i64 %img, f32 %x) nounwind alwaysinline {
+declare {float,float,float,float} @llvm.nvvm.tex.1d.v4f32.f32(i64, i64, float)
+define <4 x float> @__clc_llvm_nvvm_tex_1d_v4f32_f32(i64 %img, i64 %samp, float %x) nounwind alwaysinline {
 entry:
-  %0 = tail call {f32,f32,f32,f32} @llvm.nvvm.tex.1d.v4f32.f32(i64 %img, f32 %x);
-  %1 = tail call <4 x f32> @__clc_struct32_to_vector({f32,f32,f32,f32} %0)
-  ret <4 x f32> %1
+  %0 = tail call {float,float,float,float} @llvm.nvvm.tex.1d.v4f32.f32(i64 %img, i64 %samp, float %x);
+  %1 = tail call <4 x float> @__clc_structf32_to_vector({float,float,float,float} %0)
+  ret <4 x float> %1
 }
