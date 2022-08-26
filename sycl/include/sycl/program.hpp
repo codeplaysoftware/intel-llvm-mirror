@@ -28,10 +28,6 @@ __SYCL_INLINE_VER_NAMESPACE(_V1) {
 // Forward declarations
 class context;
 class device;
-template <backend BackendName, class SyclObjectT>
-auto get_native(const SyclObjectT &Obj)
-    -> backend_return_t<BackendName, SyclObjectT>;
-
 namespace detail {
 class program_impl;
 }
@@ -369,6 +365,15 @@ public:
   /// \return the backend associated with this program.
   backend get_backend() const noexcept;
 
+  /// Gets the native handle of the SYCL platform.
+  ///
+  /// \return a native handle, the type of which defined by the backend.
+  template <backend Backend>
+  __SYCL_DEPRECATED("Use SYCL 2020 sycl::get_native free function")
+  backend_return_t<Backend, program> get_native() const {
+    return reinterpret_cast<backend_return_t<Backend, program>>(getNative());
+  }
+
 private:
   pi_native_handle getNative() const;
   program(std::shared_ptr<detail::program_impl> impl);
@@ -414,9 +419,6 @@ private:
   friend decltype(Obj::impl) detail::getSyclObjImpl(const Obj &SyclObject);
   template <class T>
   friend T detail::createSyclObjFromImpl(decltype(T::impl) ImplObj);
-  template <backend BackendName, class SyclObjectT>
-  friend auto get_native(const SyclObjectT &Obj)
-      -> backend_return_t<BackendName, SyclObjectT>;
 };
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)
 } // namespace sycl

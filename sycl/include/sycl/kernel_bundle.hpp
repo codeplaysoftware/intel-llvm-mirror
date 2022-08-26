@@ -26,9 +26,8 @@ namespace sycl {
 __SYCL_INLINE_VER_NAMESPACE(_V1) {
 // Forward declaration
 template <backend Backend> class backend_traits;
-template <backend Backend, bundle_state State>
-auto get_native(const kernel_bundle<State> &Obj)
-    -> backend_return_t<Backend, kernel_bundle<State>>;
+template <backend Backend, class SyclT>
+auto get_native(const SyclT &Obj) -> backend_return_t<Backend, SyclT>;
 
 namespace detail {
 class kernel_id_impl;
@@ -311,6 +310,12 @@ public:
     return reinterpret_cast<device_image_iterator>(kernel_bundle_plain::end());
   }
 
+  template <backend Backend>
+  __SYCL_DEPRECATED("Use SYCL 2020 sycl::get_native free function")
+  backend_return_t<Backend, kernel_bundle<State>> get_native() const {
+    return getNative<Backend>();
+  }
+
 private:
   kernel_bundle(detail::KernelBundleImplPtr Impl)
       : kernel_bundle_plain(std::move(Impl)) {}
@@ -321,9 +326,8 @@ private:
   template <class T>
   friend T detail::createSyclObjFromImpl(decltype(T::impl) ImplObj);
 
-  template <backend Backend, bundle_state StateB>
-  friend auto get_native(const kernel_bundle<StateB> &Obj)
-      -> backend_return_t<Backend, kernel_bundle<StateB>>;
+  template <backend Backend, class SyclT>
+  friend auto get_native(const SyclT &Obj) -> backend_return_t<Backend, SyclT>;
 
   template <backend Backend>
   backend_return_t<Backend, kernel_bundle<State>> getNative() const {

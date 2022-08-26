@@ -28,9 +28,6 @@ class program;
 class context;
 template <backend Backend> class backend_traits;
 template <bundle_state State> class kernel_bundle;
-template <backend BackendName, class SyclObjectT>
-auto get_native(const SyclObjectT &Obj)
-    -> backend_return_t<BackendName, SyclObjectT>;
 
 namespace detail {
 class kernel_impl;
@@ -166,6 +163,12 @@ public:
       Param>::with_input_return_type
   get_info(const device &Device, const range<3> &WGSize) const;
 
+  template <backend Backend>
+  __SYCL_DEPRECATED("Use SYCL 2020 sycl::get_native free function")
+  backend_return_t<Backend, kernel> get_native() const {
+    return detail::pi::cast<backend_return_t<Backend, kernel>>(getNative());
+  }
+
 private:
   /// Constructs a SYCL kernel object from a valid kernel_impl instance.
   kernel(std::shared_ptr<detail::kernel_impl> Impl);
@@ -181,9 +184,6 @@ private:
   friend decltype(Obj::impl) detail::getSyclObjImpl(const Obj &SyclObject);
   template <class T>
   friend T detail::createSyclObjFromImpl(decltype(T::impl) ImplObj);
-  template <backend BackendName, class SyclObjectT>
-  friend auto get_native(const SyclObjectT &Obj)
-      -> backend_return_t<BackendName, SyclObjectT>;
 };
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)
 } // namespace sycl
