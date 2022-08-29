@@ -6,13 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <sycl/context.hpp>
-#include <sycl/detail/pi.hpp>
 #include <sycl/ext/oneapi/bindless_textures.hpp>
+#include <sycl/detail/common.hpp>
+#include <sycl/detail/pi.hpp>
 
-#include "common.hpp"
-#include "context_impl.hpp"
-#include "pi.hpp"
+#include <detail/context_impl.hpp>
+#include <detail/plugin_printers.hpp>
 
 #include <memory>
 
@@ -28,14 +27,14 @@ namespace oneapi {
  *  @param syclContext The context on which the handle is valid.
  *  @return An image handle
  **/
-image_handle create_image_handle(image_descriptor imageDesc,
+__SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
                                  void *usmAllocation,
                                  sycl::context &syclContext) {
 
-  std::shared_ptr<detail::context_impl> CtxImpl =
-      detail::getSyclObjImpl(syclContext);
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
-  const detail::plugin &Plugin = CtxImpl->getPlugin();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
   pi_result Error;
 
   pi_image_desc piDesc;
@@ -58,8 +57,8 @@ image_handle create_image_handle(image_descriptor imageDesc,
 
   // Call impl.
   pi_image_handle piImageHandle;
-  Error = Plugin.call_nocheck<detail::PiApiKind::piextImgHandleCreate>(
-      &piImageHandle, C, piDesc, usmAllocation);
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextImgHandleCreate>(
+      &piImageHandle, C, &piDesc, &piFormat, usmAllocation);
 
   if (Error != PI_SUCCESS) {
     return image_handle(nullptr);
@@ -72,16 +71,18 @@ image_handle create_image_handle(image_descriptor imageDesc,
  *  @param imageHandle The handle to destroy.
  *  @param syclContext The context the handle is valid in.
  **/
-void destroy_image_handle(image_handle &imageHandle,
+__SYCL_EXPORT void destroy_image_handle(image_handle &imageHandle,
                           const sycl::context &syclContext) {
-  std::shared_ptr<detail::context_impl> CtxImpl =
-      detail::getSyclObjImpl(syclContext);
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
-  const detail::plugin &Plugin = CtxImpl->getPlugin();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
   pi_result Error;
+  pi_image_handle piImageHandle = imageHandle;
 
-  Error = Plugin.call_nocheck<detail::PiApiKind::piextImgHandleDestroy>(
-      imageHandle, C);
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextImgHandleDestroy>(
+      C, &piImageHandle);
+  imageHandle = piImageHandle;
 }
 
 } // namespace oneapi

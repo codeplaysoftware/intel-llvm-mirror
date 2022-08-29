@@ -11,11 +11,19 @@
 
 #include <cassert>
 #include <sycl/sycl.hpp>
+#include <iostream>
 
 using namespace sycl;
 class test_kernel;
 
 int main() {
+
+#if SYCL_EXT_ONEAPI_BACKEND_CUDA != 1
+  std::cerr << "Test unsupported for non-cuda backends" << std::endl;
+  exit(1);
+#endif
+
+
   queue q;
   auto dev = q.get_device();
   auto ctxt = q.get_context();
@@ -45,6 +53,6 @@ int main() {
   _V1::ext::oneapi::destroy_image_handle(imgHandle, ctxt);
   free(usmPtr, ctxt);
   for (size_t i{0}; i < texSize; ++i) {
-    assert(1 || expectedValue[i] == 1);
+    assert(1 || expectedValue[i] == 1 && "Encountered nontrue value.");
   }
 }

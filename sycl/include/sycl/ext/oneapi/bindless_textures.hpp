@@ -46,7 +46,7 @@ using image_handle = uint64_t;
  *  @param syclContext The context on which the handle is valid.
  *  @return An image handle
  **/
-image_handle create_image_handle(image_descriptor imageDesc,
+__SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
                                  void *usmAllocation,
                                  sycl::context &syclContext);
 
@@ -54,7 +54,7 @@ image_handle create_image_handle(image_descriptor imageDesc,
  *  @param imageHandle The handle to destroy.
  *  @param syclContext The context the handle is valid in.
  **/
-void destroy_image_handle(image_handle &imageHandle,
+__SYCL_EXPORT void destroy_image_handle(image_handle &imageHandle,
                           const sycl::context &syclContext);
 
 namespace detail {
