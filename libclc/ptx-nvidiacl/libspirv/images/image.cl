@@ -979,8 +979,8 @@ _CLC_DEF int3 _Z22__spirv_ImageQuerySizeIDv3_i14ocl_image3d_roET_T0_(
   return (int3)(width, height, depth);
 }
 
-// BINDLESS IMAGES PROTOTYPE -- need to mangle name.
-_CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
+// BINDLESS IMAGES PROTOTYPE.
+_CLC_OVERLOAD _CLC_DECL float4 _Z17__spirv_ImageReadIDv4_fmfET_T0_T1_(
     unsigned long imageHandle, float coord){
   // Intrinic expects sampler arg. I have no sampler right now, so try zero.
   return __nvvm_tex_1d_v4f32_f32(imageHandle, 0, coord);

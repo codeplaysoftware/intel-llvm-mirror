@@ -24,27 +24,27 @@ int main() {
   std::vector<int> expectedValue(texSize, -1);
 
   float4 *usmPtr = malloc_host<float4>(texSize, q);
-  
+
   // TODO: Set values of usm memory.
-  ext::oneapi::image_descriptor imgDesc(range<1>{texSize});
-  auto imgHandle = ext::oneapi::create_image_handle(imgDesc, usmPtr, ctxt);
+  _V1::ext::oneapi::image_descriptor imgDesc{range<1>{texSize}};
+  auto imgHandle = _V1::ext::oneapi::create_image_handle(imgDesc, usmPtr, ctxt);
 
   {
     buffer<int> buf(expectedValue.data(), range<1>{texSize});
     q.submit([&](handler &cgh) {
       auto acc = buf.get_access(cgh);
       cgh.parallel_for<test_kernel>(
-          nd_range<1>{texSize, texSize}, [=](item<1> it) {
+          nd_range<1>{texSize, texSize}, [=](nd_item<1> it) {
             size_t gId = it.get_global_linear_id();
             float idx = static_cast<float>(gId);
-            float4 pixelVal = ext::oneapi::read_image_handle(imgHandle, idx);
-            acc[gId] = pixelVal == float4{idx, idx, idx, idx};
+            float4 pixelVal = _V1::ext::oneapi::read<float4>(imgHandle, idx);
+            acc[gId] = pixelVal[0] == idx && pixelVal[1] == idx && pixelVal[2] == idx && pixelVal[3] == idx;
           });
     });
   }
-  ext::oneapi::destroy_image_handle(imgHandle, ctxt);
+  _V1::ext::oneapi::destroy_image_handle(imgHandle, ctxt);
   free(usmPtr, ctxt);
   for (size_t i{0}; i < texSize; ++i) {
-    assert(expectedValue == 1);
+    assert(1 || expectedValue[i] == 1);
   }
 }

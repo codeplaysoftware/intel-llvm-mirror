@@ -13,8 +13,8 @@
 
 #include <cstdint>
 
-__SYCL_INLINE_NAMESPACE(cl) {
 namespace sycl {
+__SYCL_INLINE_VER_NAMESPACE(_V1) {
 namespace ext {
 namespace oneapi {
 
@@ -22,11 +22,8 @@ namespace oneapi {
 class image_descriptor {
 public:
   /// Prototype does not allow choice of image format, and is 1D only.
-  template <int Dims>
-  image_descriptor(sycl::range<Dims> imgDims)
-      : m_num_dimensions{Dims}, m_dimensions{imgDims[0]} {
-    static_asset(Dims == 1, "Prototype only supports 1D textures.");
-  }
+  image_descriptor(range<1> imgDims)
+      : m_num_dimensions{1}, m_dimensions{imgDims[0]} {}
 
   inline size_t get(int dimension) const { return m_dimensions[dimension]; }
   size_t &operator[](int dimension) { return m_dimensions[dimension]; }
@@ -60,6 +57,16 @@ image_handle create_image_handle(image_descriptor imageDesc,
 void destroy_image_handle(image_handle &imageHandle,
                           const sycl::context &syclContext);
 
+namespace detail {
+template<typename CoordT>
+constexpr size_t coord_size(){
+  if constexpr (std::is_same<CoordT, float>::value) {
+    return 1;
+  } else {
+    return CoordT::size();
+  }
+}
+}
 /** Read an image using its handle.
  *  @tparam DataT is the type of data to return. 
  *  @tparam CoordT is the input coordinate type. Float, float2, or float4 for 1D, 2D and 3D respectively.
@@ -67,24 +74,24 @@ void destroy_image_handle(image_handle &imageHandle,
  *  @param coords is the coordinate at which to get image data.
  *  @return data from the image.
  **/
-
 template <typename DataT, typename CoordT>
-DataT read(const image_handle& imageHandle, const CoordT &coords) const noexcept {
-	constexpr size_t coordSize = coords.size();
+DataT read(const image_handle& imageHandle, const CoordT &coords) {
+	constexpr size_t coordSize = detail::coord_size<CoordT>();
 	if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4){
 #ifdef __SYCL_DEVICE_ONLY__
     return __invoke__ImageRead<DataT, image_handle, CoordT>(
         imageHandle, coords);
 #else
-    static_assert(false, "Bindless images not yet implemented on host.");
+    assert(false); // Bindless images not yet implemented on host.
 #endif 
 	} else {
-		static_assert(false, "Expected input coordinate to be have 1, 2, or 4 components for 1D, 2D and 3D images respectively.");
+		static_assert(coordSize == 1 || coordSize == 2 || coordSize == 4, 
+    "Expected input coordinate to be have 1, 2, or 4 components for 1D, 2D and 3D images respectively.");
 	}
 }
 
 
 } // namespace oneapi
 } // namespace ext
+} // __SYCL_INLINE_VER_NAMESPACE(_V1)
 } // namespace sycl
-} // __SYCL_INLINE_NAMESPACE(cl)
