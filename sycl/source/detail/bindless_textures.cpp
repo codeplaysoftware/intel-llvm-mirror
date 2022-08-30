@@ -30,7 +30,6 @@ namespace oneapi {
 __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
                                  void *usmAllocation,
                                  sycl::context &syclContext) {
-
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();

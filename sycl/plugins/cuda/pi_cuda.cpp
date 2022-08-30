@@ -2923,7 +2923,6 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
                                     pi_context context,
                                     pi_image_desc *image_desc,
                                     pi_image_format *image_format, void *ptr) {
-
   assert(context != nullptr);
   assert(image_desc != nullptr);
   assert(image_format != nullptr);
