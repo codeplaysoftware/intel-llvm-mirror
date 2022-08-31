@@ -117,7 +117,7 @@ template <typename T>
 struct is_complex
     : std::integral_constant<bool,
                              std::is_same<T, std::complex<half>>::value ||
-                             std::is_same<T, std::complex<float>>::value ||
+                                 std::is_same<T, std::complex<float>>::value ||
                                  std::is_same<T, std::complex<double>>::value> {
 };
 
@@ -129,14 +129,16 @@ using is_arithmetic_or_complex =
 
 template <typename T>
 struct is_vector_arithmetic_or_complex
-    : bool_constant<is_vec<T>::value && (is_arithmetic<T>::value || is_complex<vector_element_t<T>>::value) > {};
+    : bool_constant<is_vec<T>::value &&
+                    (is_arithmetic<T>::value ||
+                     is_complex<vector_element_t<T>>::value)> {};
 
 // ---- is_plus_or_multiplies_if_complex
 template <typename T, typename BinaryOperation>
-using is_plus_or_multiplies_if_complex =
-    std::integral_constant<bool, (is_complex<T>::value
-                                      ? (is_plus<T, BinaryOperation>::value || is_multiplies<T, BinaryOperation>::value)
-                                      : std::true_type::value)>;
+using is_plus_or_multiplies_if_complex = std::integral_constant<
+    bool, (is_complex<T>::value ? (is_plus<T, BinaryOperation>::value ||
+                                   is_multiplies<T, BinaryOperation>::value)
+                                : std::true_type::value)>;
 
 // ---- identity_for_ga_op
 //   the group algorithms support std::complex, limited to sycl::plus operation
@@ -189,7 +191,9 @@ Function for_each(Group g, Ptr first, Ptr last, Function f) {
 
 template <typename Group, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     (detail::is_scalar_arithmetic<T>::value || (detail::is_complex<T>::value && detail::is_multiplies<T, BinaryOperation>::value)) &&
+                     (detail::is_scalar_arithmetic<T>::value ||
+                      (detail::is_complex<T>::value &&
+                       detail::is_multiplies<T, BinaryOperation>::value)) &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
 reduce_over_group(Group, T x, BinaryOperation binary_op) {
@@ -314,8 +318,8 @@ detail::enable_if_t<
     (is_group_v<std::decay_t<Group>> && detail::is_pointer<Ptr>::value &&
      detail::is_arithmetic_or_complex<
          typename detail::remove_pointer<Ptr>::type>::value &&
-     detail::is_plus_or_multiplies_if_complex<typename detail::remove_pointer<Ptr>::type,
-                                BinaryOperation>::value),
+     detail::is_plus_or_multiplies_if_complex<
+         typename detail::remove_pointer<Ptr>::type, BinaryOperation>::value),
     typename detail::remove_pointer<Ptr>::type>
 joint_reduce(Group g, Ptr first, Ptr last, BinaryOperation binary_op) {
 #ifdef __SYCL_DEVICE_ONLY__
@@ -340,8 +344,8 @@ detail::enable_if_t<
      detail::is_arithmetic_or_complex<T>::value &&
      detail::is_native_op<typename detail::remove_pointer<Ptr>::type,
                           BinaryOperation>::value &&
-     detail::is_plus_or_multiplies_if_complex<typename detail::remove_pointer<Ptr>::type,
-                                BinaryOperation>::value &&
+     detail::is_plus_or_multiplies_if_complex<
+         typename detail::remove_pointer<Ptr>::type, BinaryOperation>::value &&
      detail::is_plus_or_multiplies_if_complex<T, BinaryOperation>::value &&
      detail::is_native_op<T, BinaryOperation>::value),
     T>
@@ -617,7 +621,9 @@ group_broadcast(Group g, T x) {
 //   vector
 template <typename Group, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     (detail::is_scalar_arithmetic<T>::value || (detail::is_complex<T>::value && detail::is_multiplies<T, BinaryOperation>::value)) &&
+                     (detail::is_scalar_arithmetic<T>::value ||
+                      (detail::is_complex<T>::value &&
+                       detail::is_multiplies<T, BinaryOperation>::value)) &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
 exclusive_scan_over_group(Group, T x, BinaryOperation binary_op) {
@@ -749,8 +755,9 @@ detail::enable_if_t<
      detail::is_native_op<typename detail::remove_pointer<InPtr>::type,
                           BinaryOperation>::value &&
      detail::is_native_op<T, BinaryOperation>::value &&
-     detail::is_plus_or_multiplies_if_complex<typename detail::remove_pointer<InPtr>::type,
-                                BinaryOperation>::value &&
+     detail::is_plus_or_multiplies_if_complex<
+         typename detail::remove_pointer<InPtr>::type,
+         BinaryOperation>::value &&
      detail::is_plus_or_multiplies_if_complex<T, BinaryOperation>::value),
     OutPtr>
 joint_exclusive_scan(Group g, InPtr first, InPtr last, OutPtr result, T init,
@@ -804,8 +811,8 @@ detail::enable_if_t<
          typename detail::remove_pointer<InPtr>::type>::value &&
      detail::is_native_op<typename detail::remove_pointer<InPtr>::type,
                           BinaryOperation>::value &&
-     detail::is_plus_or_multiplies_if_complex<typename detail::remove_pointer<InPtr>::type,
-                                BinaryOperation>::value),
+     detail::is_plus_or_multiplies_if_complex<
+         typename detail::remove_pointer<InPtr>::type, BinaryOperation>::value),
     OutPtr>
 joint_exclusive_scan(Group g, InPtr first, InPtr last, OutPtr result,
                      BinaryOperation binary_op) {
@@ -848,7 +855,9 @@ inclusive_scan_over_group(Group g, T x, BinaryOperation binary_op) {
 
 template <typename Group, typename T, class BinaryOperation>
 detail::enable_if_t<(is_group_v<std::decay_t<Group>> &&
-                     (detail::is_scalar_arithmetic<T>::value || (detail::is_complex<T>::value && detail::is_multiplies<T, BinaryOperation>::value)) &&
+                     (detail::is_scalar_arithmetic<T>::value ||
+                      (detail::is_complex<T>::value &&
+                       detail::is_multiplies<T, BinaryOperation>::value)) &&
                      detail::is_native_op<T, BinaryOperation>::value),
                     T>
 inclusive_scan_over_group(Group, T x, BinaryOperation binary_op) {
@@ -952,8 +961,9 @@ detail::enable_if_t<
      detail::is_native_op<typename detail::remove_pointer<InPtr>::type,
                           BinaryOperation>::value &&
      detail::is_native_op<T, BinaryOperation>::value &&
-     detail::is_plus_or_multiplies_if_complex<typename detail::remove_pointer<InPtr>::type,
-                                BinaryOperation>::value &&
+     detail::is_plus_or_multiplies_if_complex<
+         typename detail::remove_pointer<InPtr>::type,
+         BinaryOperation>::value &&
      detail::is_plus_or_multiplies_if_complex<T, BinaryOperation>::value),
     OutPtr>
 joint_inclusive_scan(Group g, InPtr first, InPtr last, OutPtr result,
@@ -1006,8 +1016,8 @@ detail::enable_if_t<
          typename detail::remove_pointer<InPtr>::type>::value &&
      detail::is_native_op<typename detail::remove_pointer<InPtr>::type,
                           BinaryOperation>::value &&
-     detail::is_plus_or_multiplies_if_complex<typename detail::remove_pointer<InPtr>::type,
-                                BinaryOperation>::value),
+     detail::is_plus_or_multiplies_if_complex<
+         typename detail::remove_pointer<InPtr>::type, BinaryOperation>::value),
     OutPtr>
 joint_inclusive_scan(Group g, InPtr first, InPtr last, OutPtr result,
                      BinaryOperation binary_op) {

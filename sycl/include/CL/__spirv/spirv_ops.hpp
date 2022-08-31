@@ -855,8 +855,8 @@ __spirv_GroupCMulKHR(unsigned int, unsigned int, __spv::complex_half) noexcept;
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __spv::complex_float
 __spirv_GroupCMulKHR(unsigned int, unsigned int, __spv::complex_float) noexcept;
 __SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __spv::complex_double
-__spirv_GroupCMulKHR(unsigned int, unsigned int, __spv::complex_double) noexcept;
-
+__spirv_GroupCMulKHR(unsigned int, unsigned int,
+                     __spv::complex_double) noexcept;
 
 #else // if !__SYCL_DEVICE_ONLY__
 

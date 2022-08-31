@@ -10,8 +10,8 @@
 #include <sycl/functional.hpp>
 #include <sycl/half_type.hpp>
 
-#include <functional>
 #include <complex>
+#include <functional>
 
 namespace sycl {
 __SYCL_INLINE_VER_NAMESPACE(_V1) {
@@ -55,9 +55,10 @@ struct GroupOpTag<T, detail::enable_if_t<detail::is_sgenfloat<T>::value>> {
 };
 
 template <typename T>
-struct GroupOpTag<T, detail::enable_if_t<std::is_same<T, std::complex<half>>::value ||
-                                         std::is_same<T, std::complex<float>>::value ||
-                                 std::is_same<T, std::complex<double>>::value>> {
+struct GroupOpTag<
+    T, detail::enable_if_t<std::is_same<T, std::complex<half>>::value ||
+                           std::is_same<T, std::complex<float>>::value ||
+                           std::is_same<T, std::complex<double>>::value>> {
   using type = GroupOpC;
 };
 
