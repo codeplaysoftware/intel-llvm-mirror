@@ -52,6 +52,13 @@ John Pennycook, Intel (john 'dot' pennycook 'at' intel 'dot' com)
 
 This extension is written against the SYCL 2020 specification, Revision 4.
 
+This extension builds on the `sycl::ext::oneapi::complex` and
+`marray<sycl::ext::oneapi::complex>` classes. Therefore this extension is
+dependent on link:sycl_ext_oneapi_complex.asciidoc[sycl_ext_oneapi_complex]
+and
+link:sycl_ext_oneapi_complex_marray.asciidoc[sycl_ext_oneapi_complex_marray].
+
+
 == Feature Test Macro
 
 This extension provides a feature-test macro as described in the core SYCL
@@ -66,6 +73,7 @@ value to determine which of the extension's APIs the implementation supports.
 |===
 |Value |Description
 |1     |Initial extension version.  Base features are supported.
+|2     |Proposal is extended to other complex extensions. Multiplication binary operation is added.
 |===
 
 == Overview
@@ -98,9 +106,9 @@ requires support for half-precision, with `sycl::aspect::fp16`.
 
 == Extended Functions and Algorithms
 
-The following group functions and algorithms accept `gencomplex`
-and `mgencomplex` arguments only when used with a `BinaryOperation`
-argument of `sycl::plus` and `sycl::multiplies`:
+The following group functions and algorithms accept `gencomplex` arguments
+only when used with a `BinaryOperation` argument of `sycl::plus` and
+`sycl::multiplies`. These operations do not support `mgencomplex`:
 
 - `joint_reduce`
 - `reduce_over_group`
@@ -132,4 +140,5 @@ None.
 |========================================
 |Rev|Date|Author|Changes
 |1|2021-12-08|John Pennycook|*Initial public working draft*
+|2|2022-31-08|Aidan Belton|*Extend to support sycl complex extension and multiplication binary operation*
 |========================================
