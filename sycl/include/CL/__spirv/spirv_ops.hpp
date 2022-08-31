@@ -8,6 +8,7 @@
 
 #pragma once
 #include <CL/__spirv/spirv_types.hpp>
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <sycl/detail/defines.hpp>
@@ -848,6 +849,14 @@ __CLC_BF16_SCAL_VEC(uint32_t)
 
 #undef __CLC_BF16_SCAL_VEC
 #undef __CLC_BF16
+
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __spv::complex_half
+__spirv_GroupCMulKHR(unsigned int, unsigned int, __spv::complex_half) noexcept;
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __spv::complex_float
+__spirv_GroupCMulKHR(unsigned int, unsigned int, __spv::complex_float) noexcept;
+__SYCL_CONVERGENT__ extern SYCL_EXTERNAL __SYCL_EXPORT __spv::complex_double
+__spirv_GroupCMulKHR(unsigned int, unsigned int, __spv::complex_double) noexcept;
+
 
 #else // if !__SYCL_DEVICE_ONLY__
 

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <CL/__spirv/spirv_types.hpp>
 #include <sycl/access/access.hpp>
 #include <sycl/aliases.hpp>
 #include <sycl/detail/common.hpp>
@@ -15,6 +16,7 @@
 #include <sycl/detail/type_traits.hpp>
 #include <sycl/half_type.hpp>
 
+#include <complex>
 #include <limits>
 
 namespace sycl {
@@ -381,6 +383,20 @@ using select_cl_scalar_float_t =
                              sycl::cl_double>;
 
 template <typename T>
+using select_cl_scalar_complex_or_T_t = std::conditional_t<
+  std::is_same<T, std::complex<float>>::value, 
+  __spv::complex_float, 
+  std::conditional_t<
+    std::is_same<T, std::complex<double>>::value, 
+    __spv::complex_double, 
+    std::conditional_t<
+      std::is_same<T, std::complex<half>>::value, 
+      __spv::complex_half, T
+    >
+  >
+>;
+
+template <typename T>
 using select_cl_scalar_integral_t =
     conditional_t<std::is_signed<T>::value,
                   select_cl_scalar_integral_signed_t<T>,
@@ -395,8 +411,13 @@ using select_cl_scalar_t = conditional_t<
         std::is_floating_point<T>::value, select_cl_scalar_float_t<T>,
         // half is a special case: it is implemented differently on host and
         // device and therefore, might lower to different types
-        conditional_t<std::is_same<T, half>::value,
-                      sycl::detail::half_impl::BIsRepresentationT, T>>>;
+        conditional_t<
+          std::is_same<T, half>::value,
+          sycl::detail::half_impl::BIsRepresentationT, 
+            select_cl_scalar_complex_or_T_t<T>
+        >
+    >
+  >;
 
 // select_cl_vector_or_scalar does cl_* type selection for element type of
 // a vector type T and does scalar type substitution.  If T is not

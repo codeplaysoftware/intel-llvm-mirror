@@ -9,7 +9,10 @@
 #pragma once
 
 #include <sycl/detail/defines_elementary.hpp>
+#include <sycl/half_type.hpp>
+#include <sycl/aliases.hpp>
 
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 
@@ -113,6 +116,34 @@ enum class MatrixLayout : uint32_t {
   ColumnMajor = 1,
   PackedA = 2,
   PackedB = 3
+};
+
+
+struct complex_float {
+  complex_float() = default;
+  complex_float(std::complex<float> x) : real(x.real()), imag(x.imag()){}
+  operator std::complex<float>(){
+    return {real, imag};
+  }
+  float real, imag;
+};
+
+struct complex_double {
+  complex_double() = default;
+  complex_double(std::complex<double> x) : real(x.real()), imag(x.imag()){}
+  operator std::complex<double>(){
+    return {real, imag};
+  }
+  double real, imag;
+};
+
+struct complex_half {
+  complex_half() = default;
+  complex_half(std::complex<sycl::half> x) : real(x.real()), imag(x.imag()){}
+  operator std::complex<sycl::half>(){
+    return {real, imag};
+  }
+  sycl::half real, imag;
 };
 
 // TODO: replace the following W/A with a better solution when we have it.
