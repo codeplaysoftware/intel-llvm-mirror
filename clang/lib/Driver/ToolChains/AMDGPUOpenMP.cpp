@@ -31,48 +31,6 @@ using namespace llvm::opt;
 
 namespace {
 
-static const char *getOutputFileName(Compilation &C, StringRef Base,
-                                     const char *Postfix,
-                                     const char *Extension) {
-  const char *OutputFileName;
-  if (C.getDriver().isSaveTempsEnabled()) {
-    OutputFileName =
-        C.getArgs().MakeArgString(Base.str() + Postfix + "." + Extension);
-  } else {
-    std::string TmpName =
-        C.getDriver().GetTemporaryPath(Base.str() + Postfix, Extension);
-    OutputFileName = C.addTempFile(C.getArgs().MakeArgString(TmpName));
-  }
-  return OutputFileName;
-}
-
-static void addLLCOptArg(const llvm::opt::ArgList &Args,
-                         llvm::opt::ArgStringList &CmdArgs) {
-  if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
-    StringRef OOpt = "0";
-    if (A->getOption().matches(options::OPT_O4) ||
-        A->getOption().matches(options::OPT_Ofast))
-      OOpt = "3";
-    else if (A->getOption().matches(options::OPT_O0))
-      OOpt = "0";
-    else if (A->getOption().matches(options::OPT_O)) {
-      // Clang and opt support -Os/-Oz; llc only supports -O0, -O1, -O2 and -O3
-      // so we map -Os/-Oz to -O2.
-      // Only clang supports -Og, and maps it to -O1.
-      // We map anything else to -O2.
-      OOpt = llvm::StringSwitch<const char *>(A->getValue())
-                 .Case("1", "1")
-                 .Case("2", "2")
-                 .Case("3", "3")
-                 .Case("s", "2")
-                 .Case("z", "2")
-                 .Case("g", "1")
-                 .Default("0");
-    }
-    CmdArgs.push_back(Args.MakeArgString("-O" + OOpt));
-  }
-}
-
 static bool checkSystemForAMDGPU(const ArgList &Args, const AMDGPUToolChain &TC,
                                  std::string &GPUArch) {
   if (auto Err = TC.getSystemGPUArch(Args, GPUArch)) {
@@ -86,6 +44,7 @@ static bool checkSystemForAMDGPU(const ArgList &Args, const AMDGPUToolChain &TC,
 }
 } // namespace
 
+<<<<<<< HEAD
 const char *AMDGCN::OpenMPLinker::constructLLVMLinkCommand(
     const toolchains::AMDGPUOpenMPToolChain &AMDGPUOpenMPTC, Compilation &C,
     const JobAction &JA, const InputInfoList &Inputs, const ArgList &Args,
@@ -254,6 +213,8 @@ void AMDGCN::OpenMPLinker::ConstructJob(Compilation &C, const JobAction &JA,
   constructLldCommand(C, JA, Inputs, Output, Args, LlcCommand);
 }
 
+=======
+>>>>>>> main
 AMDGPUOpenMPToolChain::AMDGPUOpenMPToolChain(const Driver &D,
                                              const llvm::Triple &Triple,
                                              const ToolChain &HostTC,
@@ -328,11 +289,6 @@ llvm::opt::DerivedArgList *AMDGPUOpenMPToolChain::TranslateArgs(
   }
 
   return DAL;
-}
-
-Tool *AMDGPUOpenMPToolChain::buildLinker() const {
-  assert(getTriple().isAMDGCN());
-  return new tools::AMDGCN::OpenMPLinker(*this);
 }
 
 void AMDGPUOpenMPToolChain::addClangWarningOptions(

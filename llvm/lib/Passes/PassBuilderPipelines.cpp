@@ -182,6 +182,10 @@ static cl::opt<bool> EnableMergeFunctions(
     "enable-merge-functions", cl::init(false), cl::Hidden,
     cl::desc("Enable function merging as part of the optimization pipeline"));
 
+static cl::opt<bool> EnablePostPGOLoopRotation(
+    "enable-post-pgo-loop-rotation", cl::init(true), cl::Hidden,
+    cl::desc("Run the loop rotation transformation after PGO instrumentation"));
+
 PipelineTuningOptions::PipelineTuningOptions() {
   LoopInterleaving = true;
   LoopVectorization = true;
@@ -686,13 +690,15 @@ void PassBuilder::addPGOInstrPasses(ModulePassManager &MPM,
   // Perform PGO instrumentation.
   MPM.addPass(PGOInstrumentationGen(IsCS));
 
-  // Disable header duplication in loop rotation at -Oz.
-  MPM.addPass(createModuleToFunctionPassAdaptor(
-      createFunctionToLoopPassAdaptor(
-          LoopRotatePass(Level != OptimizationLevel::Oz),
-          /*UseMemorySSA=*/false,
-          /*UseBlockFrequencyInfo=*/false),
-      PTO.EagerlyInvalidateAnalyses));
+  if (EnablePostPGOLoopRotation) {
+    // Disable header duplication in loop rotation at -Oz.
+    MPM.addPass(createModuleToFunctionPassAdaptor(
+        createFunctionToLoopPassAdaptor(
+            LoopRotatePass(Level != OptimizationLevel::Oz),
+            /*UseMemorySSA=*/false,
+            /*UseBlockFrequencyInfo=*/false),
+        PTO.EagerlyInvalidateAnalyses));
+  }
 
   // Add the profile lowering pass.
   InstrProfOptions Options;
@@ -1411,9 +1417,11 @@ PassBuilder::buildThinLTOPreLinkDefaultPipeline(OptimizationLevel Level) {
       PGOOpt->Action == PGOOptions::SampleUse)
     MPM.addPass(PseudoProbeUpdatePass());
 
-  // Handle OptimizerLastEPCallbacks added by clang on PreLink. Actual
-  // optimization is going to be done in PostLink stage, but clang can't
-  // add callbacks there in case of in-process ThinLTO called by linker.
+  // Handle Optimizer{Early,Last}EPCallbacks added by clang on PreLink. Actual
+  // optimization is going to be done in PostLink stage, but clang can't add
+  // callbacks there in case of in-process ThinLTO called by linker.
+  for (auto &C : OptimizerEarlyEPCallbacks)
+    C(MPM, Level);
   for (auto &C : OptimizerLastEPCallbacks)
     C(MPM, Level);
 

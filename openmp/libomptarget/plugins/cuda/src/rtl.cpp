@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/ADT/StringRef.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -32,6 +34,8 @@
 #include "MemoryManager.h"
 
 #include "llvm/Frontend/OpenMP/OMPConstants.h"
+
+using namespace llvm;
 
 // Utility for retrieving and printing CUDA error string.
 #ifdef OMPTARGET_DEBUG
@@ -159,8 +163,8 @@ struct DeviceDataTy {
   unsigned int BlocksPerGrid = 0;
   unsigned int WarpSize = 0;
   // OpenMP properties
-  int NumTeams = 0;
-  int NumThreads = 0;
+  unsigned int NumTeams = 0;
+  unsigned int NumThreads = 0;
 };
 
 /// Resource allocator where \p T is the resource type.
@@ -325,8 +329,8 @@ class DeviceRTLTy {
   int NumberOfDevices;
   // OpenMP environment properties
   int EnvNumTeams;
-  int EnvTeamLimit;
-  int EnvTeamThreadLimit;
+  unsigned int EnvTeamLimit;
+  unsigned int EnvTeamThreadLimit;
   // OpenMP requires flags
   int64_t RequiresFlags;
   // Amount of dynamic shared memory to use at launch.
@@ -1075,7 +1079,7 @@ public:
 
         PeerAccessMatrix[SrcDevId][DstDevId] = PeerAccessState::Yes;
 
-        LLVM_FALLTHROUGH;
+        [[fallthrough]];
       }
       case PeerAccessState::Yes: {
         Err = cuMemcpyPeerAsync(
@@ -1143,7 +1147,7 @@ public:
       CudaThreadsPerBlock = DeviceData[DeviceId].NumThreads;
     }
 
-    if (CudaThreadsPerBlock > DeviceData[DeviceId].ThreadsPerBlock) {
+    if ((unsigned)CudaThreadsPerBlock > DeviceData[DeviceId].ThreadsPerBlock) {
       DP("Threads per block capped at device limit %d\n",
          DeviceData[DeviceId].ThreadsPerBlock);
       CudaThreadsPerBlock = DeviceData[DeviceId].ThreadsPerBlock;
@@ -1523,19 +1527,20 @@ int32_t __tgt_rtl_is_valid_binary(__tgt_device_image *Image) {
   return elf_check_machine(Image, /* EM_CUDA */ 190);
 }
 
-int32_t __tgt_rtl_is_valid_binary_info(__tgt_device_image *image,
-                                       __tgt_image_info *info) {
-  if (!__tgt_rtl_is_valid_binary(image))
+int32_t __tgt_rtl_is_valid_binary_info(__tgt_device_image *Image,
+                                       __tgt_image_info *Info) {
+  if (!__tgt_rtl_is_valid_binary(Image))
     return false;
 
   // A subarchitecture was not specified. Assume it is compatible.
-  if (!info->Arch)
+  if (!Info || !Info->Arch)
     return true;
 
   int32_t NumberOfDevices = 0;
   if (cuDeviceGetCount(&NumberOfDevices) != CUDA_SUCCESS)
     return false;
 
+  StringRef ArchStr = StringRef(Info->Arch).drop_front(sizeof("sm_") - 1);
   for (int32_t DeviceId = 0; DeviceId < NumberOfDevices; ++DeviceId) {
     CUdevice Device;
     if (cuDeviceGet(&Device, DeviceId) != CUDA_SUCCESS)
@@ -1551,12 +1556,15 @@ int32_t __tgt_rtl_is_valid_binary_info(__tgt_device_image *image,
                              Device) != CUDA_SUCCESS)
       return false;
 
-    std::string ArchStr = "sm_" + std::to_string(Major) + std::to_string(Minor);
-    if (ArchStr != info->Arch)
+    // A cubin generated for a certain compute capability is supported to run on
+    // any GPU with the same major revision and same or higher minor revision.
+    int32_t ImageMajor = ArchStr[0] - '0';
+    int32_t ImageMinor = ArchStr[1] - '0';
+    if (Major != ImageMajor || Minor < ImageMinor)
       return false;
   }
 
-  DP("Image has compatible compute capability: %s\n", info->Arch);
+  DP("Image has compatible compute capability: %s\n", Info->Arch);
   return true;
 }
 

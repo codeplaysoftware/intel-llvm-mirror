@@ -75,7 +75,6 @@ public:
     VerifyPCHJobClass,
     OffloadBundlingJobClass,
     OffloadUnbundlingJobClass,
-    OffloadWrapperJobClass,
     OffloadPackagerJobClass,
     OffloadDepsJobClass,
     SPIRVTranslatorJobClass,

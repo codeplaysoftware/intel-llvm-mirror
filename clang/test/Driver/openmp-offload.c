@@ -98,64 +98,28 @@
 /// We should have an offload action joining the host compile and device
 /// preprocessor and another one joining the device linking outputs to the host
 /// action.
-// RUN:   %clang -ccc-print-phases -fopenmp=libomp -fno-openmp-new-driver --target=powerpc64le-ibm-linux-gnu -fopenmp-targets=x86_64-pc-linux-gnu %s 2>&1 \
-// RUN:   | FileCheck -check-prefix=CHK-PHASES %s
-// CHK-PHASES: 0: input, "[[INPUT:.+\.c]]", c, (host-openmp)
-// CHK-PHASES: 1: preprocessor, {0}, cpp-output, (host-openmp)
-// CHK-PHASES: 2: compiler, {1}, ir, (host-openmp)
-// CHK-PHASES: 3: backend, {2}, assembler, (host-openmp)
-// CHK-PHASES: 4: assembler, {3}, object, (host-openmp)
-// CHK-PHASES: 5: input, "[[INPUT]]", c, (device-openmp)
-// CHK-PHASES: 6: preprocessor, {5}, cpp-output, (device-openmp)
-// CHK-PHASES: 7: compiler, {6}, ir, (device-openmp)
-// CHK-PHASES: 8: offload, "host-openmp (powerpc64le-ibm-linux-gnu)" {2}, "device-openmp (x86_64-pc-linux-gnu)" {7}, ir
-// CHK-PHASES: 9: backend, {8}, assembler, (device-openmp)
-// CHK-PHASES: 10: assembler, {9}, object, (device-openmp)
-// CHK-PHASES: 11: linker, {10}, image, (device-openmp)
-// CHK-PHASES: 12: offload, "device-openmp (x86_64-pc-linux-gnu)" {11}, image
-// CHK-PHASES: 13: clang-offload-wrapper, {12}, ir, (host-openmp)
-// CHK-PHASES: 14: backend, {13}, assembler, (host-openmp)
-// CHK-PHASES: 15: assembler, {14}, object, (host-openmp)
-// CHK-PHASES: 16: linker, {4, 15}, image, (host-openmp)
-
-/// ###########################################################################
-
-/// Check the phases when using multiple targets. Here we also add a library to
-/// make sure it is treated as input by the device.
-// RUN:   %clang -ccc-print-phases -lsomelib -fopenmp=libomp -fno-openmp-new-driver --target=powerpc64-ibm-linux-gnu -fopenmp-targets=x86_64-pc-linux-gnu,powerpc64-ibm-linux-gnu %s 2>&1 \
-// RUN:   | FileCheck -check-prefix=CHK-PHASES-LIB %s
-// CHK-PHASES-LIB: 0: input, "somelib", object, (host-openmp)
-// CHK-PHASES-LIB: 1: input, "[[INPUT:.+\.c]]", c, (host-openmp)
-// CHK-PHASES-LIB: 2: preprocessor, {1}, cpp-output, (host-openmp)
-// CHK-PHASES-LIB: 3: compiler, {2}, ir, (host-openmp)
-// CHK-PHASES-LIB: 4: backend, {3}, assembler, (host-openmp)
-// CHK-PHASES-LIB: 5: assembler, {4}, object, (host-openmp)
-// CHK-PHASES-LIB: 6: input, "somelib", object, (device-openmp)
-// CHK-PHASES-LIB: 7: input, "[[INPUT]]", c, (device-openmp)
-// CHK-PHASES-LIB: 8: preprocessor, {7}, cpp-output, (device-openmp)
-// CHK-PHASES-LIB: 9: compiler, {8}, ir, (device-openmp)
-// CHK-PHASES-LIB: 10: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {3}, "device-openmp (x86_64-pc-linux-gnu)" {9}, ir
-// CHK-PHASES-LIB: 11: backend, {10}, assembler, (device-openmp)
-// CHK-PHASES-LIB: 12: assembler, {11}, object, (device-openmp)
-// CHK-PHASES-LIB: 13: linker, {6, 12}, image, (device-openmp)
-// CHK-PHASES-LIB: 14: offload, "device-openmp (x86_64-pc-linux-gnu)" {13}, image
-// CHK-PHASES-LIB: 15: input, "somelib", object, (device-openmp)
-// CHK-PHASES-LIB: 16: input, "[[INPUT]]", c, (device-openmp)
-// CHK-PHASES-LIB: 17: preprocessor, {16}, cpp-output, (device-openmp)
-// CHK-PHASES-LIB: 18: compiler, {17}, ir, (device-openmp)
-// CHK-PHASES-LIB: 19: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {3}, "device-openmp (powerpc64-ibm-linux-gnu)" {18}, ir
-// CHK-PHASES-LIB: 20: backend, {19}, assembler, (device-openmp)
-// CHK-PHASES-LIB: 21: assembler, {20}, object, (device-openmp)
-// CHK-PHASES-LIB: 22: linker, {15, 21}, image, (device-openmp)
-// CHK-PHASES-LIB: 23: offload, "device-openmp (powerpc64-ibm-linux-gnu)" {22}, image
-// CHK-PHASES-LIB: 24: clang-offload-wrapper, {14, 23}, ir, (host-openmp)
-// CHK-PHASES-LIB: 25: backend, {24}, assembler, (host-openmp)
-// CHK-PHASES-LIB: 26: assembler, {25}, object, (host-openmp)
-// CHK-PHASES-LIB: 27: linker, {0, 5, 26}, image, (host-openmp)
+// RUN: %clang -ccc-print-phases -fopenmp=libomp --target=powerpc64-ibm-linux-gnu \
+// RUN:   -fopenmp-targets=powerpc64-ibm-linux-gnu %s 2>&1 | FileCheck -check-prefix=CHK-PHASES %s
+//      CHK-PHASES: 0: input, "[[INPUT:.+]]", c, (host-openmp)
+// CHK-PHASES-NEXT: 1: preprocessor, {0}, cpp-output, (host-openmp)
+// CHK-PHASES-NEXT: 2: compiler, {1}, ir, (host-openmp)
+// CHK-PHASES-NEXT: 3: input, "[[INPUT]]", c, (device-openmp)
+// CHK-PHASES-NEXT: 4: preprocessor, {3}, cpp-output, (device-openmp)
+// CHK-PHASES-NEXT: 5: compiler, {4}, ir, (device-openmp)
+// CHK-PHASES-NEXT: 6: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {2}, "device-openmp (powerpc64-ibm-linux-gnu)" {5}, ir
+// CHK-PHASES-NEXT: 7: backend, {6}, assembler, (device-openmp)
+// CHK-PHASES-NEXT: 8: assembler, {7}, object, (device-openmp)
+// CHK-PHASES-NEXT: 9: offload, "device-openmp (powerpc64-ibm-linux-gnu)" {8}, object
+// CHK-PHASES-NEXT: 10: clang-offload-packager, {9}, image
+// CHK-PHASES-NEXT: 11: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {2}, " (powerpc64-ibm-linux-gnu)" {10}, ir
+// CHK-PHASES-NEXT: 12: backend, {11}, assembler, (host-openmp)
+// CHK-PHASES-NEXT: 13: assembler, {12}, object, (host-openmp)
+// CHK-PHASES-NEXT: 14: clang-linker-wrapper, {13}, image, (host-openmp)
 
 /// ###########################################################################
 
 /// Check the phases when using multiple targets and multiple source files
+<<<<<<< HEAD
 // RUN:   echo " " > %t.c
 // RUN:   %clang -ccc-print-phases -lsomelib -fopenmp=libomp -fno-openmp-new-driver --target=powerpc64-ibm-linux-gnu -fopenmp-targets=x86_64-pc-linux-gnu,powerpc64-ibm-linux-gnu %s %t.c 2>&1 \
 // RUN:   | FileCheck -check-prefix=CHK-PHASES-FILES %s
@@ -650,6 +614,54 @@
 // CHK-UBUJOBS-ST-SAME: [[RES:[^\\/]+\.o]]" "-input={{.*}}[[T1OBJ]]" "-input={{.*}}[[T2OBJ]]" "-input={{.*}}[[HOSTOBJ]]"
 
 /// ###########################################################################
+=======
+// RUN: %clang -ccc-print-phases -lsomelib -fopenmp=libomp --target=powerpc64-ibm-linux-gnu \
+// RUN:   -fopenmp-targets=x86_64-pc-linux-gnu,powerpc64-ibm-linux-gnu %s %s 2>&1 | FileCheck -check-prefix=CHK-PHASES-FILES %s
+//      CHK-PHASES-FILES: 0: input, "somelib", object, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 1: input, "[[INPUT:.+]]", c, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 2: preprocessor, {1}, cpp-output, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 3: compiler, {2}, ir, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 4: input, "[[INPUT]]", c, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 5: preprocessor, {4}, cpp-output, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 6: compiler, {5}, ir, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 7: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {3}, "device-openmp (x86_64-pc-linux-gnu)" {6}, ir
+// CHK-PHASES-FILES-NEXT: 8: backend, {7}, assembler, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 9: assembler, {8}, object, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 10: offload, "device-openmp (x86_64-pc-linux-gnu)" {9}, object
+// CHK-PHASES-FILES-NEXT: 11: input, "[[INPUT]]", c, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 12: preprocessor, {11}, cpp-output, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 13: compiler, {12}, ir, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 14: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {3}, "device-openmp (powerpc64-ibm-linux-gnu)" {13}, ir
+// CHK-PHASES-FILES-NEXT: 15: backend, {14}, assembler, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 16: assembler, {15}, object, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 17: offload, "device-openmp (powerpc64-ibm-linux-gnu)" {16}, object
+// CHK-PHASES-FILES-NEXT: 18: clang-offload-packager, {10, 17}, image
+// CHK-PHASES-FILES-NEXT: 19: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {3}, " (powerpc64-ibm-linux-gnu)" {18}, ir
+// CHK-PHASES-FILES-NEXT: 20: backend, {19}, assembler, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 21: assembler, {20}, object, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 22: input, "[[INPUT]]", c, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 23: preprocessor, {22}, cpp-output, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 24: compiler, {23}, ir, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 25: input, "[[INPUT]]", c, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 26: preprocessor, {25}, cpp-output, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 27: compiler, {26}, ir, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 28: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {24}, "device-openmp (x86_64-pc-linux-gnu)" {27}, ir
+// CHK-PHASES-FILES-NEXT: 29: backend, {28}, assembler, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 30: assembler, {29}, object, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 31: offload, "device-openmp (x86_64-pc-linux-gnu)" {30}, object
+// CHK-PHASES-FILES-NEXT: 32: input, "[[INPUT]]", c, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 33: preprocessor, {32}, cpp-output, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 34: compiler, {33}, ir, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 35: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {24}, "device-openmp (powerpc64-ibm-linux-gnu)" {34}, ir
+// CHK-PHASES-FILES-NEXT: 36: backend, {35}, assembler, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 37: assembler, {36}, object, (device-openmp)
+// CHK-PHASES-FILES-NEXT: 38: offload, "device-openmp (powerpc64-ibm-linux-gnu)" {37}, object
+// CHK-PHASES-FILES-NEXT: 39: clang-offload-packager, {31, 38}, image
+// CHK-PHASES-FILES-NEXT: 40: offload, "host-openmp (powerpc64-ibm-linux-gnu)" {24}, " (powerpc64-ibm-linux-gnu)" {39}, ir
+// CHK-PHASES-FILES-NEXT: 41: backend, {40}, assembler, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 42: assembler, {41}, object, (host-openmp)
+// CHK-PHASES-FILES-NEXT: 43: clang-linker-wrapper, {0, 21, 42}, image, (host-openmp)
+>>>>>>> main
 
 /// Check -fopenmp-is-device is passed when compiling for the device.
 // RUN:   %clang -### --target=powerpc64le-linux -fopenmp=libomp -fopenmp-targets=powerpc64le-ibm-linux-gnu %s 2>&1 \
@@ -673,7 +685,7 @@
 // XFAIL: windows-msvc
 
 /// Check arguments to the linker wrapper
-// RUN:   %clang -### --target=powerpc64le-linux -fopenmp=libomp -fopenmp-targets=powerpc64le-ibm-linux-gnu -fopenmp-new-driver %s 2>&1 \
+// RUN:   %clang -### --target=powerpc64le-linux -fopenmp=libomp -fopenmp-targets=powerpc64le-ibm-linux-gnu %s 2>&1 \
 // RUN:   | FileCheck -check-prefix=CHK-NEW-DRIVER %s
 
 // CHK-NEW-DRIVER: clang-linker-wrapper{{.*}}"--host-triple=powerpc64le-unknown-linux"{{.*}}--{{.*}}"-lomp"{{.*}}"-lomptarget"
@@ -689,3 +701,20 @@
 // RUN:     -mllvm -abc %s 2>&1 | FileCheck -check-prefix=CHK-NEW-DRIVER-MLLVM %s
 
 // CHK-NEW-DRIVER-MLLVM: clang-linker-wrapper{{.*}} "-abc"
+
+//
+// Ensure that we generate the correct bindings for '-fsyntax-only' for OpenMP.
+//
+// RUN:   %clang -### --target=powerpc64le-linux -fopenmp=libomp -fopenmp-targets=powerpc64le-ibm-linux-gnu \
+// RUN:     -fsyntax-only -ccc-print-bindings %s 2>&1 | FileCheck -check-prefix=CHK-SYNTAX-ONLY %s
+// CHK-SYNTAX-ONLY: # "powerpc64le-ibm-linux-gnu" - "clang", inputs: ["[[INPUT:.+]]"], output: (nothing)
+// CHK-SYNTAX-ONLY: # "powerpc64le-unknown-linux" - "clang", inputs: ["[[INPUT]]", (nothing)], output: (nothing)
+
+//
+// Ensure that we can generate the correct arguments for '-fsyntax-only' for
+// OpenMP.
+//
+// RUN:   %clang -### --target=powerpc64le-linux -fopenmp=libomp -fopenmp-targets=powerpc64le-ibm-linux-gnu \
+// RUN:     -fsyntax-only %s 2>&1 | FileCheck -check-prefix=CHK-SYNTAX-ONLY-ARGS %s
+// CHK-SYNTAX-ONLY-ARGS: "-cc1" "-triple" "powerpc64le-ibm-linux-gnu"{{.*}}"-fsyntax-only"
+// CHK-SYNTAX-ONLY-ARGS: "-cc1" "-triple" "powerpc64le-unknown-linux"{{.*}}"-fsyntax-only"

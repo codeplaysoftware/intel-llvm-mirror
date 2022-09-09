@@ -14,7 +14,9 @@
 
 #include "CGHLSLRuntime.h"
 #include "CodeGenModule.h"
+#include "clang/AST/Decl.h"
 #include "clang/Basic/TargetOptions.h"
+#include "llvm/IR/IntrinsicsDirectX.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
 
@@ -40,16 +42,20 @@ void addDxilValVersion(StringRef ValVersionStr, llvm::Module &M) {
   IRBuilder<> B(M.getContext());
   MDNode *Val = MDNode::get(Ctx, {ConstantAsMetadata::get(B.getInt32(Major)),
                                   ConstantAsMetadata::get(B.getInt32(Minor))});
-  StringRef DxilValKey = "dx.valver";
-  M.addModuleFlag(llvm::Module::ModFlagBehavior::AppendUnique, DxilValKey, Val);
+  StringRef DXILValKey = "dx.valver";
+  auto *DXILValMD = M.getOrInsertNamedMetadata(DXILValKey);
+  DXILValMD->addOperand(Val);
 }
 } // namespace
 
 void CGHLSLRuntime::finishCodeGen() {
   auto &TargetOpts = CGM.getTarget().getTargetOpts();
-
   llvm::Module &M = CGM.getModule();
-  addDxilValVersion(TargetOpts.DxilValidatorVersion, M);
+  Triple T(M.getTargetTriple());
+  if (T.getArch() == Triple::ArchType::dxil)
+    addDxilValVersion(TargetOpts.DxilValidatorVersion, M);
+
+  generateGlobalCtorCalls();
 }
 
 void CGHLSLRuntime::annotateHLSLResource(const VarDecl *D, GlobalVariable *GV) {
@@ -85,4 +91,94 @@ void CGHLSLRuntime::annotateHLSLResource(const VarDecl *D, GlobalVariable *GV) {
   ResourceMD->addOperand(MDNode::get(
       Ctx, {ValueAsMetadata::get(GV), MDString::get(Ctx, QT.getAsString()),
             ConstantAsMetadata::get(B.getInt32(Counter))}));
+}
+
+void clang::CodeGen::CGHLSLRuntime::setHLSLEntryAttributes(
+    const FunctionDecl *FD, llvm::Function *Fn) {
+  const auto *ShaderAttr = FD->getAttr<HLSLShaderAttr>();
+  assert(ShaderAttr && "All entry functions must have a HLSLShaderAttr");
+  const StringRef ShaderAttrKindStr = "hlsl.shader";
+  Fn->addFnAttr(ShaderAttrKindStr,
+                ShaderAttr->ConvertShaderTypeToStr(ShaderAttr->getType()));
+}
+
+llvm::Value *CGHLSLRuntime::emitInputSemantic(IRBuilder<> &B,
+                                              const ParmVarDecl &D) {
+  assert(D.hasAttrs() && "Entry parameter missing annotation attribute!");
+  if (D.hasAttr<HLSLSV_GroupIndexAttr>()) {
+    llvm::Function *DxGroupIndex =
+        CGM.getIntrinsic(Intrinsic::dx_flattened_thread_id_in_group);
+    return B.CreateCall(FunctionCallee(DxGroupIndex));
+  }
+  assert(false && "Unhandled parameter attribute");
+  return nullptr;
+}
+
+void CGHLSLRuntime::emitEntryFunction(const FunctionDecl *FD,
+                                      llvm::Function *Fn) {
+  llvm::Module &M = CGM.getModule();
+  llvm::LLVMContext &Ctx = M.getContext();
+  auto *EntryTy = llvm::FunctionType::get(llvm::Type::getVoidTy(Ctx), false);
+  Function *EntryFn =
+      Function::Create(EntryTy, Function::ExternalLinkage, FD->getName(), &M);
+
+  // Copy function attributes over, we have no argument or return attributes
+  // that can be valid on the real entry.
+  AttributeList NewAttrs = AttributeList::get(Ctx, AttributeList::FunctionIndex,
+                                              Fn->getAttributes().getFnAttrs());
+  EntryFn->setAttributes(NewAttrs);
+  setHLSLEntryAttributes(FD, EntryFn);
+
+  // Set the called function as internal linkage.
+  Fn->setLinkage(GlobalValue::InternalLinkage);
+
+  BasicBlock *BB = BasicBlock::Create(Ctx, "entry", EntryFn);
+  IRBuilder<> B(BB);
+  llvm::SmallVector<Value *> Args;
+  // FIXME: support struct parameters where semantics are on members.
+  for (const auto *Param : FD->parameters()) {
+    Args.push_back(emitInputSemantic(B, *Param));
+  }
+
+  CallInst *CI = B.CreateCall(FunctionCallee(Fn), Args);
+  (void)CI;
+  // FIXME: Handle codegen for return type semantics.
+  B.CreateRetVoid();
+}
+
+void CGHLSLRuntime::generateGlobalCtorCalls() {
+  llvm::Module &M = CGM.getModule();
+  const auto *GlobalCtors = M.getNamedGlobal("llvm.global_ctors");
+  if (!GlobalCtors)
+    return;
+  const auto *CA = dyn_cast<ConstantArray>(GlobalCtors->getInitializer());
+  if (!CA)
+    return;
+  // The global_ctor array elements are a struct [Priority, Fn *, COMDat].
+  // HLSL neither supports priorities or COMDat values, so we will check those
+  // in an assert but not handle them.
+
+  llvm::SmallVector<Function *> CtorFns;
+  for (const auto &Ctor : CA->operands()) {
+    if (isa<ConstantAggregateZero>(Ctor))
+      continue;
+    ConstantStruct *CS = cast<ConstantStruct>(Ctor);
+
+    assert(cast<ConstantInt>(CS->getOperand(0))->getValue() == 65535 &&
+           "HLSL doesn't support setting priority for global ctors.");
+    assert(isa<ConstantPointerNull>(CS->getOperand(2)) &&
+           "HLSL doesn't support COMDat for global ctors.");
+    CtorFns.push_back(cast<Function>(CS->getOperand(1)));
+  }
+
+  // Insert a call to the global constructor at the beginning of the entry block
+  // to externally exported functions. This is a bit of a hack, but HLSL allows
+  // global constructors, but doesn't support driver initialization of globals.
+  for (auto &F : M.functions()) {
+    if (!F.hasFnAttribute("hlsl.shader"))
+      continue;
+    IRBuilder<> B(&F.getEntryBlock(), F.getEntryBlock().begin());
+    for (auto *Fn : CtorFns)
+      B.CreateCall(FunctionCallee(Fn));
+  }
 }
