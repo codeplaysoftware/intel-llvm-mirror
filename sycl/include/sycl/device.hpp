@@ -186,6 +186,13 @@ public:
   template <typename Param>
   typename detail::is_device_info_desc<Param>::return_type get_info() const;
 
+  template <
+      template <int Dimension> class Param,
+      std::enable_if_t<
+          std::is_same<Param<3>, info::device::max_work_item_sizes<3>>::value,
+          bool> = true>
+  typename detail::is_device_info_desc<Param<3>>::return_type get_info() const;
+
   /// Check SYCL extension support by device
   ///
   /// \param extension_name is a name of queried extension.

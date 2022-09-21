@@ -133,6 +133,19 @@ device::get_info() const {
   return impl->template get_info<Param>();
 }
 
+template <
+    template <int Dimension> class Param,
+    std::enable_if_t<
+        std::is_same<Param<3>, info::device::max_work_item_sizes<3>>::value,
+        bool> = true>
+typename detail::is_device_info_desc<Param<3>>::return_type
+device::get_info() const {
+  return impl->template get_info<info::device::max_work_item_sizes<3>>();
+}
+
+template __SYCL_EXPORT id<3>
+device::get_info<info::device::max_work_item_sizes>() const;
+
 #define __SYCL_PARAM_TRAITS_SPEC(DescType, Desc, ReturnT, PiCode)              \
   template __SYCL_EXPORT ReturnT device::get_info<info::device::Desc>() const;
 
