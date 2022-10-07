@@ -32,42 +32,45 @@ int main() {
     std::cout << "Test unsupported for non-cuda backends" << std::endl;
     exit(1);
   }
-    
-  const size_t texSize{99};
 
-  std::vector<int> expectedValue(texSize, -1);
+    
+  const size_t texSize{5};
+
+  std::array<float, 4*5> dat{};
+  dat.fill(6);
+
+  std::vector<float> expectedValue(texSize, -1.0);
   float4* usmPtr{nullptr};
   _V1::ext::oneapi::image_handle imgHandle{0};
 
   try {
-    float4 *usmPtr = malloc_host<float4>(texSize, q);
-    for (size_t i{0}; i < texSize; ++i){
-      float fidx = static_cast<float>(i);
-      usmPtr[i] = float4{fidx, fidx, fidx, fidx};
-    }
+    usmPtr = malloc_device<float4>(texSize, q);
   } catch (...) {
     std::cerr << "USM allocation failed." << std::endl;
     assert(false);
   }
 
+  auto e = q.memcpy(usmPtr, dat.data(), sizeof(float4)* 5);
+  e.wait();
+
   try {
     _V1::ext::oneapi::image_descriptor imgDesc{range<1>{texSize}};
-    auto imgHandle = _V1::ext::oneapi::create_image_handle(imgDesc, usmPtr, ctxt);
+    imgHandle = _V1::ext::oneapi::create_image_handle(imgDesc, usmPtr, ctxt);
   } catch (...) {
     std::cerr << "Failed to create image handle." << std::endl;
     assert(false);
   }
 
   try {
-    buffer<int> buf(expectedValue.data(), range<1>{texSize});
+    buffer<float> buf(expectedValue.data(), range<1>{texSize});
     q.submit([&](handler &cgh) {
       auto acc = buf.get_access(cgh);
       cgh.parallel_for<test_kernel>(
           nd_range<1>{texSize, texSize}, [=](nd_item<1> it) {
             size_t gId = it.get_global_linear_id();
             float idx = static_cast<float>(gId);
-            float4 pixelVal = _V1::ext::oneapi::read<float4>(imgHandle, idx);
-            acc[gId] = pixelVal[0] == idx && pixelVal[1] == idx && pixelVal[2] == idx && pixelVal[3] == idx;
+            float4 pixelVal = _V1::ext::oneapi::read<float4>(imgHandle, 0.0f);
+            acc[gId] = pixelVal[2];
           });
     });
     q.wait_and_throw();
@@ -90,10 +93,9 @@ int main() {
   }
 
   for (size_t i{0}; i < texSize; ++i) {
-    if(expectedValue[i] != 1){
-      std::cerr << "Incorrect value at i = " << i << std::endl;
-      assert(false);
-    }
+      std::cout << " value at i = " << i << "is " << expectedValue[i] << "\n";
   }
   return 0;
 }
+
+

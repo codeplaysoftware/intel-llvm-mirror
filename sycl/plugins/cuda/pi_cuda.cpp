@@ -2939,6 +2939,9 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
   CUDA_RESOURCE_DESC pResDesc;
   CUDA_TEXTURE_DESC pTextDesc;
 
+  std::memset(&pTextDesc, 0, sizeof(pTextDesc));
+  std::memset(&pResDesc, 0, sizeof(pResDesc));
+
   size_t pixel_type_size_bytes{0};
   retErr = piToCudaImageChannelFormat(image_format->image_channel_data_type,
                                       &pResDesc.res.linear.format,
