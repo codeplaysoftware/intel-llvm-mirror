@@ -116,6 +116,12 @@ extern SYCL_EXTERNAL size_t __spirv_JointMatrixWorkItemLengthINTEL(
 template <typename T, std::size_t R, std::size_t C, __spv::MatrixUse U,
           __spv::MatrixLayout L,
           __spv::Scope::Flag S = __spv::Scope::Flag::Subgroup>
+extern SYCL_EXTERNAL std::tuple<T, T> __spirv_JointMatrixWorkItemElemCoord(
+    __spv::__spirv_JointMatrixINTEL<T, R, C, L, S, U> *, size_t i);
+
+template <typename T, std::size_t R, std::size_t C, __spv::MatrixUse U,
+          __spv::MatrixLayout L,
+          __spv::Scope::Flag S = __spv::Scope::Flag::Subgroup>
 extern SYCL_EXTERNAL T __spirv_VectorExtractDynamic(
     __spv::__spirv_JointMatrixINTEL<T, R, C, L, S, U> *, size_t i);
 
