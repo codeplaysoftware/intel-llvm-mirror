@@ -204,10 +204,10 @@ entry:
 }
 
 
-declare {float,float,float,float} @llvm.nvvm.tex.1d.v4f32.f32(i64, i64, float)
-define <4 x float> @__clc_llvm_nvvm_tex_1d_v4f32_f32(i64 %img, i64 %samp, float %x) nounwind alwaysinline {
+declare {float,float,float,float} @llvm.nvvm.tex.unified.1d.v4f32.s32(i64, i32)
+define <4 x float> @__clc_llvm_nvvm_tex_1d_v4f32_s32(i64 %img, i32 %x) nounwind alwaysinline {
 entry:
-  %0 = tail call {float,float,float,float} @llvm.nvvm.tex.1d.v4f32.f32(i64 %img, i64 %samp, float %x);
-  %1 = tail call <4 x float> @__clc_structf32_to_vector({float,float,float,float} %0)
+  %0 = tail call {float,float,float,float} @llvm.nvvm.tex.unified.1d.v4f32.s32(i64 %img, i32 %x);
+  %1 = tail call <4 x float>@__clc_structf32_to_vector({float,float,float,float} %0)
   ret <4 x float> %1
 }

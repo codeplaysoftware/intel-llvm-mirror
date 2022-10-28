@@ -60,7 +60,7 @@ __SYCL_EXPORT void destroy_image_handle(image_handle &imageHandle,
 namespace detail {
 template<typename CoordT>
 constexpr size_t coord_size(){
-  if constexpr (std::is_same<CoordT, float>::value) {
+  if constexpr (std::is_same<CoordT, int>::value) {
     return 1;
   } else {
     return CoordT::size();

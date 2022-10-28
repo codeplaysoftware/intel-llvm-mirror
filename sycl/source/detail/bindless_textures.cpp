@@ -51,7 +51,7 @@ __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
 
   // MVP assumes following format:
   pi_image_format piFormat;
-  piFormat.image_channel_data_type = PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8;
+  piFormat.image_channel_data_type = PI_IMAGE_CHANNEL_TYPE_FLOAT;
   piFormat.image_channel_order = PI_IMAGE_CHANNEL_ORDER_RGBA;
 
   // Call impl.

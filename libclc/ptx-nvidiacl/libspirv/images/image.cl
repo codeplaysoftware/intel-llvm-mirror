@@ -162,8 +162,8 @@ int __nvvm_suq_depth_3i(read_only image3d_t arg) {
 }
 
 // BINDLESS IMAGES PROTOTYPE
-float4 __nvvm_tex_1d_v4f32_f32(unsigned long, unsigned long,
-                             float) __asm("__clc_llvm_nvvm_tex_1d_v4f32_f32");
+float4 __nvvm_tex_1d_v4f32_s32(unsigned long,
+                             int) __asm("__clc_llvm_nvvm_tex_1d_v4f32_s32");
 
 
 // Helpers
@@ -980,8 +980,7 @@ _CLC_DEF int3 _Z22__spirv_ImageQuerySizeIDv3_i14ocl_image3d_roET_T0_(
 }
 
 // BINDLESS IMAGES PROTOTYPE.
-_CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmfET_T0_T1_(
-    unsigned long imageHandle, float coord){
-  // Intrinic expects sampler arg. I have no sampler right now, so try zero.
-  return __nvvm_tex_1d_v4f32_f32(imageHandle, 0, coord);
+_CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmiET_T0_T1_(
+    unsigned long imageHandle, int coord){
+  return __nvvm_tex_1d_v4f32_s32(imageHandle, coord);
 }
