@@ -22,3 +22,4 @@ _SPIRV_OP(InvalidWordCount,
 _SPIRV_OP(Requires1_1, "Feature requires SPIR-V 1.1 or greater:")
 _SPIRV_OP(RequiresExtension,
           "Feature requires the following SPIR-V extension:\n")
+_SPIRV_OP(InvalidImageAddressingMode, "Invalid image addressing mode. Only 32 or 64")

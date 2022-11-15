@@ -9379,7 +9379,9 @@ void SPIRVTranslator::ConstructJob(Compilation &C, const JobAction &JA,
         ",+SPV_INTEL_long_constant_composite"
         ",+SPV_INTEL_arithmetic_fence"
         ",+SPV_INTEL_global_variable_decorations";
-    ExtArg = ExtArg + DefaultExtArg + INTELExtArg;
+    // This somehow needs to be changed to be conditional I think
+    std::string NVExtArg = ",+SPV_NV_bindless_texture";
+    ExtArg = ExtArg + DefaultExtArg + INTELExtArg + NVExtArg;
     if (!C.getDriver().isFPGAEmulationMode())
       // Enable several extensions on FPGA H/W exclusively
       ExtArg += ",+SPV_INTEL_usm_storage_classes,+SPV_INTEL_runtime_aligned"

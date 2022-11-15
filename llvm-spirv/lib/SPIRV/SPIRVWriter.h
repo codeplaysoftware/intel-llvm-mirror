@@ -128,6 +128,7 @@ public:
   // Returns true if succeeds.
   bool translate();
   bool transExecutionMode();
+  bool transSamplerImageAddressingModeNV();
   void transFPContract();
   SPIRVValue *transConstant(Value *V);
   SPIRVValue *transValue(Value *V, SPIRVBasicBlock *BB,

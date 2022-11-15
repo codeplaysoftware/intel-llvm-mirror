@@ -3395,6 +3395,23 @@ class SPIRVComplexFloatInst
 _SPIRV_OP(ComplexFMulINTEL)
 _SPIRV_OP(ComplexFDivINTEL)
 #undef _SPIRV_OP
+
+class SPIRVBindlessTexturesBase : public SPIRVInstTemplateBase {
+public:
+  SPIRVCapVec getRequiredCapability() const override {
+    return getVec(CapabilityBindlessTextureNV);
+  }
+
+  llvm::Optional<ExtensionID> getRequiredExtension() const override {
+    return ExtensionID::SPV_NV_bindless_texture;
+  }
+};
+
+#define _SPIRV_OP(x, ...)                                                      \
+  typedef SPIRVInstTemplate<SPIRVBindlessTexturesBase, Op##x, __VA_ARGS__>     \
+      SPIRV##x;
+_SPIRV_OP(ConvertUToImageNV, true, 4)
+#undef _SPIRV_OP
 } // namespace SPIRV
 
 #endif // SPIRV_LIBSPIRV_SPIRVINSTRUCTION_H

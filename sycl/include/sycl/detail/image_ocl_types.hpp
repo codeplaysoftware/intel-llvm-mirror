@@ -83,6 +83,15 @@ static RetType __invoke__ImageRead(ImageT Img, CoordT Coords) {
   return sycl::detail::convertDataToType<TempRetT, RetType>(Ret);
 }
 
+template <typename RetType>
+static RetType __invoke_ConvertUToImageNV(unsigned long imageHandle) {
+
+  using TempRetT = sycl::detail::ConvertToOpenCLType_t<RetType>;
+
+  TempRetT Ret = __spirv_ConvertUToImageNV<RetType>(imageHandle);
+  return sycl::detail::convertDataToType<TempRetT, RetType>(Ret);
+}
+
 template <typename RetType, typename ImageT, typename CoordT>
 static RetType __invoke__ImageReadSampler(ImageT Img, CoordT Coords,
                                           const __ocl_sampler_t &Smpl) {

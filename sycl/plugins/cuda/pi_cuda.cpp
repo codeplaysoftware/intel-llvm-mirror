@@ -2867,6 +2867,31 @@ pi_result cuda_piextKernelSetArgSampler(pi_kernel kernel, pi_uint32 arg_index,
   return retErr;
 }
 
+pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
+                                    pi_context context,
+                                    pi_image_desc *image_desc,
+                                    pi_image_format *image_format, void *ptr) {
+  assert(context != nullptr);
+  assert(image_desc != nullptr);
+  assert(image_format != nullptr);
+  assert(result_handle != nullptr);
+  //die("piextImgHandleCreate not implemented on cuda backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
+pi_result cuda_piextImgHandleDestroy(pi_context context,
+                                     pi_image_handle *handle) {
+  assert(context != nullptr);
+  assert(handle != nullptr);
+
+  //die("piextImgHandleCreate not implemented on cuda backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
 pi_result cuda_piKernelGetGroupInfo(pi_kernel kernel, pi_device device,
                                     pi_kernel_group_info param_name,
                                     size_t param_value_size, void *param_value,
@@ -5451,6 +5476,10 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
 
   _PI_CL(piextKernelSetArgMemObj, cuda_piextKernelSetArgMemObj)
   _PI_CL(piextKernelSetArgSampler, cuda_piextKernelSetArgSampler)
+
+  _PI_CL(piextImgHandleCreate, cuda_piextImgHandleCreate)
+  _PI_CL(piextImgHandleDestroy, cuda_piextImgHandleDestroy)
+
   _PI_CL(piPluginGetLastError, cuda_piPluginGetLastError)
   _PI_CL(piTearDown, cuda_piTearDown)
 

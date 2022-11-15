@@ -424,6 +424,9 @@ template <> void SPIRVMap<std::string, Op, SPIRVInstruction>::init() {
   _SPIRV_OP(bitfield_extract_signed, BitFieldSExtract)
   _SPIRV_OP(bitfield_extract_unsigned, BitFieldUExtract)
   _SPIRV_OP(bit_reverse, BitReverse)
+  // SPV_NV_bindless_texture
+  // Try moving this into its own section.
+  _SPIRV_OP(__spirv_ConvertUToImageNV, ConvertUToImageNV);
 #undef _SPIRV_OP
 }
 

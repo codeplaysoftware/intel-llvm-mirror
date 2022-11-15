@@ -90,6 +90,16 @@ inline bool isValid(spv::AddressingModel V) {
   }
 }
 
+inline bool isValid(SPIRVSamplerImageAddressingModeNVKind V) {
+  switch (V) {
+  case 32:
+  case 64:
+    return true;
+  default:
+    return false;
+  }
+}
+
 inline bool isValid(spv::MemoryModel V) {
   switch (V) {
   case MemoryModelSimple:

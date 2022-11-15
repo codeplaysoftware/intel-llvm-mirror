@@ -40,7 +40,7 @@ int main() {
       });
     });
   }
-
+/*
   {
     sycl::image<2> MyImage2d(sycl::image_channel_order::rgbx, sycl::image_channel_type::unorm_short_565, sycl::range<2>(3, 2));
     sycl::queue Q;
@@ -100,6 +100,6 @@ int main() {
       });
     });
   }
-
+*/
   return 0;
 }

@@ -815,6 +815,12 @@ SPIRVFunction *LLVMToSPIRVBase::transFunctionDecl(Function *F) {
        ++I) {
     auto ArgNo = I->getArgNo();
     SPIRVFunctionParameter *BA = BF->getArgument(ArgNo);
+
+    if (BA->getType()->isTypeImage() &&
+        !BA->hasDecorate(spv::DecorationBindlessImageNV)) {
+      BA->addDecorate(new SPIRVDecorate(spv::DecorationBindlessImageNV, BA));
+    }
+
     if (I->hasName())
       BM->setName(BA, I->getName().str());
     if (I->hasByValAttr())
@@ -4389,6 +4395,9 @@ bool LLVMToSPIRVBase::translate() {
   if (!transExecutionMode())
     return false;
 
+  if (!transSamplerImageAddressingModeNV())
+    return false;
+
   BM->resolveUnknownStructFields();
   DbgTran->transDebugMetadata();
   return true;
@@ -4477,6 +4486,11 @@ SPIRVInstruction *LLVMToSPIRVBase::transBuiltinToInst(StringRef DemangledName,
 
   auto Inst = transBuiltinToInstWithoutDecoration(OC, CI, BB);
   addDecorations(Inst, Dec);
+
+  // This needs to be refactored at some point
+  if (DemangledName == "__spirv_ConvertUToImageNV") {
+    Inst->addDecorate(new SPIRVDecorate(spv::DecorationBindlessImageNV, Inst));
+  }
   return Inst;
 }
 
@@ -4603,6 +4617,32 @@ bool LLVMToSPIRVBase::transExecutionMode() {
   }
 
   transFPContract();
+
+  return true;
+}
+
+bool LLVMToSPIRVBase::transSamplerImageAddressingModeNV() {
+
+  BM->setSamplerImageAddressingModeNV(
+      SPIRVSamplerImageAddressingModeNVKind::SamplerImageAddressingModeNVNone);
+
+  if (M->getFunction("_Z25__spirv_ConvertUToImageNVI14ocl_image1d_roET_m")) {
+    BM->addExtension(ExtensionID::SPV_NV_bindless_texture);
+    BM->addCapability(CapabilityBindlessTextureNV);
+
+    Triple TT(M->getTargetTriple());
+
+    if (TT.getArch() == Triple::spir) {
+      BM->setSamplerImageAddressingModeNV(
+          SPIRVSamplerImageAddressingModeNVKind::
+              SamplerImageAddressingModeNV32);
+    }
+    if (TT.getArch() == Triple::spir64) {
+      BM->setSamplerImageAddressingModeNV(
+          SPIRVSamplerImageAddressingModeNVKind::
+              SamplerImageAddressingModeNV64);
+    }
+  }
 
   return true;
 }
