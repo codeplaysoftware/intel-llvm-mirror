@@ -71,3 +71,4 @@
 #include <sycl/ext/oneapi/properties/property_value.hpp>
 #include <sycl/ext/oneapi/sub_group.hpp>
 #include <sycl/ext/oneapi/sub_group_mask.hpp>
+#include <sycl/ext/oneapi/bindless_textures.hpp>
