@@ -946,6 +946,7 @@ using pi_program = _pi_program *;
 using pi_kernel = _pi_kernel *;
 using pi_event = _pi_event *;
 using pi_sampler = _pi_sampler *;
+using pi_image_handle = pi_uint64;
 
 typedef struct {
   pi_image_channel_order image_channel_order;
@@ -1916,6 +1917,29 @@ __SYCL_EXPORT pi_result piPluginGetLastError(char **message);
 __SYCL_EXPORT pi_result piGetDeviceAndHostTimer(pi_device Device,
                                                 uint64_t *DeviceTime,
                                                 uint64_t *HostTime);
+
+/// API to create bindless image handles.
+///
+/// \param result_handle is the image handle to create
+/// \param context is the pi_context
+/// \param image_desc is the bindless image's description
+/// \param image_format is the bindless image's format
+/// \param ptr is the pointer to pre-allocated USM memory, to be used by
+/// the image.
+__SYCL_EXPORT pi_result piextImgHandleCreate(
+  pi_image_handle *result_handle,
+  pi_context context,
+  pi_image_desc *image_desc,
+  pi_image_format *image_format,
+  void *ptr);
+
+/// API to destroy bindless image handles.
+///
+/// \param context is the pi_context
+/// \param handle is a pointer to the image handle
+__SYCL_EXPORT pi_result piextImgHandleDestroy(
+  pi_context context,
+  pi_image_handle *handle);
 
 struct _pi_plugin {
   // PI version supported by host passed to the plugin. The Plugin
