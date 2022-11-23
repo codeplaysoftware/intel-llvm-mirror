@@ -21,9 +21,8 @@ namespace oneapi {
 /// A class to describe the properties of an image.
 class image_descriptor {
 public:
-  /// Prototype does not allow choice of image format, and is 1D only.
-  image_descriptor(range<1> imgDims)
-      : m_num_dimensions{1}, m_dimensions{imgDims[0]} {}
+  image_descriptor(const std::vector<size_t> &imgDims)
+      : m_num_dimensions{imgDims.size()}, m_dimensions{imgDims} {}
 
   inline size_t get(int dimension) const { return m_dimensions[dimension]; }
   size_t &operator[](int dimension) { return m_dimensions[dimension]; }
@@ -33,7 +32,7 @@ public:
 
 private:
   int m_num_dimensions;
-  sycl::range<1> m_dimensions;
+  std::vector<size_t> m_dimensions;
 };
 
 /// Opaque image handle type.

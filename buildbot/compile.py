@@ -28,7 +28,7 @@ def do_compile(args):
       abs_obj_dir = os.path.join(abs_src_dir, "build")
 
     cmake_cmd = [
-        "cmake",
+        "/home/przemek/cmake/bin/cmake",
         "--build", abs_obj_dir,
         "--",
         args.build_target,

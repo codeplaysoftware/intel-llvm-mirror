@@ -2999,6 +2999,7 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
   // CUDA API structs
   CUDA_RESOURCE_DESC pResDesc;
   CUDA_TEXTURE_DESC pTextDesc;
+  CUDA_RESOURCE_VIEW_DESC pResViewDesc;
 
   std::memset(&pTextDesc, 0, sizeof(pTextDesc));
   std::memset(&pResDesc, 0, sizeof(pResDesc));
@@ -3017,8 +3018,9 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
   pResDesc.res.linear.devPtr = reinterpret_cast<CUdeviceptr>(ptr);
   pResDesc.res.linear.numChannels =
       4; //  Only 4 channels are supported, following pre-existing images.
-  pResDesc.res.linear.sizeInBytes =
-      4 * pixel_type_size_bytes * image_desc->image_width;
+  pResDesc.res.linear.sizeInBytes = 4 * pixel_type_size_bytes *
+                                    image_desc->image_width *
+                                    image_desc->image_height;
 
   pTextDesc.addressMode[0] =
       CU_TR_ADDRESS_MODE_WRAP; // Ignored for linear memory.
@@ -3035,9 +3037,19 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
   pTextDesc.minMipmapLevelClamp = 0;
   pTextDesc.maxMipmapLevelClamp = 0;
 
+  /// TODO: derive view format from PI input parameters
+  pResViewDesc.format = CU_RES_VIEW_FORMAT_FLOAT_4X32;
+  pResViewDesc.width = image_desc->image_width;
+  pResViewDesc.height = image_desc->image_height;
+  pResViewDesc.depth = 1;
+  pResViewDesc.firstMipmapLevel = 0;
+  pResViewDesc.lastMipmapLevel = 0;
+  pResViewDesc.firstLayer = 0;
+  pResViewDesc.lastLayer = 0;
+
   CUtexObject cudaResultHandle;
   retErr = PI_CHECK_ERROR(
-      cuTexObjectCreate(&cudaResultHandle, &pResDesc, &pTextDesc, nullptr));
+      cuTexObjectCreate(&cudaResultHandle, &pResDesc, &pTextDesc, &pResViewDesc));
   *result_handle = cudaResultHandle;
   return retErr;
 }

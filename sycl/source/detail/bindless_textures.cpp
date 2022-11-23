@@ -49,6 +49,9 @@ __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
   piDesc.num_samples = 0;
   piDesc.buffer = nullptr;
 
+  std::cerr << "Creating image handle. xSize = " << piDesc.image_width
+            << " ySize = " << piDesc.image_height << "\n";
+
   // MVP assumes following format:
   pi_image_format piFormat;
   piFormat.image_channel_data_type = PI_IMAGE_CHANNEL_TYPE_FLOAT;

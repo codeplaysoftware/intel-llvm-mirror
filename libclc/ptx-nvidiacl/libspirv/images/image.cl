@@ -165,6 +165,8 @@ int __nvvm_suq_depth_3i(read_only image3d_t arg) {
 float4 __nvvm_tex_1d_v4f32_s32(unsigned long,
                              int) __asm("__clc_llvm_nvvm_tex_1d_v4f32_s32");
 
+float4 __nvvm_tex_2d_v4f32_s32(unsigned long,
+                             int, int) __asm("__clc_llvm_nvvm_tex_2d_v4f32_s32");
 
 // Helpers
 
@@ -983,4 +985,14 @@ _CLC_DEF int3 _Z22__spirv_ImageQuerySizeIDv3_i14ocl_image3d_roET_T0_(
 _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmiET_T0_T1_(
     unsigned long imageHandle, int coord){
   return __nvvm_tex_1d_v4f32_s32(imageHandle, coord);
+}
+
+// _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv2_fET_T0_T1_(
+//     unsigned long imageHandle, int2 coord){
+//   return __nvvm_tex_2d_v4f32_s32(imageHandle, coord.x, coord.y);
+// }
+
+_CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv2_iET_T0_T1_(
+    unsigned long imageHandle, int2 coord){
+  return __nvvm_tex_2d_v4f32_s32(imageHandle, coord.x, coord.y);
 }

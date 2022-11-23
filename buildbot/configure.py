@@ -132,7 +132,7 @@ def do_configure(args):
     install_dir = os.path.join(abs_obj_dir, "install")
 
     cmake_cmd = [
-        "cmake",
+        "/home/przemek/cmake/bin/cmake",
         "-G", args.cmake_gen,
         "-DCMAKE_BUILD_TYPE={}".format(args.build_type),
         "-DLLVM_ENABLE_ASSERTIONS={}".format(llvm_enable_assertions),
