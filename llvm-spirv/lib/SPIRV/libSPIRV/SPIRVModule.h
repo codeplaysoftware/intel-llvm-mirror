@@ -139,6 +139,7 @@ public:
   virtual SPIRVFunction *getFunction(unsigned) const = 0;
   virtual SPIRVVariable *getVariable(unsigned) const = 0;
   virtual SPIRVMemoryModelKind getMemoryModel() const = 0;
+  virtual SPIRVSamplerImageAddressingModeNVKind getSamplerImageAddressingModeNV() const = 0;
   virtual unsigned getNumFunctions() const = 0;
   virtual unsigned getNumEntryPoints(SPIRVExecutionModelKind) const = 0;
   virtual unsigned getNumVariables() const = 0;
@@ -168,6 +169,7 @@ public:
   virtual void setAddressingModel(SPIRVAddressingModelKind) = 0;
   virtual void setAlignment(SPIRVValue *, SPIRVWord) = 0;
   virtual void setMemoryModel(SPIRVMemoryModelKind) = 0;
+  virtual void setSamplerImageAddressingModeNV(SPIRVSamplerImageAddressingModeNVKind) = 0;
   virtual void setName(SPIRVEntry *, const std::string &) = 0;
   virtual void setSourceLanguage(SourceLanguage, SPIRVWord) = 0;
   virtual void setAutoAddCapability(bool E) { AutoAddCapability = E; }

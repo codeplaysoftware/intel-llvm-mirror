@@ -5403,6 +5403,136 @@ pi_result piKernelGetInfo(pi_kernel Kernel, pi_kernel_info ParamName,
   return PI_SUCCESS;
 }
 
+pi_result piToLZImageDesc(const pi_image_format *ImageFormat,
+                                      const pi_image_desc *ImageDesc,
+                                      ZeStruct<ze_image_desc_t> *ReturnZeImageDesc) {
+                            
+  ze_image_format_type_t ZeImageFormatType;
+  size_t ZeImageFormatTypeSize;
+  switch (ImageFormat->image_channel_data_type) {
+  case PI_IMAGE_CHANNEL_TYPE_FLOAT:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_FLOAT;
+    ZeImageFormatTypeSize = 32;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_HALF_FLOAT:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_FLOAT;
+    ZeImageFormatTypeSize = 16;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT32:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_UINT;
+    ZeImageFormatTypeSize = 32;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_UINT;
+    ZeImageFormatTypeSize = 16;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_UINT;
+    ZeImageFormatTypeSize = 8;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNORM_INT16:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_UNORM;
+    ZeImageFormatTypeSize = 16;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_UNORM_INT8:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_UNORM;
+    ZeImageFormatTypeSize = 8;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT32:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_SINT;
+    ZeImageFormatTypeSize = 32;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT16:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_SINT;
+    ZeImageFormatTypeSize = 16;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT8:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_SINT;
+    ZeImageFormatTypeSize = 8;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SNORM_INT16:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_SNORM;
+    ZeImageFormatTypeSize = 16;
+    break;
+  case PI_IMAGE_CHANNEL_TYPE_SNORM_INT8:
+    ZeImageFormatType = ZE_IMAGE_FORMAT_TYPE_SNORM;
+    ZeImageFormatTypeSize = 8;
+    break;
+  default:
+    zePrint("piMemImageCreate: unsupported image data type: data type = %d\n",
+            ImageFormat->image_channel_data_type);
+    return PI_ERROR_INVALID_VALUE;
+  }
+
+  // TODO: populate the layout mapping
+  ze_image_format_layout_t ZeImageFormatLayout;
+  switch (ImageFormat->image_channel_order) {
+  case PI_IMAGE_CHANNEL_ORDER_RGBA:
+    switch (ZeImageFormatTypeSize) {
+    case 8:
+      ZeImageFormatLayout = ZE_IMAGE_FORMAT_LAYOUT_8_8_8_8;
+      break;
+    case 16:
+      ZeImageFormatLayout = ZE_IMAGE_FORMAT_LAYOUT_16_16_16_16;
+      break;
+    case 32:
+      ZeImageFormatLayout = ZE_IMAGE_FORMAT_LAYOUT_32_32_32_32;
+      break;
+    default:
+      zePrint("piMemImageCreate: unexpected data type Size\n");
+      return PI_ERROR_INVALID_VALUE;
+    }
+    break;
+  default:
+    zePrint("format layout = %d\n", ImageFormat->image_channel_order);
+    die("piMemImageCreate: unsupported image format layout\n");
+    break;
+  }
+
+  ze_image_format_t ZeFormatDesc = {
+      ZeImageFormatLayout, ZeImageFormatType,
+      // TODO: are swizzles deducted from image_format->image_channel_order?
+      ZE_IMAGE_FORMAT_SWIZZLE_R, ZE_IMAGE_FORMAT_SWIZZLE_G,
+      ZE_IMAGE_FORMAT_SWIZZLE_B, ZE_IMAGE_FORMAT_SWIZZLE_A};
+
+  ze_image_type_t ZeImageType;
+  switch (ImageDesc->image_type) {
+  case PI_MEM_TYPE_IMAGE1D:
+    ZeImageType = ZE_IMAGE_TYPE_1D;
+    break;
+  case PI_MEM_TYPE_IMAGE2D:
+    ZeImageType = ZE_IMAGE_TYPE_2D;
+    break;
+  case PI_MEM_TYPE_IMAGE3D:
+    ZeImageType = ZE_IMAGE_TYPE_3D;
+    break;
+  case PI_MEM_TYPE_IMAGE1D_ARRAY:
+    ZeImageType = ZE_IMAGE_TYPE_1DARRAY;
+    break;
+  case PI_MEM_TYPE_IMAGE2D_ARRAY:
+    ZeImageType = ZE_IMAGE_TYPE_2DARRAY;
+    break;
+  default:
+    zePrint("piMemImageCreate: unsupported image type\n");
+    return PI_ERROR_INVALID_VALUE;
+  }
+
+  ZeStruct<ze_image_desc_t> ZeImageDesc;
+  ZeImageDesc.arraylevels = ZeImageDesc.flags = 0;
+  ZeImageDesc.type = ZeImageType;
+  ZeImageDesc.format = ZeFormatDesc;
+  ZeImageDesc.width = pi_cast<uint32_t>(ImageDesc->image_width);
+  ZeImageDesc.height = pi_cast<uint32_t>(ImageDesc->image_height);
+  ZeImageDesc.depth = pi_cast<uint32_t>(ImageDesc->image_depth);
+  ZeImageDesc.arraylevels = pi_cast<uint32_t>(ImageDesc->image_array_size);
+  ZeImageDesc.miplevels = ImageDesc->num_mip_levels;
+
+  if (ReturnZeImageDesc) {
+    *ReturnZeImageDesc = ZeImageDesc;
+  }
+  return PI_SUCCESS;
+}
+
 pi_result piextImgHandleCreate(
   pi_image_handle *result_handle, pi_context context,
   pi_image_desc *image_desc, pi_image_format *image_format, void *ptr) {
@@ -5412,10 +5542,65 @@ pi_result piextImgHandleCreate(
   assert(image_format != nullptr);
   assert(result_handle != nullptr);
 
-  die("piextImgHandleCreate not implemented on level zero backend.\n");
-  // No image formats are supported!
-  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
-  return retErr;
+  // Note: This will likely change with the new level zero API that supports bindless images.
+
+  pi_result retErr = PI_SUCCESS;
+
+  ZeStruct<ze_image_desc_t> ZeImageDesc;
+  retErr = piToLZImageDesc(image_format, image_desc, &ZeImageDesc);
+
+
+  if (retErr != PI_SUCCESS) {
+    die(
+        "piMemImageCreate given unsupported data");
+  }
+
+  std::shared_lock Lock(context->Mutex);
+
+  // Currently we have the "0" device in context with mutliple root devices to
+  // own the image.
+  // TODO: Implement explicit copying for acessing the image from other devices
+  // in the context.
+  pi_device Device = context->SingleRootDevice ? context->SingleRootDevice
+                                               : context->Devices[0];
+  ze_image_handle_t ZeHImage;
+  ZE_CALL(zeImageCreate,
+          (context->ZeContext, Device->ZeDevice, &ZeImageDesc, &ZeHImage));
+
+  ptr = &ZeHImage;
+
+  // TODO: Look into re-enabling this once bindless image driver/runtime
+  // support is enabled.
+  // The code loads data into the image.
+/*
+  try {
+    auto ZePIImage = new _pi_image(Context, ZeHImage);
+
+#ifndef NDEBUG
+    ZePIImage->ZeImageDesc = ZeImageDesc;
+#endif // !NDEBUG
+
+    if ((Flags & PI_MEM_FLAGS_HOST_PTR_USE) != 0 ||
+        (Flags & PI_MEM_FLAGS_HOST_PTR_COPY) != 0) {
+      // Initialize image synchronously with immediate offload.
+      // zeCommandListAppendImageCopyFromMemory must not be called from
+      // simultaneous threads with the same command list handle, so we need
+      // exclusive lock.
+      std::scoped_lock Lock(Context->ImmediateCommandListMutex);
+      ZE_CALL(zeCommandListAppendImageCopyFromMemory,
+              (Context->ZeCommandListInit, ZeHImage, HostPtr, nullptr, nullptr,
+               0, nullptr));
+    }
+
+    *ret_mem = ZePIImage;
+  } catch (const std::bad_alloc &) {
+    return PI_ERROR_OUT_OF_HOST_MEMORY;
+  } catch (...) {
+    return PI_ERROR_UNKNOWN;
+  }
+  */
+  return PI_SUCCESS;
+
 }
 
 pi_result piextImgHandleDestroy(
@@ -5424,9 +5609,10 @@ pi_result piextImgHandleDestroy(
   assert(context != nullptr);
   assert(handle != nullptr);
 
-  die("piextImgHandleDestroy not implemented on level zero backend.\n");
-  // Must be invalid since we can't create image handles yet for L0.
-  pi_result retErr = PI_ERROR_INVALID_ARG_VALUE;
+  pi_result retErr = PI_SUCCESS;
+
+  ZE_CALL(zeImageDestroy, (pi_cast<ze_image_handle_t>(*handle)));
+
   return retErr;
 }
 

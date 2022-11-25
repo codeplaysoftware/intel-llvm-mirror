@@ -3619,6 +3619,25 @@ protected:
   typedef SPIRVTensorFloat32ConversionINTELInstBase<internal::Op##x> SPIRV##x;
 _SPIRV_OP(ConvertFToTF32INTEL)
 #undef _SPIRV_OP
+
+class SPIRVBindlessTexturesBase : public SPIRVInstTemplateBase {
+public:
+  SPIRVCapVec getRequiredCapability() const override {
+    return getVec(CapabilityBindlessTextureNV);
+  }
+
+  llvm::Optional<ExtensionID> getRequiredExtension() const override {
+    return ExtensionID::SPV_NV_bindless_texture;
+  }
+};
+
+#define _SPIRV_OP(x, ...)                                                      \
+  typedef SPIRVInstTemplate<SPIRVBindlessTexturesBase, Op##x, __VA_ARGS__>     \
+      SPIRV##x;
+// true means that the variable has an id. i.e. it returns something.
+// The number 4 indicates the word size of the instruction.
+_SPIRV_OP(ConvertUToImageNV, true, 4)
+#undef _SPIRV_OP
 } // namespace SPIRV
 
 #endif // SPIRV_LIBSPIRV_SPIRVINSTRUCTION_H

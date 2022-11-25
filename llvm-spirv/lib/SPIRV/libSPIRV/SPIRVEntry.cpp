@@ -717,6 +717,22 @@ void SPIRVMemoryModel::validate() const {
   SPIRVCK(isValid(MM), InvalidMemoryModel, "Actual is " + std::to_string(MM));
 }
 
+void SPIRVSamplerImageAddressingModeNV::encode(spv_ostream &O) const {
+  getEncoder(O) << Module->getSamplerImageAddressingModeNV();
+}
+
+void SPIRVSamplerImageAddressingModeNV::decode(std::istream &I) {
+  SPIRVSamplerImageAddressingModeNVKind AddrKind;
+  getDecoder(I) >> AddrKind;
+  Module->setSamplerImageAddressingModeNV(AddrKind);
+}
+
+void SPIRVSamplerImageAddressingModeNV::validate() const {
+  auto AddrKind = Module->getSamplerImageAddressingModeNV();
+  SPIRVCK(isValid(AddrKind), InvalidImageAddressingMode,
+          "Actual is " + std::to_string(AddrKind));
+}
+
 void SPIRVSource::encode(spv_ostream &O) const {
   SPIRVWord Ver = SPIRVWORD_MAX;
   auto Language = Module->getSourceLanguage(&Ver);

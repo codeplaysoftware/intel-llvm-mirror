@@ -96,6 +96,12 @@ enum SPIRVSamplerFilterModeKind {
   SPIRVSFM_Invalid = 255,
 };
 
+enum SPIRVSamplerImageAddressingModeNVKind {
+  SamplerImageAddressingModeNVNone = 0,
+  SamplerImageAddressingModeNV32 = 32,
+  SamplerImageAddressingModeNV64 = 64,
+};
+
 typedef spv::Capability SPIRVCapabilityKind;
 typedef spv::ExecutionModel SPIRVExecutionModelKind;
 typedef spv::ExecutionMode SPIRVExecutionModeKind;
@@ -271,6 +277,14 @@ template <> inline void SPIRVMap<SPIRVMemoryModelKind, SPIRVCapVec>::init() {
   ADD_VEC_INIT(MemoryModelSimple, {CapabilityShader});
   ADD_VEC_INIT(MemoryModelGLSL450, {CapabilityShader});
   ADD_VEC_INIT(MemoryModelOpenCL, {CapabilityKernel});
+}
+
+template <>
+inline void
+SPIRVMap<SPIRVSamplerImageAddressingModeNVKind, SPIRVCapVec>::init() {
+  ADD_VEC_INIT(SamplerImageAddressingModeNVNone, {CapabilityBindlessTextureNV});
+  ADD_VEC_INIT(SamplerImageAddressingModeNV32, {CapabilityBindlessTextureNV});
+  ADD_VEC_INIT(SamplerImageAddressingModeNV64, {CapabilityBindlessTextureNV});
 }
 
 template <> inline void SPIRVMap<SPIRVStorageClassKind, SPIRVCapVec>::init() {
@@ -456,6 +470,14 @@ template <> inline void SPIRVMap<Decoration, SPIRVCapVec>::init() {
                {internal::CapabilityGlobalVariableDecorationsINTEL});
   ADD_VEC_INIT(internal::DecorationArgumentAttributeINTEL,
                {CapabilityFunctionPointersINTEL});
+  ADD_VEC_INIT(DecorationBindlessSamplerNV,
+               {CapabilityBindlessTextureNV});
+  ADD_VEC_INIT(DecorationBindlessImageNV,
+               {CapabilityBindlessTextureNV});
+  ADD_VEC_INIT(DecorationBoundSamplerNV,
+               {CapabilityBindlessTextureNV});
+  ADD_VEC_INIT(DecorationBoundImageNV,
+               {CapabilityBindlessTextureNV});
 }
 
 template <> inline void SPIRVMap<BuiltIn, SPIRVCapVec>::init() {
