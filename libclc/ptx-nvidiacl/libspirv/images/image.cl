@@ -988,7 +988,7 @@ _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmiET_T0_T1_(
 }
 
 // _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv2_fET_T0_T1_(
-//     unsigned long imageHandle, int2 coord){
+//     unsigned long imageHandle, float2 coord){
 //   return __nvvm_tex_2d_v4f32_s32(imageHandle, coord.x, coord.y);
 // }
 

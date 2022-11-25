@@ -27,6 +27,8 @@ int main() {
   auto dev = q.get_device();
   auto ctxt = q.get_context();
 
+  std::cerr << "USING BACKEND: " << q.get_backend() << "\n";
+
   if (dev.is_host() || q.is_host() || ctxt.is_host()) {
     std::cout << "Test unsupported for non-cuda backends" << std::endl;
     exit(1);
@@ -56,7 +58,7 @@ int main() {
   e.wait();
 
   try {
-    _V1::ext::oneapi::image_descriptor imgDesc{range<1>{texSize}};
+    _V1::ext::oneapi::image_descriptor imgDesc{{texSize}};
     imgHandle = _V1::ext::oneapi::create_image_handle(imgDesc, usmPtr, ctxt);
   } catch (...) {
     std::cerr << "Failed to create image handle." << std::endl;

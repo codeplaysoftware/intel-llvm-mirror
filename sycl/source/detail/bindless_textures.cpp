@@ -41,16 +41,20 @@ __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
   // Unused properties in MVP
   piDesc.image_height = imageDesc.dimensions() > 1 ? imageDesc[1] : 0;
   piDesc.image_depth = imageDesc.dimensions() > 2 ? imageDesc[2] : 0;
-  piDesc.image_type = PI_MEM_TYPE_IMAGE1D;
+  piDesc.image_type = imageDesc.dimensions() > 2
+                          ? PI_MEM_TYPE_IMAGE3D
+                          : imageDesc.dimensions() > 1 ? PI_MEM_TYPE_IMAGE2D
+                                                       : PI_MEM_TYPE_IMAGE1D;
   piDesc.image_array_size = 0;
-  piDesc.image_row_pitch = 0;
+  // Assuming allocation is without specified pitch (e.g. cuMemAlloc)
+  // width * num_channels * sizeof(channelT)
+  // piDesc.image_row_pitch = imageDesc[0] * 4 * sizeof(float);
+  // piDesc.image_row_pitch += 32 - (piDesc.image_row_pitch % 32);
+  piDesc.image_row_pitch = imageDesc.getRowPitchBytes();
   piDesc.image_slice_pitch = 0;
   piDesc.num_mip_levels = 0;
   piDesc.num_samples = 0;
   piDesc.buffer = nullptr;
-
-  std::cerr << "Creating image handle. xSize = " << piDesc.image_width
-            << " ySize = " << piDesc.image_height << "\n";
 
   // MVP assumes following format:
   pi_image_format piFormat;

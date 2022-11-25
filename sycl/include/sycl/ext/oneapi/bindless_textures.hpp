@@ -21,18 +21,21 @@ namespace oneapi {
 /// A class to describe the properties of an image.
 class image_descriptor {
 public:
-  image_descriptor(const std::vector<size_t> &imgDims)
-      : m_num_dimensions{imgDims.size()}, m_dimensions{imgDims} {}
+  image_descriptor(const std::vector<size_t> &imgDims, const int32_t row_pitch_bytes = 0)
+      : m_num_dimensions{imgDims.size()}, m_dimensions{imgDims}, m_row_pitch_bytes(row_pitch_bytes) {}
 
   inline size_t get(int dimension) const { return m_dimensions[dimension]; }
   size_t &operator[](int dimension) { return m_dimensions[dimension]; }
   size_t operator[](int dimension) const { return m_dimensions[dimension]; }
 
-  inline size_t dimensions() const { return m_num_dimensions; }
+  inline int32_t getRowPitchBytes() const { return m_row_pitch_bytes; }
 
+  inline size_t dimensions() const { return m_num_dimensions; }
+  
 private:
   int m_num_dimensions;
   std::vector<size_t> m_dimensions;
+  int32_t m_row_pitch_bytes;
 };
 
 /// Opaque image handle type.

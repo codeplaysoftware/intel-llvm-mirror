@@ -3013,14 +3013,45 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
         "cuda_piMemImageCreate given unsupported image_channel_data_type");
   }
 
-  // Probably needs to become pitch2D for non-MVP.
-  pResDesc.resType = CU_RESOURCE_TYPE_LINEAR;
-  pResDesc.res.linear.devPtr = reinterpret_cast<CUdeviceptr>(ptr);
-  pResDesc.res.linear.numChannels =
-      4; //  Only 4 channels are supported, following pre-existing images.
-  pResDesc.res.linear.sizeInBytes = 4 * pixel_type_size_bytes *
-                                    image_desc->image_width *
-                                    image_desc->image_height;
+  CUdevice device;
+  auto err = PI_CHECK_ERROR(cuDeviceGet(&device, 0));
+
+  int tex_pitch_align = 0;
+  int max_tex_pitch_align = 0;
+  sycl::detail::pi::assertion(
+      cuDeviceGetAttribute(&tex_pitch_align,
+                           CU_DEVICE_ATTRIBUTE_TEXTURE_PITCH_ALIGNMENT,
+                           device) == CUDA_SUCCESS);
+  sycl::detail::pi::assertion(
+      cuDeviceGetAttribute(&max_tex_pitch_align,
+                           CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LINEAR_PITCH,
+                           device) == CUDA_SUCCESS);
+
+  if (image_desc->image_height == 0) {
+    // 1D texture
+    pResDesc.resType = CU_RESOURCE_TYPE_LINEAR;
+    pResDesc.res.linear.devPtr = reinterpret_cast<CUdeviceptr>(ptr);
+    pResDesc.res.linear.numChannels =
+        4; //  Only 4 channels are supported, following pre-existing images.
+    pResDesc.res.linear.sizeInBytes = 4 * pixel_type_size_bytes *
+                                      image_desc->image_width *
+                                      image_desc->image_height;
+  } else {
+    // 2D textures
+    pResDesc.resType = CU_RESOURCE_TYPE_PITCH2D;
+    pResDesc.res.pitch2D.devPtr = reinterpret_cast<CUdeviceptr>(ptr);
+    pResDesc.res.pitch2D.numChannels =
+        4; //  Only 4 channels are supported, following pre-existing images.
+    pResDesc.res.pitch2D.width = image_desc->image_width;
+    pResDesc.res.pitch2D.height = image_desc->image_height;
+    pResDesc.res.pitch2D.pitchInBytes = image_desc->image_row_pitch;
+    // pResDesc.res.pitch2D.pitchInBytes = image_desc->image_width * 4 * sizeof(float);
+
+    std::cout << "tex_pitch_align: " << tex_pitch_align << "\n";
+    std::cout << "max_tex_pitch_align: " << max_tex_pitch_align << "\n";
+    std::cout << "image_row_pitch: " << image_desc->image_row_pitch << "\n";
+    std::cout << "image_slice_pitch: " << image_desc->image_slice_pitch << "\n";
+  }
 
   pTextDesc.addressMode[0] =
       CU_TR_ADDRESS_MODE_WRAP; // Ignored for linear memory.
@@ -3037,19 +3068,12 @@ pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
   pTextDesc.minMipmapLevelClamp = 0;
   pTextDesc.maxMipmapLevelClamp = 0;
 
-  /// TODO: derive view format from PI input parameters
-  pResViewDesc.format = CU_RES_VIEW_FORMAT_FLOAT_4X32;
-  pResViewDesc.width = image_desc->image_width;
-  pResViewDesc.height = image_desc->image_height;
-  pResViewDesc.depth = 1;
-  pResViewDesc.firstMipmapLevel = 0;
-  pResViewDesc.lastMipmapLevel = 0;
-  pResViewDesc.firstLayer = 0;
-  pResViewDesc.lastLayer = 0;
+  std::cout << "Creating texture - width: " << image_desc->image_width
+            << " - height: " << image_desc->image_height << "\n";
 
   CUtexObject cudaResultHandle;
   retErr = PI_CHECK_ERROR(
-      cuTexObjectCreate(&cudaResultHandle, &pResDesc, &pTextDesc, &pResViewDesc));
+      cuTexObjectCreate(&cudaResultHandle, &pResDesc, &pTextDesc, nullptr));
   *result_handle = cudaResultHandle;
   return retErr;
 }
@@ -5097,10 +5121,22 @@ pi_result cuda_piextUSMDeviceAlloc(void **result_ptr, pi_context context,
   pi_result result = PI_SUCCESS;
   try {
     ScopedContext active(context);
-    result = PI_CHECK_ERROR(cuMemAlloc((CUdeviceptr *)result_ptr, size));
+    // std::cerr << "cuMemAlloc\n";
+    // result = PI_CHECK_ERROR(cuMemAlloc((CUdeviceptr *)result_ptr, size));
+
+    std::cerr << "cuMemAllocPitch\n";
+    size_t pitch = 0;
+    size_t widthBytes = 4 * sizeof(float) * 4;
+    size_t height = 4;
+    size_t elemSize = 4 * sizeof(float);
+    result = PI_CHECK_ERROR(cuMemAllocPitch((CUdeviceptr *)result_ptr, &pitch,
+                                            widthBytes, height, elemSize));
+    std::cerr << "Returned pitch: " << pitch << "\n";
   } catch (pi_result error) {
     result = error;
   }
+
+  std::cerr << "Alignment: " << alignment << "\n";
 
   assert(alignment == 0 ||
          (result == PI_SUCCESS &&
