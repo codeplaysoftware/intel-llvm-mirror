@@ -230,6 +230,9 @@ extern SYCL_EXTERNAL void __spirv_ImageWrite(ImageT, CoordT, ValT);
 template <class RetT, typename ImageT, typename TempArgT>
 extern SYCL_EXTERNAL RetT __spirv_ImageRead(ImageT, TempArgT);
 
+template <typename RetT>
+extern SYCL_EXTERNAL RetT __spirv_ConvertUToImageNV(unsigned long);
+
 template <typename ImageT, typename SampledType>
 extern SYCL_EXTERNAL SampledType __spirv_SampledImage(ImageT, __ocl_sampler_t);
 

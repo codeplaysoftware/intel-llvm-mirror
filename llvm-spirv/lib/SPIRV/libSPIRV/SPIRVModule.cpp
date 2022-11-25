@@ -127,6 +127,10 @@ public:
   std::vector<SPIRVType *>
   getValueTypes(const std::vector<SPIRVId> &) const override;
   SPIRVMemoryModelKind getMemoryModel() const override { return MemoryModel; }
+  SPIRVSamplerImageAddressingModeNVKind
+  getSamplerImageAddressingModeNV() const override {
+    return ImageAddressingMode;
+  }
   SPIRVConstant *getLiteralAsConstant(unsigned Literal) override;
   unsigned getNumEntryPoints(SPIRVExecutionModelKind EM) const override {
     auto Loc = EntryPointVec.find(EM);
@@ -171,6 +175,9 @@ public:
     MemoryModel = MM;
     if (MemoryModel == spv::MemoryModelOpenCL)
       addCapability(CapabilityKernel);
+  }
+  void setSamplerImageAddressingModeNV(SPIRVSamplerImageAddressingModeNVKind AM) override {
+    ImageAddressingMode = AM;
   }
   void setName(SPIRVEntry *E, const std::string &Name) override;
   void setSourceLanguage(SourceLanguage Lang, SPIRVWord Ver) override {
@@ -478,6 +485,7 @@ private:
   std::set<std::string> SPIRVExt;
   SPIRVAddressingModelKind AddrModel;
   SPIRVMemoryModelKind MemoryModel;
+  SPIRVSamplerImageAddressingModeNVKind ImageAddressingMode = SPIRVSamplerImageAddressingModeNVKind::SamplerImageAddressingModeNVNone;
 
   typedef std::map<SPIRVId, SPIRVEntry *> SPIRVIdToEntryMap;
   typedef std::set<SPIRVEntry *> SPIRVEntrySet;
@@ -1849,6 +1857,10 @@ spv_ostream &operator<<(spv_ostream &O, SPIRVModule &M) {
     O << SPIRVExtInstImport(&M, I.first, SPIRVBuiltinSetNameMap::map(I.second));
 
   O << SPIRVMemoryModel(&M);
+
+  if (M.getSamplerImageAddressingModeNV() != SPIRVSamplerImageAddressingModeNVKind:: SamplerImageAddressingModeNVNone) {
+    O << SPIRVSamplerImageAddressingModeNV(&M);
+  }
 
   for (auto &I : MI.EntryPointVec)
     for (auto &II : I.second)

@@ -102,6 +102,17 @@ inline bool isValid(spv::MemoryModel V) {
   }
 }
 
+inline bool isValid(SPIRVSamplerImageAddressingModeNVKind V) {
+  switch (V) {
+  case SamplerImageAddressingModeNVNone:
+  case SamplerImageAddressingModeNV32:
+  case SamplerImageAddressingModeNV64:
+    return true;
+  default:
+    return false;
+  }
+}
+
 inline bool isValid(spv::StorageClass V) {
   switch (V) {
   case StorageClassUniformConstant:
