@@ -10,6 +10,7 @@
 
 #include <sycl/detail/defines_elementary.hpp>
 #include <sycl/range.hpp>
+#include <sycl/detail/image_ocl_types.hpp>
 
 #include <cstdint>
 
@@ -38,6 +39,11 @@ private:
 
 /// Opaque image handle type.
 using image_handle = uint64_t;
+
+#ifdef __SYCL_DEVICE_ONLY__
+using OCLImageTy = typename sycl::detail::opencl_image_type<1, sycl::access::mode::read,
+                                                        sycl::access::target::image>::type;
+#endif
 
 /** Create an image handle.
  *  @param imageDesc Image meta-data.
@@ -79,8 +85,13 @@ DataT read(const image_handle& imageHandle, const CoordT &coords) {
 	constexpr size_t coordSize = detail::coord_size<CoordT>();
 	if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4){
 #ifdef __SYCL_DEVICE_ONLY__
+#if defined(__NVPTX__)
     return __invoke__ImageRead<DataT, image_handle, CoordT>(
         imageHandle, coords);
+#else
+    return __invoke__ImageRead<DataT, OCLImageTy, int>(
+        __spirv_ConvertUToImageNV<OCLImageTy>(imageHandle), (int)coords);
+#endif
 #else
     assert(false); // Bindless images not yet implemented on host.
 #endif 

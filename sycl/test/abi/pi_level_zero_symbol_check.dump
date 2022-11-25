@@ -119,3 +119,5 @@ piextUSMFree
 piextUSMGetMemAllocInfo
 piextUSMHostAlloc
 piextUSMSharedAlloc
+piextImgHandleDestroy
+piextImgHandleCreate
