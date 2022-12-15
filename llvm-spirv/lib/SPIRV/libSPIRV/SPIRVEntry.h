@@ -791,6 +791,15 @@ public:
   void validate() const override;
 };
 
+class SPIRVSamplerImageAddressingModeNV
+    : public SPIRVEntryNoId<OpSamplerImageAddressingModeNV> {
+public:
+  SPIRVSamplerImageAddressingModeNV(SPIRVModule *M) : SPIRVEntryNoId(M, 2) {}
+  SPIRVSamplerImageAddressingModeNV() {}
+  _SPIRV_DCL_ENCDEC
+  void validate() const override;
+};
+
 class SPIRVSource : public SPIRVEntryNoId<OpSource> {
 public:
   SPIRVSource(SPIRVModule *M) : SPIRVEntryNoId(M, 3) {}

@@ -129,6 +129,7 @@ public:
   // Returns true if succeeds.
   bool translate();
   bool transExecutionMode();
+  bool transSamplerImageAddressingModeNV();
   void transFPContract();
   SPIRVValue *transConstant(Value *V);
   /// Translate a reference to a constant in a constant expression. This may
