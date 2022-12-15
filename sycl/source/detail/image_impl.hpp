@@ -58,6 +58,10 @@ convertChannelType(image_channel_type Type);
 __SYCL_EXPORT image_channel_type
 convertChannelType(RT::PiMemImageChannelType Type);
 
+__SYCL_EXPORT RT::PiMemImageFormat convertImageFormat(image_format Format);
+
+__SYCL_EXPORT image_format convertImageFormat(RT::PiMemImageFormat Format);
+
 class __SYCL_EXPORT image_impl final : public SYCLMemObjT {
   using BaseT = SYCLMemObjT;
   using typename BaseT::MemObjType;

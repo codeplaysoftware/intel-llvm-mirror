@@ -251,6 +251,89 @@ image_channel_type convertChannelType(RT::PiMemImageChannelType Type) {
   return static_cast<image_channel_type>(0);
 }
 
+RT::PiMemImageFormat convertImageFormat(image_format Format) {
+  switch (Format) {
+  case image_format::r8g8b8a8_unorm:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_UNORM_INT8};
+  case image_format::r16g16b16a16_unorm:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_UNORM_INT16};
+  case image_format::r8g8b8a8_sint:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_SIGNED_INT8};
+  case image_format::r16g16b16a16_sint:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_SIGNED_INT16};
+  case image_format::r32b32g32a32_sint:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_SIGNED_INT32};
+  case image_format::r8g8b8a8_uint:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8};
+  case image_format::r16g16b16a16_uint:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16};
+  case image_format::r32b32g32a32_uint:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT32};
+  case image_format::r16b16g16a16_sfloat:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_HALF_FLOAT};
+  case image_format::r32g32b32a32_sfloat:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_RGBA,
+                                PI_IMAGE_CHANNEL_TYPE_FLOAT};
+  case image_format::b8g8r8a8_unorm:
+    return RT::PiMemImageFormat{PI_IMAGE_CHANNEL_ORDER_BGRA,
+                                PI_IMAGE_CHANNEL_TYPE_UNORM_INT8};
+  default:
+    throw invalid_parameter_error("No corresponding PiMemImageFomrat.",
+                                  PI_ERROR_INVALID_VALUE);
+  }
+}
+
+image_format convertImageFormat(RT::PiMemImageFormat Format) {
+  switch (Format.image_channel_order) {
+  case PI_IMAGE_CHANNEL_ORDER_RGBA:
+    switch (Format.image_channel_data_type) {
+    case PI_IMAGE_CHANNEL_TYPE_UNORM_INT8:
+      return image_format::r8g8b8a8_unorm;
+    case PI_IMAGE_CHANNEL_TYPE_UNORM_INT16:
+      return image_format::r16g16b16a16_unorm;
+    case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT8:
+      return image_format::r8g8b8a8_sint;
+    case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT16:
+      return image_format::r16g16b16a16_sint;
+    case PI_IMAGE_CHANNEL_TYPE_SIGNED_INT32:
+      return image_format::r32b32g32a32_sint;
+    case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8:
+      return image_format::r8g8b8a8_uint;
+    case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16:
+      return image_format::r16g16b16a16_uint;
+    case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT32:
+      return image_format::r32b32g32a32_uint;
+    case PI_IMAGE_CHANNEL_TYPE_HALF_FLOAT:
+      return image_format::r16b16g16a16_sfloat;
+    case PI_IMAGE_CHANNEL_TYPE_FLOAT:
+      return image_format::r32g32b32a32_sfloat;
+    default:
+      throw invalid_parameter_error("No corresponding SYCL image format.",
+                                    PI_ERROR_INVALID_VALUE);
+    }
+  case PI_IMAGE_CHANNEL_ORDER_BGRA:
+    switch (Format.image_channel_data_type) {
+    case PI_IMAGE_CHANNEL_TYPE_UNORM_INT8:
+      return image_format::b8g8r8a8_unorm;
+    default:
+      throw invalid_parameter_error("No corresponding SYCL image format.",
+                                    PI_ERROR_INVALID_VALUE);
+    }
+  default:
+    throw invalid_parameter_error("No corresponding SYCL image format.",
+                                  PI_ERROR_INVALID_VALUE);
+  }
+}
+
 template <typename T>
 static void getImageInfo(const ContextImplPtr Context, RT::PiMemImageInfo Info,
                          T &Dest, RT::PiMem InteropMemObject) {

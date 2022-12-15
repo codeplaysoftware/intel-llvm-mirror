@@ -60,6 +60,20 @@ enum class image_channel_type : unsigned int {
   fp32 = 14
 };
 
+enum class image_format : unsigned int {
+  r8g8b8a8_unorm = 0,
+  r16g16b16a16_unorm = 1,
+  r8g8b8a8_sint = 2,
+  r16g16b16a16_sint = 3,
+  r32b32g32a32_sint = 4,
+  r8g8b8a8_uint = 5,
+  r16g16b16a16_uint = 6,
+  r32b32g32a32_uint = 7,
+  r16b16g16a16_sfloat = 8,
+  r32g32b32a32_sfloat = 9,
+  b8g8r8a8_unorm = 10
+};
+
 using byte = unsigned char;
 
 using image_allocator = detail::aligned_allocator<byte>;

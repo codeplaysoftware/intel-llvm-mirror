@@ -12,6 +12,7 @@
 
 #include <detail/context_impl.hpp>
 #include <detail/plugin_printers.hpp>
+#include <detail/image_impl.hpp>
 
 #include <memory>
 
@@ -20,16 +21,29 @@ __SYCL_INLINE_VER_NAMESPACE(_V1) {
 namespace ext {
 namespace oneapi {
 
-/** Create an image handle.
- *  @param imageDesc Image meta-data.
- *  @param usmAllocation A pointer to a USM allocation large enough to
- *  store the image described by imageDesc.
- *  @param syclContext The context on which the handle is valid.
- *  @return An image handle
- **/
-__SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
-                                 void *usmAllocation,
-                                 sycl::context &syclContext) {
+__SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
+                                        image_handle &imageHandle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+  pi_image_handle piImageHandle = imageHandle.value;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageHandleDestroy>(
+      C, piImageHandle);
+
+  if (Error != PI_SUCCESS) {
+      throw std::invalid_argument("Failed to destroy image_handle");
+  }
+
+  /// TODO: would be nice to have overloaded assignment operator for this
+  imageHandle.value = piImageHandle;
+}
+
+__SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
+                                      image_descriptor desc) {
+
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
@@ -37,11 +51,13 @@ __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
   pi_result Error;
 
   pi_image_desc piDesc;
-  piDesc.image_width = imageDesc[0];
+  piDesc.image_width = desc.width;
+  piDesc.image_height = desc.height;
+  piDesc.image_depth = desc.depth;
+  piDesc.image_type =
+      desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                   : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
   // Unused properties in MVP
-  piDesc.image_height = imageDesc.dimensions() > 1 ? imageDesc[1] : 0;
-  piDesc.image_depth = imageDesc.dimensions() > 2 ? imageDesc[2] : 0;
-  piDesc.image_type = PI_MEM_TYPE_IMAGE1D;
   piDesc.image_array_size = 0;
   piDesc.image_row_pitch = 0;
   piDesc.image_slice_pitch = 0;
@@ -51,39 +67,82 @@ __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
 
   // MVP assumes following format:
   pi_image_format piFormat;
-  piFormat.image_channel_data_type = PI_IMAGE_CHANNEL_TYPE_FLOAT;
-  piFormat.image_channel_order = PI_IMAGE_CHANNEL_ORDER_RGBA;
+  piFormat.image_channel_data_type =
+      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_data_type;
+  piFormat.image_channel_order =
+      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_order;
 
   // Call impl.
-  pi_image_handle piImageHandle;
-  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextImgHandleCreate>(
-      &piImageHandle, C, &piDesc, &piFormat, usmAllocation);
+  // TODO: replace 1 with flags
+  void *devPtr;
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageAllocate>(
+      C, 1, &piFormat, &piDesc, &devPtr);
 
   if (Error != PI_SUCCESS) {
-    return image_handle(nullptr);
+    return nullptr;
   }
-  image_handle ImageHandle{piImageHandle};
-  return ImageHandle;
+
+  return devPtr;
 }
 
-/** Destroy an image handle. Does not free memory backing the handle.
- *  @param imageHandle The handle to destroy.
- *  @param syclContext The context the handle is valid in.
- **/
-__SYCL_EXPORT void destroy_image_handle(image_handle &imageHandle,
-                          const sycl::context &syclContext) {
+__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
+                                        void *devPtr
+                                        /*, sampler, pitch*/) {
+
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
   const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
   pi_result Error;
-  pi_image_handle piImageHandle = imageHandle;
 
-  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextImgHandleDestroy>(
-      C, &piImageHandle);
-  imageHandle = piImageHandle;
+  // Call impl.
+  pi_image_handle piImageHandle;
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCreate>(
+      C, devPtr, &piImageHandle);
+
+  if (Error != PI_SUCCESS) {
+    return image_handle{nullptr};
+  }
+  return image_handle{piImageHandle};
 }
 
+__SYCL_EXPORT void copy_image(const sycl::context &syclContext, void *devPtr,
+                              void *data, image_descriptor desc,
+                              image_copy_flags flags) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  pi_image_desc piDesc;
+  piDesc.image_width = desc.width;
+  piDesc.image_height = desc.height;
+  piDesc.image_depth = desc.depth;
+  piDesc.image_type =
+      desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                   : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
+  // Unused properties in MVP
+  piDesc.image_array_size = 0;
+  piDesc.image_row_pitch = 0;
+  piDesc.image_slice_pitch = 0;
+  piDesc.num_mip_levels = 0;
+  piDesc.num_samples = 0;
+  piDesc.buffer = nullptr;
+
+  pi_image_format piFormat;
+  piFormat.image_channel_data_type =
+      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_data_type;
+  piFormat.image_channel_order =
+      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_order;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCopy>(
+      C, devPtr, data, &piFormat, &piDesc, flags);
+
+  if (Error != PI_SUCCESS) {
+      throw std::invalid_argument("Failed to copy image");
+  }
+}
 } // namespace oneapi
 } // namespace ext
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)
