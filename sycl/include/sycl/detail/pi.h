@@ -500,6 +500,12 @@ typedef enum {
   PI_IMAGE_CHANNEL_TYPE_FLOAT = 0x10DE
 } _pi_image_channel_type;
 
+typedef enum {
+  PI_IMAGE_COPY_HTOD = 0,
+  PI_IMAGE_COPY_DTOH = 1,
+  PI_IMAGE_COPY_DTOD = 2,
+} _pi_image_copy_flags;
+
 typedef enum { PI_BUFFER_CREATE_TYPE_REGION = 0x1220 } _pi_buffer_create_type;
 
 const pi_bool PI_TRUE = 1;
@@ -645,6 +651,8 @@ using pi_program_build_status = _pi_program_build_status;
 using pi_program_binary_type = _pi_program_binary_type;
 using pi_kernel_info = _pi_kernel_info;
 using pi_profiling_info = _pi_profiling_info;
+
+using pi_image_copy_flags = _pi_image_copy_flags;
 
 // For compatibility with OpenCL define this not as enum.
 using pi_device_partition_property = intptr_t;
@@ -946,7 +954,7 @@ using pi_program = _pi_program *;
 using pi_kernel = _pi_kernel *;
 using pi_event = _pi_event *;
 using pi_sampler = _pi_sampler *;
-using pi_image_handle = pi_uint64;
+using pi_image_handle = void *;
 
 typedef struct {
   pi_image_channel_order image_channel_order;
@@ -1918,28 +1926,39 @@ __SYCL_EXPORT pi_result piGetDeviceAndHostTimer(pi_device Device,
                                                 uint64_t *DeviceTime,
                                                 uint64_t *HostTime);
 
-/// API to create bindless image handles.
-///
-/// \param result_handle is the image handle to create
-/// \param context is the pi_context
-/// \param image_desc is the bindless image's description
-/// \param image_format is the bindless image's format
-/// \param ptr is the pointer to pre-allocated USM memory, to be used by
-/// the image.
-__SYCL_EXPORT pi_result piextImgHandleCreate(
-  pi_image_handle *result_handle,
-  pi_context context,
-  pi_image_desc *image_desc,
-  pi_image_format *image_format,
-  void *ptr);
-
 /// API to destroy bindless image handles.
 ///
 /// \param context is the pi_context
 /// \param handle is a pointer to the image handle
-__SYCL_EXPORT pi_result piextImgHandleDestroy(
+__SYCL_EXPORT pi_result piextMemImageHandleDestroy(
   pi_context context,
-  pi_image_handle *handle);
+  pi_image_handle handle);
+
+/// API to allocate memory for bindless images.
+///
+/// \param context is the pi_context
+/// \param flags are extra flags to pass (currently unused)
+/// \param image_format format of the image (channel order and data type)
+/// \param image_desc image descriptor
+/// \param ret_mem is the returning memory handle to newly allocated memory
+__SYCL_EXPORT pi_result piextMemImageAllocate(
+    pi_context context, pi_mem_flags flags, pi_image_format *image_format,
+    pi_image_desc *image_desc, void **ret_mem);
+
+/// API to create bindless image handles.
+///
+/// \param context is the pi_context
+/// \param image_array is the handle to memory from which to create the image
+/// \param ret_mem is the returning memory handle to newly allocated memory
+__SYCL_EXPORT pi_result piextMemImageCreate(pi_context context,
+                                            void *image_array,
+                                            void **ret_mem);
+
+__SYCL_EXPORT pi_result piextMemImageCopy(pi_context context,
+                                          void *dst_ptr, void *src_ptr,
+                                          pi_image_format *image_format,
+                                          pi_image_desc *image_desc,
+                                          uint32_t direction);
 
 struct _pi_plugin {
   // PI version supported by host passed to the plugin. The Plugin
