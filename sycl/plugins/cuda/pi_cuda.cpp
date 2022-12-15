@@ -2980,6 +2980,200 @@ pi_result cuda_piextKernelSetArgSampler(pi_kernel kernel, pi_uint32 arg_index,
   return retErr;
 }
 
+pi_result cuda_piextMemImageAllocate(pi_context context, pi_mem_flags flags,
+                                     const pi_image_format *image_format,
+                                     pi_image_desc *image_desc,
+                                     uint64_t *ret_mem) {
+
+  pi_result retErr = PI_SUCCESS;
+
+  // We only support RBGA channel order
+  // TODO: check SYCL CTS and spec. May also have to support BGRA
+  if (image_format->image_channel_order !=
+      pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGBA) {
+    sycl::detail::pi::die(
+        "cuda_piMemImageCreate only supports RGBA channel order");
+  }
+
+  // We have to use cuArray3DCreate, which has some caveats. The height and
+  // depth parameters must be set to 0 produce 1D or 2D arrays. image_desc gives
+  // a minimum value of 1, so we need to convert the answer.
+  CUDA_ARRAY3D_DESCRIPTOR array_desc;
+  array_desc.NumChannels = 4; // Only support 4 channel image
+  array_desc.Flags = 0;       // No flags required
+  array_desc.Width = image_desc->image_width;
+  if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
+    array_desc.Height = 0;
+    array_desc.Depth = 0;
+  } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
+    array_desc.Height = image_desc->image_height;
+    array_desc.Depth = 0;
+  } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE3D) {
+    array_desc.Height = image_desc->image_height;
+    array_desc.Depth = image_desc->image_depth;
+  }
+
+  // We need to get this now in bytes for calculating the total image size later
+  size_t pixel_type_size_bytes;
+
+  retErr =
+      piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                 &array_desc.Format, &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piMemImageCreate given unsupported image_channel_data_type");
+  }
+
+  // When a dimension isn't used image_desc has the size set to 1
+  size_t pixel_size_bytes =
+      pixel_type_size_bytes * 4; // 4 is the only number of channels we support
+  size_t image_size_bytes = pixel_size_bytes * image_desc->image_width *
+                            image_desc->image_height * image_desc->image_depth;
+
+  ScopedContext active(context);
+  CUarray image_array;
+  retErr = PI_CHECK_ERROR(cuArray3DCreate(&image_array, &array_desc));
+
+  try {
+
+    *ret_mem = (uint64_t)image_array;
+
+  } catch (pi_result err) {
+    cuArrayDestroy(image_array);
+    return err;
+  } catch (...) {
+    cuArrayDestroy(image_array);
+    return PI_ERROR_UNKNOWN;
+  }
+  return retErr;
+}
+
+pi_result
+cuda_piextMemImageCreate(pi_context context, uint64_t image_array,
+                         uint64_t *ret_mem) { // Need input memory object
+
+  assert(ret_mem != nullptr);
+  pi_result retErr = PI_SUCCESS;
+  ScopedContext active(context);
+
+  try {
+    // CUDA_RESOURCE_DESC is a union of different structs, shown here
+    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TEXOBJECT.html
+    // We need to fill it as described here to use it for a surface or texture
+    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__SURFOBJECT.html
+    // CUDA_RESOURCE_DESC::resType must be CU_RESOURCE_TYPE_ARRAY and
+    // CUDA_RESOURCE_DESC::res::array::hArray must be set to a valid CUDA array
+    // handle.
+    // CUDA_RESOURCE_DESC::flags must be set to zero
+
+    CUDA_RESOURCE_DESC image_res_desc;
+    image_res_desc.res.array.hArray = (CUarray)image_array;
+    image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
+    image_res_desc.flags = 0;
+
+    CUsurfObject surface;
+    retErr = PI_CHECK_ERROR(cuSurfObjectCreate(&surface, &image_res_desc));
+
+    *ret_mem = (uint64_t)surface;
+  } catch (pi_result err) {
+    cuArrayDestroy((CUarray)image_array);
+    return err;
+  } catch (...) {
+    cuArrayDestroy((CUarray)image_array);
+    return PI_ERROR_UNKNOWN;
+  }
+
+  return retErr;
+}
+
+pi_result cuda_piextMemImageCopy(pi_context context, uint64_t image_array,
+                                 void *host_ptr, pi_image_format *image_format,
+                                 pi_image_desc *image_desc,
+                                 uint64_t direction) {
+
+  assert(host_ptr != nullptr);
+
+  pi_result retErr = PI_SUCCESS;
+
+  // We have to use cuArray3DCreate, which has some caveats. The height and
+  // depth parameters must be set to 0 produce 1D or 2D arrays. image_desc gives
+  // a minimum value of 1, so we need to convert the answer.
+  CUDA_ARRAY3D_DESCRIPTOR array_desc;
+  array_desc.NumChannels = 4; // Only support 4 channel image
+  array_desc.Flags = 0;       // No flags required
+  array_desc.Width = image_desc->image_width;
+  if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
+    array_desc.Height = 0;
+    array_desc.Depth = 0;
+  } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
+    array_desc.Height = image_desc->image_height;
+    array_desc.Depth = 0;
+  } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE3D) {
+    array_desc.Height = image_desc->image_height;
+    array_desc.Depth = image_desc->image_depth;
+  }
+
+  // We need to get this now in bytes for calculating the total image size later
+  size_t pixel_type_size_bytes;
+
+  retErr =
+      piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                 &array_desc.Format, &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piMemImageCreate given unsupported image_channel_data_type");
+  }
+
+  // When a dimension isn't used image_desc has the size set to 1
+  size_t pixel_size_bytes =
+      pixel_type_size_bytes * 4; // 4 is the only number of channels we support
+  size_t image_size_bytes = pixel_size_bytes * image_desc->image_width *
+                            image_desc->image_height * image_desc->image_depth;
+
+  ScopedContext active(context);
+
+  CUarray cuArray = (CUarray)image_array;
+
+  try {
+    // We have to use a different copy function for each image dimensionality
+    if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
+      retErr =
+          PI_CHECK_ERROR(cuMemcpyHtoA(cuArray, 0, host_ptr, image_size_bytes));
+    } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
+      CUDA_MEMCPY2D cpy_desc;
+      memset(&cpy_desc, 0, sizeof(cpy_desc));
+      cpy_desc.srcMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_HOST;
+      cpy_desc.srcHost = host_ptr;
+      cpy_desc.dstMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_ARRAY;
+      cpy_desc.dstArray = cuArray;
+      cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
+      cpy_desc.Height = image_desc->image_height;
+      retErr = PI_CHECK_ERROR(cuMemcpy2D(&cpy_desc));
+    } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE3D) {
+      CUDA_MEMCPY3D cpy_desc;
+      memset(&cpy_desc, 0, sizeof(cpy_desc));
+      cpy_desc.srcMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_HOST;
+      cpy_desc.srcHost = host_ptr;
+      cpy_desc.dstMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_ARRAY;
+      cpy_desc.dstArray = cuArray;
+      cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
+      cpy_desc.Height = image_desc->image_height;
+      cpy_desc.Depth = image_desc->image_depth;
+      retErr = PI_CHECK_ERROR(cuMemcpy3D(&cpy_desc));
+    }
+
+  } catch (pi_result err) {
+    // TODO: appropriate error handling
+    // cuArrayDestroy(image_array);
+    return err;
+  } catch (...) {
+    // cuArrayDestroy(image_array);
+    return PI_ERROR_UNKNOWN;
+  }
+
+  return retErr;
+}
+
 pi_result cuda_piextImgHandleCreate(pi_image_handle *result_handle,
                                     pi_context context,
                                     pi_image_desc *image_desc,
@@ -5649,8 +5843,12 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   _PI_CL(piextKernelSetArgMemObj, cuda_piextKernelSetArgMemObj)
   _PI_CL(piextKernelSetArgSampler, cuda_piextKernelSetArgSampler)
 
+  // Bindless Images
   _PI_CL(piextImgHandleCreate, cuda_piextImgHandleCreate)
   _PI_CL(piextImgHandleDestroy, cuda_piextImgHandleDestroy)
+  _PI_CL(piextMemImageAllocate, cuda_piextMemImageAllocate)
+  _PI_CL(piextMemImageCreate, cuda_piextMemImageCreate)
+  _PI_CL(piextMemImageCopy, cuda_piextMemImageCopy)
 
   _PI_CL(piPluginGetLastError, cuda_piPluginGetLastError)
   _PI_CL(piTearDown, cuda_piTearDown)

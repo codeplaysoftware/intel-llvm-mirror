@@ -9,6 +9,7 @@
 #pragma once
 
 #include <sycl/detail/defines_elementary.hpp>
+#include <sycl/image.hpp>
 #include <sycl/range.hpp>
 #include <sycl/detail/image_ocl_types.hpp>
 
@@ -63,6 +64,24 @@ __SYCL_EXPORT image_handle create_image_handle(image_descriptor imageDesc,
 __SYCL_EXPORT void destroy_image_handle(image_handle &imageHandle,
                           const sycl::context &syclContext);
 
+/**
+ *
+ *
+ */
+__SYCL_EXPORT uint64_t allocate_image(sycl::range<3> range,
+                                      image_channel_order order,
+                                      image_channel_type type,
+                                      sycl::context &syclContext);
+
+__SYCL_EXPORT image_handle create_image(uint64_t devPtr, void *data,
+                                        image_channel_order order,
+                                        image_channel_type type,
+                                        sycl::range<3> range /*sampler, pitch*/,
+                                        sycl::context &syclContext);
+
+__SYCL_EXPORT void copy_image(uint64_t devPtr, void *data, sycl::range<3> range,
+                              uint64_t direction, sycl::context &syclContext);
+
 namespace detail {
 template<typename CoordT>
 constexpr size_t coord_size(){
@@ -81,9 +100,9 @@ constexpr size_t coord_size(){
  *  @return data from the image.
  **/
 template <typename DataT, typename CoordT>
-DataT read(const image_handle& imageHandle, const CoordT &coords) {
-	constexpr size_t coordSize = detail::coord_size<CoordT>();
-	if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4){
+DataT read_image(const image_handle &imageHandle, const CoordT &coords) {
+  constexpr size_t coordSize = detail::coord_size<CoordT>();
+  if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4) {
 #ifdef __SYCL_DEVICE_ONLY__
 #if defined(__NVPTX__)
     return __invoke__ImageRead<DataT, image_handle, CoordT>(
@@ -94,13 +113,13 @@ DataT read(const image_handle& imageHandle, const CoordT &coords) {
 #endif
 #else
     assert(false); // Bindless images not yet implemented on host.
-#endif 
-	} else {
-		static_assert(coordSize == 1 || coordSize == 2 || coordSize == 4, 
-    "Expected input coordinate to be have 1, 2, or 4 components for 1D, 2D and 3D images respectively.");
-	}
+#endif
+  } else {
+    static_assert(coordSize == 1 || coordSize == 2 || coordSize == 4,
+                  "Expected input coordinate to be have 1, 2, or 4 components "
+                  "for 1D, 2D and 3D images respectively.");
+  }
 }
-
 
 } // namespace oneapi
 } // namespace ext

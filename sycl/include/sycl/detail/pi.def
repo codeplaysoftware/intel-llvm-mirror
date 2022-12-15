@@ -136,8 +136,12 @@ _PI_API(piextKernelSetArgSampler)
 
 _PI_API(piextPluginGetOpaqueData)
 
+// Bindless Images
 _PI_API(piextImgHandleCreate)
 _PI_API(piextImgHandleDestroy)
+_PI_API(piextMemImageAllocate)
+_PI_API(piextMemImageCreate)
+_PI_API(piextMemImageCopy)
 
 _PI_API(piPluginGetLastError)
 

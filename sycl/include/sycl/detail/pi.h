@@ -1824,6 +1824,28 @@ __SYCL_EXPORT pi_result piextImgHandleDestroy(
   pi_context context,
   pi_image_handle *handle);
 
+/// API to create bindless image handles.
+///
+///
+///
+__SYCL_EXPORT pi_result piextMemImageAllocate(
+    pi_context context, pi_mem_flags flags, const pi_image_format *image_format,
+    pi_image_desc *image_desc, uint64_t *ret_mem);
+
+/// API to create bindless image handles.
+///
+///
+///
+__SYCL_EXPORT pi_result piextMemImageCreate(pi_context context,
+                                            uint64_t image_array,
+                                            uint64_t *ret_mem);
+
+__SYCL_EXPORT pi_result piextMemImageCopy(pi_context context,
+                                          uint64_t image_array, void *host_ptr,
+                                          pi_image_format *image_format,
+                                          pi_image_desc *image_desc,
+                                          uint64_t direction);
+
 struct _pi_plugin {
   // PI version supported by host passed to the plugin. The Plugin
   // checks and writes the appropriate Function Pointers in

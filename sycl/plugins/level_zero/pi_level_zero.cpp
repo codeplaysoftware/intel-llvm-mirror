@@ -5616,6 +5616,47 @@ pi_result piextImgHandleDestroy(
   return retErr;
 }
 
+pi_result piextMemImageAllocate(pi_context context, pi_mem_flags flags,
+                                const pi_image_format *image_format,
+                                pi_image_desc *image_desc, uint64_t *ret_mem) {
+
+  assert(context != nullptr);
+  assert(image_desc != nullptr);
+  assert(image_format != nullptr);
+  assert(ret_mem != nullptr);
+
+  die("piExtMemImageAllocate not implemented on level zero backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
+pi_result piextMemImageCreate(pi_context context, uint64_t image_array,
+                              uint64_t *ret_mem) {
+
+  assert(context != nullptr);
+  // assert(image_array != nullptr);
+  assert(ret_mem != nullptr);
+
+  die("piExtMemImageCreate not implemented on level zero backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
+pi_result piextMemImageCopy(pi_context context, uint64_t image_array,
+                                 void *host_ptr, pi_image_format *image_format,
+                                 pi_image_desc *image_desc, uint64_t direction) {  
+  assert(context != nullptr);
+  // assert(image_array != nullptr);
+  assert(host_ptr != nullptr);
+
+  die("piExtMemImageCopy not implemented on level zero backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
 pi_result piKernelGetGroupInfo(pi_kernel Kernel, pi_device Device,
                                pi_kernel_group_info ParamName,
                                size_t ParamValueSize, void *ParamValue,
