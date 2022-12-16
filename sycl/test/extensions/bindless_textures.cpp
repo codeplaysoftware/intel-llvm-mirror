@@ -1,14 +1,6 @@
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 // RUN: %t.out
 
-// RUN: %clangxx -fsycl -fsycl-targets=spir64-unknown-unknown %s -fsycl-device-only -o %t.out
-// RUN: llvm-spirv %t.out -spirv-text -spirv-ext=+SPV_NV_bindless_texture -o %t.out
-// RUN: FileCheck %s --input-file %t.out --check-prefix=CHECK-SPIRV
-
-// CHECK-SPIRV: Capability BindlessTextureNV
-// CHECK-SPIRV: Decorate 42 BindlessImageNV
-// CHECK-SPIRV: ConvertUToImageNV 41 42 20
-
 //==------- bindless_textures.cpp - SYCL bindless textures test -----------==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.

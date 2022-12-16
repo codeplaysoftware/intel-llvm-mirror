@@ -211,3 +211,19 @@ entry:
   %1 = tail call <4 x float>@__clc_structf32_to_vector({float,float,float,float} %0)
   ret <4 x float> %1
 }
+
+declare {float,float,float,float} @llvm.nvvm.tex.unified.2d.v4f32.s32(i64, i32, i32)
+define <4 x float> @__clc_llvm_nvvm_tex_2d_v4f32_s32(i64 %img, i32 %x, i32 %y) nounwind alwaysinline {
+entry:
+  %0 = tail call {float,float,float,float} @llvm.nvvm.tex.unified.2d.v4f32.s32(i64 %img, i32 %x, i32 %y);
+  %1 = tail call <4 x float>@__clc_structf32_to_vector({float,float,float,float} %0)
+  ret <4 x float> %1
+}
+
+declare {float,float,float,float} @llvm.nvvm.tex.unified.3d.v4f32.s32(i64, i32, i32, i32)
+define <4 x float> @__clc_llvm_nvvm_tex_3d_v4f32_s32(i64 %img, i32 %x, i32 %y, i32 %z) nounwind alwaysinline {
+entry:
+  %0 = tail call {float,float,float,float} @llvm.nvvm.tex.unified.3d.v4f32.s32(i64 %img, i32 %x, i32 %y, i32 %z);
+  %1 = tail call <4 x float>@__clc_structf32_to_vector({float,float,float,float} %0)
+  ret <4 x float> %1
+}

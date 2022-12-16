@@ -102,9 +102,11 @@ __SYCL_EXPORT uint64_t allocate_image(sycl::range<3> range,
   pi_image_desc piDesc;
   piDesc.image_width = range[0];
   // Unused properties in MVP
-  piDesc.image_height = range.size() > 1 ? range[1] : 0;
-  piDesc.image_depth = range.size() > 2 ? range[2] : 0;
-  piDesc.image_type = PI_MEM_TYPE_IMAGE1D;
+  piDesc.image_height = range[1];
+  piDesc.image_depth = range[2];
+  piDesc.image_type =
+      range[2] > 0 ? PI_MEM_TYPE_IMAGE3D
+                   : (range[1] > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
   piDesc.image_array_size = 0;
   piDesc.image_row_pitch = 0;
   piDesc.image_slice_pitch = 0;
@@ -123,9 +125,8 @@ __SYCL_EXPORT uint64_t allocate_image(sycl::range<3> range,
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageAllocate>(
       C, 1, &piFormat, &piDesc, devPtr);
 
-  if (Error != PI_SUCCESS)
-  {
-    return 0;  // nullptr
+  if (Error != PI_SUCCESS) {
+    return 0; // nullptr
   }
 
   return *devPtr;
@@ -150,9 +151,11 @@ __SYCL_EXPORT image_handle create_image(uint64_t devPtr, void *data,
   pi_image_desc piDesc;
   piDesc.image_width = range[0];
   // Unused properties in MVP
-  piDesc.image_height = range.size() > 1 ? range[1] : 0;
-  piDesc.image_depth = range.size() > 2 ? range[2] : 0;
-  piDesc.image_type = PI_MEM_TYPE_IMAGE1D;
+  piDesc.image_height = range[1];
+  piDesc.image_depth = range[2];
+  piDesc.image_type =
+      range[2] > 0 ? PI_MEM_TYPE_IMAGE3D
+                   : (range[1] > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
   piDesc.image_array_size = 0;
   piDesc.image_row_pitch = 0;
   piDesc.image_slice_pitch = 0;
@@ -187,12 +190,11 @@ __SYCL_EXPORT void copy_image(uint64_t devPtr, void *data, sycl::range<3> range,
   pi_image_desc piDesc;
   piDesc.image_width = range[0];
   // Unused properties in MVP
-  piDesc.image_height = range.size() > 1 ? range[1] : 0;
-  piDesc.image_depth = range.size() > 2 ? range[2] : 0;
+  piDesc.image_height = range[1];
+  piDesc.image_depth = range[2];
   piDesc.image_type =
-      range.size() > 2
-          ? PI_MEM_TYPE_IMAGE3D
-          : (range.size() > 1 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
+      range[2] > 0 ? PI_MEM_TYPE_IMAGE3D
+                   : (range[1] > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
   piDesc.image_array_size = 0;
   piDesc.image_row_pitch = 0;
   piDesc.image_slice_pitch = 0;

@@ -3127,8 +3127,6 @@ pi_result cuda_piextMemImageCopy(pi_context context, uint64_t image_array,
   // When a dimension isn't used image_desc has the size set to 1
   size_t pixel_size_bytes =
       pixel_type_size_bytes * 4; // 4 is the only number of channels we support
-  size_t image_size_bytes = pixel_size_bytes * image_desc->image_width *
-                            image_desc->image_height * image_desc->image_depth;
 
   ScopedContext active(context);
 
@@ -3137,8 +3135,9 @@ pi_result cuda_piextMemImageCopy(pi_context context, uint64_t image_array,
   try {
     // We have to use a different copy function for each image dimensionality
     if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
-      retErr =
-          PI_CHECK_ERROR(cuMemcpyHtoA(cuArray, 0, host_ptr, image_size_bytes));
+      size_t image_size_bytes_1d = pixel_size_bytes * image_desc->image_width;
+      retErr = PI_CHECK_ERROR(
+          cuMemcpyHtoA(cuArray, 0, host_ptr, image_size_bytes_1d));
     } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
       CUDA_MEMCPY2D cpy_desc;
       memset(&cpy_desc, 0, sizeof(cpy_desc));
