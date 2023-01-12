@@ -14,29 +14,26 @@ int main() {
   auto ctxt = q.get_context();
 
   // declare image data
-  // we use float4s but only take the first element
-  size_t height = 13;
-  size_t width = 7;
-  size_t depth = 11;
-  size_t N = height * width * depth;
-  std::vector<float4> out(N);
+  // data, sampling, calculation
+  //   A: 0,1,2,3,... B: 512, 511, 510, 509,...        -- data in
+  //   C: 512,512,512,512,...                          -- sum (A+B)
+  constexpr size_t N = 512;
+  std::vector<float2> out(N);
   std::vector<float> expected(N);
-  std::vector<float4> dataIn1(N);
-  std::vector<float4> dataIn2(N);
-  for (int i = 0; i < height; i++) {  // row
-    for (int j = 0; j < width; j++) { // column
-      for (int k = 0; k < depth; k++) // depth
-      {
-        expected[i + width * (j + depth * k)] = j * 3;
-        dataIn1[i + width * (j + depth * k)] = {j, j, j, j};
-        dataIn2[i + width * (j + depth * k)] = {j * 2, j * 2, j * 2, j * 2};
-      }
-    }
+  std::vector<float2> dataIn1(N);
+  std::vector<float2> dataIn2(N);
+  float exp = 512;
+  for (int i = 0; i < N; i++) {
+    expected[i] = exp;
+    dataIn1[i] = {i, i};
+    dataIn2[i] = {N - i, N - i};
   }
 
+  size_t width = N;
+
   // Image descriptor - can use the same for both images
-  _V1::ext::oneapi::image_descriptor desc(
-      {width, height, depth}, image_channel_order::rgba, image_channel_type::fp32);
+  _V1::ext::oneapi::image_descriptor desc({width}, image_channel_order::rg,
+                                          image_channel_type::fp32);
 
   // Extension: returns the device pointer to the allocated memory
   // Input images memory
@@ -68,24 +65,16 @@ int main() {
 
   try {
     q.submit([&](handler &cgh) {
-      cgh.parallel_for<image_addition>(
-          nd_range<3>{{width, height, depth}, {width, height, depth}},
-          [=](nd_item<3> it) {
-            size_t dim0 = it.get_local_id(0);
-            size_t dim1 = it.get_local_id(1);
-            size_t dim2 = it.get_local_id(2);
-            float sum = 0;
-            // Extension: read image data from handle
-            float4 px1 = _V1::ext::oneapi::read_image<float4>(
-                imgIn1, int4(dim0, dim1, dim2, 0));
-            float4 px2 = _V1::ext::oneapi::read_image<float4>(
-                imgIn2, int4(dim0, dim1, dim2, 0));
+      cgh.parallel_for<image_addition>(N, [=](id<1> id) {
+        float sum = 0;
+        // Extension: read image data from handle
+        float2 px1 = _V1::ext::oneapi::read_image<float2>(imgIn1, int(id[0]));
+        float2 px2 = _V1::ext::oneapi::read_image<float2>(imgIn2, int(id[0]));
 
-            sum = px1[0] + px2[0];
-            // Extension: write to image with handle
-            _V1::ext::oneapi::write_image<float4>(
-                imgOut, int4(dim0, dim1, dim2, 0), float4(sum));
-          });
+        sum = px1[0] + px2[0];
+        // Extension: write to image with handle
+        _V1::ext::oneapi::write_image<float2>(imgOut, int(id[0]), float2(sum));
+      });
     });
   } catch (...) {
     std::cerr << "Kernel submission failed!" << std::endl;
@@ -109,7 +98,10 @@ int main() {
   }
 
   // collect and validate output
-  // we use float4s but only take the first element
+  // we use floats but only take the first element
+  // data, sampling, calculation
+  //   A: 0,1,2,3,... B: 512, 511, 510, 509,...        -- data in
+  //   C: 512,512,512,512,...                          -- sum (A+B)
   bool validated = true;
   for (int i = 0; i < N; i++) {
     bool mismatch = false;

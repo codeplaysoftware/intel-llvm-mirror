@@ -26,19 +26,23 @@ struct image_descriptor {
   unsigned int width;
   unsigned int height;
   unsigned int depth;
-  unsigned int num_channels;
-  image_format format;
+  image_channel_type channel_type;
+  image_channel_order channel_order;
 
-  image_descriptor(range<1> dims, image_format img_fmt)
-      : width(dims[0]), height(0), depth(0), num_channels(4), format(img_fmt) {}
+  image_descriptor(range<1> dims, image_channel_order order,
+                   image_channel_type type)
+      : width(dims[0]), height(0), depth(0), channel_type(type),
+        channel_order(order) {}
 
-  image_descriptor(range<2> dims, image_format img_fmt)
-      : width(dims[0]), height(dims[1]), depth(0), num_channels(4),
-        format(img_fmt) {}
+  image_descriptor(range<2> dims, image_channel_order order,
+                   image_channel_type type)
+      : width(dims[0]), height(dims[1]), depth(0), channel_type(type),
+        channel_order(order) {}
 
-  image_descriptor(range<3> dims, image_format img_fmt)
-      : width(dims[0]), height(dims[1]), depth(dims[2]), num_channels(4),
-        format(img_fmt) {}
+  image_descriptor(range<3> dims, image_channel_order order,
+                   image_channel_type type)
+      : width(dims[0]), height(dims[1]), depth(dims[2]), channel_type(type),
+        channel_order(order) {}
 };
 
 /// Direction to copy data from bindless image handle
