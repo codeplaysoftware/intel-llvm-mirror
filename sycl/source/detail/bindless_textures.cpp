@@ -56,10 +56,9 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
   piDesc.image_width = desc.width;
   piDesc.image_height = desc.height;
   piDesc.image_depth = desc.depth;
-  piDesc.image_type =
-      desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
-                   : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
-  // Unused properties in MVP
+  piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
   piDesc.image_array_size = 0;
   piDesc.image_row_pitch = 0;
   piDesc.image_slice_pitch = 0;
@@ -67,12 +66,11 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
   piDesc.num_samples = 0;
   piDesc.buffer = nullptr;
 
-  // MVP assumes following format:
   pi_image_format piFormat;
   piFormat.image_channel_data_type =
-      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_data_type;
+      sycl::_V1::detail::convertChannelType(desc.channel_type);
   piFormat.image_channel_order =
-      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_order;
+      sycl::_V1::detail::convertChannelOrder(desc.channel_order);
 
   // Call impl.
   // TODO: replace 1 with flags
@@ -159,10 +157,9 @@ __SYCL_EXPORT void copy_image(const sycl::context &syclContext, void *devPtr,
   piDesc.image_width = desc.width;
   piDesc.image_height = desc.height;
   piDesc.image_depth = desc.depth;
-  piDesc.image_type =
-      desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
-                   : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D : PI_MEM_TYPE_IMAGE1D);
-  // Unused properties in MVP
+  piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
   piDesc.image_array_size = 0;
   piDesc.image_row_pitch = 0;
   piDesc.image_slice_pitch = 0;
@@ -172,15 +169,15 @@ __SYCL_EXPORT void copy_image(const sycl::context &syclContext, void *devPtr,
 
   pi_image_format piFormat;
   piFormat.image_channel_data_type =
-      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_data_type;
+      sycl::_V1::detail::convertChannelType(desc.channel_type);
   piFormat.image_channel_order =
-      sycl::_V1::detail::convertImageFormat(desc.format).image_channel_order;
+      sycl::_V1::detail::convertChannelOrder(desc.channel_order);
 
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCopy>(
       C, devPtr, data, &piFormat, &piDesc, flags);
 
   if (Error != PI_SUCCESS) {
-      throw std::invalid_argument("Failed to copy image");
+    throw std::invalid_argument("Failed to copy image");
   }
 }
 } // namespace oneapi

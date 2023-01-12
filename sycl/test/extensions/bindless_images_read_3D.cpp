@@ -36,8 +36,8 @@ int main() {
 
   // Image descriptor - can use the same for both images
   _V1::ext::oneapi::image_descriptor desc({width, height, depth},
-                                          image_format::r32g32b32a32_sfloat);
-
+                                          image_channel_order::rgba,
+                                          image_channel_type::fp32);
 
   // Extension: returns the device pointer to the allocated memory
   auto device_ptr1 = _V1::ext::oneapi::allocate_image(ctxt, desc);

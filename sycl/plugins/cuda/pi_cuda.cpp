@@ -333,6 +333,40 @@ pi_result enqueueEventsWait(pi_queue command_queue, CUstream stream,
   }
 }
 
+pi_result piCalculateNumChannels(pi_image_channel_order order,
+                                 unsigned int *num_channels) {
+  pi_result err = PI_SUCCESS;
+  switch (order) {
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_A:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_R:
+    *num_channels = 1;
+    break;
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RG:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RA:
+    *num_channels = 2;
+    break;
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGB:
+    /// TODO: can we support 3 channel images?
+    err = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+    // *num_channels = 3;
+    break;
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGBA:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_ARGB:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_BGRA:
+    *num_channels = 4;
+    break;
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_Rx:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGx:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGBx:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_INTENSITY:
+  case pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_LUMINANCE:
+  default:
+    err = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+    break;
+  }
+  return err;
+}
+
 /// Convert a PI image format to a CUDA image format and
 /// get the pixel size in bytes.
 /// /param image_channel_type is the pi_image_channel_type.
@@ -3056,19 +3090,27 @@ pi_result cuda_piextMemImageAllocate(pi_context context, pi_mem_flags flags,
 
   pi_result retErr = PI_SUCCESS;
 
-  // We only support RBGA channel order
-  // TODO: check SYCL CTS and spec. May also have to support BGRA
-  if (image_format->image_channel_order !=
-      pi_image_channel_order::PI_IMAGE_CHANNEL_ORDER_RGBA) {
-    sycl::detail::pi::die(
-        "cuda_piMemImageCreate only supports RGBA channel order");
-  }
-
   // We have to use cuArray3DCreate, which has some caveats. The height and
   // depth parameters must be set to 0 produce 1D or 2D arrays. image_desc gives
   // a minimum value of 1, so we need to convert the answer.
-  CUDA_ARRAY3D_DESCRIPTOR array_desc;
-  array_desc.NumChannels = 4; // Only support 4 channel image
+  CUDA_ARRAY3D_DESCRIPTOR array_desc = {};
+
+  unsigned int num_channels = 0;
+  retErr = piCalculateNumChannels(image_format->image_channel_order,
+                                  &array_desc.NumChannels);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piextMemImageAllocate given unsupported image_channel_order");
+  }
+
+  retErr =
+      piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                 &array_desc.Format, nullptr);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piextMemImageAllocate given unsupported image_channel_data_type");
+  }
+
   array_desc.Flags = 0;       // No flags required
   array_desc.Width = image_desc->image_width;
   if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
@@ -3082,25 +3124,12 @@ pi_result cuda_piextMemImageAllocate(pi_context context, pi_mem_flags flags,
     array_desc.Depth = image_desc->image_depth;
   }
 
-  // We need to get this now in bytes for calculating the total image size later
-  size_t pixel_type_size_bytes;
-
-  retErr =
-      piToCudaImageChannelFormat(image_format->image_channel_data_type,
-                                 &array_desc.Format, &pixel_type_size_bytes);
-  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
-    sycl::detail::pi::die(
-        "cuda_piMemImageCreate given unsupported image_channel_data_type");
-  }
-
   ScopedContext active(context);
   CUarray image_array;
-  retErr = PI_CHECK_ERROR(cuArray3DCreate(&image_array, &array_desc));
 
   try {
-
+    retErr = PI_CHECK_ERROR(cuArray3DCreate(&image_array, &array_desc));
     *ret_mem = (void*)image_array;
-
   } catch (pi_result err) {
     cuArrayDestroy(image_array);
     return err;
@@ -3253,14 +3282,30 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
                                  pi_image_desc *image_desc, uint32_t flags) {
 
   assert(src_ptr != nullptr);
-
   pi_result retErr = PI_SUCCESS;
 
   // We use cuArray3DCreate, which has some caveats. The height and
   // depth parameters must be set to 0 produce 1D or 2D arrays. image_desc gives
   // a minimum value of 1, so we need to convert the answer.
-  CUDA_ARRAY3D_DESCRIPTOR array_desc;
-  array_desc.NumChannels = 4; // Only support 4 channel image
+  CUDA_ARRAY3D_DESCRIPTOR array_desc = {};
+
+  retErr = piCalculateNumChannels(image_format->image_channel_order,
+                                  &array_desc.NumChannels);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piextMemImageCopy given unsupported image_channel_order");
+  }
+
+  // We need to get this now in bytes for calculating the total image size later
+  size_t pixel_type_size_bytes;
+  retErr =
+      piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                 &array_desc.Format, &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piextMemImageCopy given unsupported image_channel_data_type");
+  }
+
   array_desc.Flags = 0;       // No flags required
   array_desc.Width = image_desc->image_width;
   if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
@@ -3274,20 +3319,7 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
     array_desc.Depth = image_desc->image_depth;
   }
 
-  // We need to get this now in bytes for calculating the total image size later
-  size_t pixel_type_size_bytes;
-
-  retErr =
-      piToCudaImageChannelFormat(image_format->image_channel_data_type,
-                                 &array_desc.Format, &pixel_type_size_bytes);
-  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
-    sycl::detail::pi::die(
-        "cuda_piMemImageCreate given unsupported image_channel_data_type");
-  }
-
-  // When a dimension isn't used image_desc has the size set to 1
-  size_t pixel_size_bytes =
-      pixel_type_size_bytes * 4; // 4 is the only number of channels we support
+  size_t pixel_size_bytes = pixel_type_size_bytes * array_desc.NumChannels;
 
   ScopedContext active(context);
 

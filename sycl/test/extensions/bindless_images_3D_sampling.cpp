@@ -35,7 +35,8 @@ int main() {
 
   // Image descriptor
   _V1::ext::oneapi::image_descriptor desc({width, height, depth},
-                                          image_format::r32g32b32a32_sfloat);
+                                          image_channel_order::rgba,
+                                          image_channel_type::fp32);
 
   sampler samp1(coordinate_normalization_mode::normalized,
                 addressing_mode::clamp, filtering_mode::linear);
