@@ -15,37 +15,21 @@ int main() {
 
   // declare image data
   // we use float4s but only take the first element
-  // data, calculation
-  //            0,1,2,3            0,2,4,6
-  //          0,1,2,3            0,2,4,6
-  //        0,1,2,3            0,2,4,6
-  // A:   0,1,2,3         B: 0,2,4,6
-  //      0,1,2,3            0,2,4,6
-  //      0,1,2,3            0,2,4,6
-  //      0,1,2,3            0,2,4,6
-  //
-  //            0,3,6,9
-  //          0,3,6,9
-  //        0,3,6,9
-  // A+B: 0,3,6,9
-  //      0,3,6,9
-  //      0,3,6,9
-  //      0,3,6,9
-  size_t height = 4;
-  size_t width = 4;
-  size_t depth = 4;
-  size_t N = height * width * depth;
+  size_t height = 2;
+  size_t width = 5;
+  size_t depth = 6;
+  size_t N = width * height * depth;
   std::vector<float> out(N);
   std::vector<float> expected(N);
   std::vector<float4> dataIn1(N);
   std::vector<float4> dataIn2(N);
-  for (int i = 0; i < height; i++) {  // row
-    for (int j = 0; j < width; j++) { // column
-      for (int k = 0; k < depth; k++) // depth
-      {
-        expected[i + width * (j + depth * k)] = j * 3;
-        dataIn1[i + width * (j + depth * k)] = {j, j, j, j};
-        dataIn2[i + width * (j + depth * k)] = {j * 2, j * 2, j * 2, j * 2};
+  // ROW-MAJOR
+  for (int i = 0; i < width; i++) {
+    for (int j = 0; j < height; j++) {
+      for (int k = 0; k < depth; k++) {
+        expected[k + depth * (j + height * i)] = j * 3;
+        dataIn1[k + depth * (j + height * i)] = {j, j, j, j};
+        dataIn2[k + depth * (j + height * i)] = {j * 2, j * 2, j * 2, j * 2};
       }
     }
   }
@@ -77,10 +61,14 @@ int main() {
       _V1::ext::oneapi::create_image(ctxt, device_ptr2);
 
   try {
-    buffer<float, 3> buf((float *)out.data(), range<3>{width, height, depth});
+    // Cuda stores data in column-major fashion
+    // SYCL deals with indexing in row-major fashion
+    // Reverse output buffer dimensions and access to convert
+    // the cuda column-major data back to row-major
+    buffer<float, 3> buf((float *)out.data(), range<3>{depth, height, width});
     q.submit([&](handler &cgh) {
       auto outAcc = buf.get_access<access_mode::write>(
-          cgh, range<3>{width, height, depth});
+          cgh, range<3>{depth, height, width});
 
       cgh.parallel_for<image_addition>(
           nd_range<3>{{width, height, depth}, {width, height, depth}},
@@ -91,12 +79,12 @@ int main() {
             float sum = 0;
             // Extension: read image data from handle
             float4 px1 = _V1::ext::oneapi::read_image<float4>(
-                imgHandle1, int4(dim2, dim1, dim0, 0));
+                imgHandle1, int4(dim0, dim1, dim2, 0));
             float4 px2 = _V1::ext::oneapi::read_image<float4>(
-                imgHandle2, int4(dim2, dim1, dim0, 0));
+                imgHandle2, int4(dim0, dim1, dim2, 0));
 
             sum = px1[0] + px2[0];
-            outAcc[id<3>{dim0, dim1, dim2}] = sum;
+            outAcc[id<3>{dim2, dim1, dim0}] = sum;
           });
     });
   } catch (...) {
@@ -115,22 +103,6 @@ int main() {
 
   // collect and validate output
   // we use float4s but only take the first element
-  // data, calculation
-  //            0,1,2,3            0,2,4,6
-  //          0,1,2,3            0,2,4,6
-  //        0,1,2,3            0,2,4,6
-  // A:   0,1,2,3         B: 0,2,4,6
-  //      0,1,2,3            0,2,4,6
-  //      0,1,2,3            0,2,4,6
-  //      0,1,2,3            0,2,4,6
-  //
-  //            0,3,6,9
-  //          0,3,6,9
-  //        0,3,6,9
-  // A+B: 0,3,6,9
-  //      0,3,6,9
-  //      0,3,6,9
-  //      0,3,6,9
   bool validated = true;
   for (int i = 0; i < N; i++) {
     bool mismatch = false;
