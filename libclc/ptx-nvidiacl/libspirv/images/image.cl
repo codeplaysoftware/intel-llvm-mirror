@@ -173,6 +173,17 @@ float4 __nvvm_tex_1d_v4f32_f32(unsigned long, float) __asm("__clc_llvm_nvvm_tex_
 float4 __nvvm_tex_2d_v4f32_f32(unsigned long, float, float) __asm("__clc_llvm_nvvm_tex_2d_v4f32_f32");
 float4 __nvvm_tex_3d_v4f32_f32(unsigned long, float, float, float) __asm("__clc_llvm_nvvm_tex_3d_v4f32_f32");
 
+void __nvvm_sust_p_1d_v4i32_trap(
+    unsigned long, int, float, float, float,
+    float) __asm("__clc_llvm_nvv_sust_p_1d_v4i32_trap");
+
+void __nvvm_sust_p_2d_v4i32_trap(
+    unsigned long, int, int, float, float, float,
+    float) __asm("__clc_llvm_nvv_sust_p_2d_v4i32_trap");
+
+void __nvvm_sust_p_3d_v4i32_trap(
+    unsigned long, int, int, int, float, float, float,
+    float) __asm("__clc_llvm_nvv_sust_p_3d_v4i32_trap");
 
 // Helpers
 
@@ -1001,6 +1012,27 @@ _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv2_iET_T0_T1_(
 _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv4_iET_T0_T1_(
     unsigned long imageHandle, int4 coord){
   return __nvvm_tex_3d_v4f32_s32(imageHandle, coord.x, coord.y, coord.z);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImiDv4_fEvT_T0_T1_(unsigned long imageHandle,
+                                             int coord, float4 data) {
+  return __nvvm_sust_p_1d_v4i32_trap(imageHandle, coord, data.x, data.y, data.z,
+                                     data.w);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_iDv4_fEvT_T0_T1_(unsigned long imageHandle,
+                                             int2 coord, float4 data) {
+  return __nvvm_sust_p_2d_v4i32_trap(imageHandle, coord.x, coord.y, data.x,
+                                     data.y, data.z, data.w);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_iDv4_fEvT_T0_T1_(unsigned long imageHandle,
+                                             int4 coord, float4 data) {
+  return __nvvm_sust_p_3d_v4i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                     data.x, data.y, data.z, data.w);
 }
 
 // FLOAT coords
