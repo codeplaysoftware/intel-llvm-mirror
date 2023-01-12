@@ -156,6 +156,30 @@ DataT read_image(const image_handle &imageHandle, const CoordT &coords) {
   }
 }
 
+template <typename DataT, typename CoordT>
+void write_image(const image_handle &imageHandle, const CoordT &Coords,
+           const DataT &Color) {
+  constexpr size_t coordSize = detail::coord_size<CoordT>();
+  if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4) {
+#ifdef __SYCL_DEVICE_ONLY__
+#if defined(__NVPTX__)
+    __invoke__ImageWrite<uint64_t, CoordT, DataT>((uint64_t)imageHandle.value,
+                                                  Coords, Color);
+#else
+    __invoke__ImageWrite<OCLImageTy, CoordT, DataT>(
+        __spirv_ConvertUToImageNV<OCLImageTy>(imageHandle.value), Coords,
+        Color);
+#endif
+#else
+    assert(false); // Bindless images not yet implemented on host.
+#endif
+  } else {
+    static_assert(coordSize == 1 || coordSize == 2 || coordSize == 4,
+                  "Expected input coordinate to be have 1, 2, or 4 components "
+                  "for 1D, 2D and 3D images respectively.");
+  }
+}
+
 } // namespace oneapi
 } // namespace ext
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)
