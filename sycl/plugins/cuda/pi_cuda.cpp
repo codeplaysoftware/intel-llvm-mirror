@@ -3149,6 +3149,89 @@ cuda_piextMemImageCreate(pi_context context, void *image_array,
   return retErr;
 }
 
+pi_result
+cuda_piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
+                                void *image_array,
+                                void **ret_mem) { // Need input memory object
+
+  assert(ret_mem != nullptr);
+  pi_result retErr = PI_SUCCESS;
+  ScopedContext active(context);
+
+  try {
+    // CUDA_RESOURCE_DESC is a union of different structs, shown here
+    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TEXOBJECT.html
+    // We need to fill it as described here to use it for a surface or texture
+    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__SURFOBJECT.html
+    // CUDA_RESOURCE_DESC::resType must be CU_RESOURCE_TYPE_ARRAY and
+    // CUDA_RESOURCE_DESC::res::array::hArray must be set to a valid CUDA array
+    // handle.
+    // CUDA_RESOURCE_DESC::flags must be set to zero
+    CUDA_RESOURCE_DESC image_res_desc{};
+    image_res_desc.res.array.hArray = (CUarray)image_array;
+    image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
+    image_res_desc.flags = 0;
+
+    /// pi_sampler_properties
+    /// | 31 30 ... 6 5 |      4 3 2      |     1      |         0        |
+    /// |      N/A      | addressing mode | fiter mode | normalize coords |
+    CUDA_TEXTURE_DESC image_tex_desc{};
+    CUaddress_mode addrMode;
+    uint32_t addrModeProp = ((sampler->props_ >> 2) & 7);
+    if (addrModeProp == (PI_SAMPLER_ADDRESSING_MODE_CLAMP_TO_EDGE -
+                         PI_SAMPLER_ADDRESSING_MODE_NONE)) {
+      addrMode = CU_TR_ADDRESS_MODE_CLAMP;
+    } else if (addrModeProp == (PI_SAMPLER_ADDRESSING_MODE_CLAMP -
+                                PI_SAMPLER_ADDRESSING_MODE_NONE)) {
+      addrMode = CU_TR_ADDRESS_MODE_BORDER;
+    } else if (addrModeProp == (PI_SAMPLER_ADDRESSING_MODE_REPEAT -
+                                PI_SAMPLER_ADDRESSING_MODE_NONE)) {
+      addrMode = CU_TR_ADDRESS_MODE_WRAP;
+    } else if (addrModeProp == (PI_SAMPLER_ADDRESSING_MODE_MIRRORED_REPEAT -
+                                PI_SAMPLER_ADDRESSING_MODE_NONE)) {
+      addrMode = CU_TR_ADDRESS_MODE_MIRROR;
+    }
+    CUfilter_mode filterMode;
+    uint32_t filterModeProp = ((sampler->props_ >> 1) & 1);
+    filterMode =
+        filterModeProp ? CU_TR_FILTER_MODE_LINEAR : CU_TR_FILTER_MODE_POINT;
+    image_tex_desc.filterMode = filterMode;
+
+    // The address modes can interfere with other dimensions
+    // e.g. 1D texture sampling can be interfered with when setting other
+    // dimension address modes despite their nonexistence
+    //
+    // Get dimensions from cuArray
+    CUDA_ARRAY3D_DESCRIPTOR array_desc;
+    retErr = PI_CHECK_ERROR(
+        cuArray3DGetDescriptor(&array_desc, image_res_desc.res.array.hArray));
+    image_tex_desc.addressMode[0] = addrMode; // 1D
+    image_tex_desc.addressMode[1] =
+        array_desc.Height > 0 ? addrMode : image_tex_desc.addressMode[1]; // 2D
+    image_tex_desc.addressMode[2] =
+        array_desc.Depth > 0 ? addrMode : image_tex_desc.addressMode[2]; // 3D
+
+    // flags takes the normalized coordinates setting -- unnormalized is default
+    image_tex_desc.flags = (sampler->props_ & 1)
+                               ? CU_TRSF_NORMALIZED_COORDINATES
+                               : image_tex_desc.flags;
+
+    CUtexObject texture;
+    retErr = PI_CHECK_ERROR(
+        cuTexObjectCreate(&texture, &image_res_desc, &image_tex_desc, nullptr));
+
+    *ret_mem = (void *)texture;
+  } catch (pi_result err) {
+    cuArrayDestroy((CUarray)image_array);
+    return err;
+  } catch (...) {
+    cuArrayDestroy((CUarray)image_array);
+    return PI_ERROR_UNKNOWN;
+  }
+
+  return retErr;
+}
+
 pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
                                  void *src_ptr, pi_image_format *image_format,
                                  pi_image_desc *image_desc, uint32_t flags) {
@@ -5939,6 +6022,7 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   _PI_CL(piextMemImageHandleDestroy, cuda_piextMemImageHandleDestroy)
   _PI_CL(piextMemImageAllocate, cuda_piextMemImageAllocate)
   _PI_CL(piextMemImageCreate, cuda_piextMemImageCreate)
+  _PI_CL(piextMemSampledImageCreate, cuda_piextMemSampledImageCreate)
   _PI_CL(piextMemImageCopy, cuda_piextMemImageCopy)
 
   _PI_CL(piPluginGetLastError, cuda_piPluginGetLastError)

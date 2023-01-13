@@ -1954,6 +1954,17 @@ __SYCL_EXPORT pi_result piextMemImageCreate(pi_context context,
                                             void *image_array,
                                             void **ret_mem);
 
+/// API to create sampled bindless image handles.
+///
+/// \param context is the pi_context
+/// \param sampler is the pi_sampler
+/// \param image_array is the handle to memory from which to create the image
+/// \param ret_mem is the returning memory handle to newly allocated memory
+__SYCL_EXPORT pi_result piextMemSampledImageCreate(pi_context context,
+                                                   pi_sampler sampler,
+                                                   void *image_array,
+                                                   void **ret_mem);
+
 __SYCL_EXPORT pi_result piextMemImageCopy(pi_context context,
                                           void *dst_ptr, void *src_ptr,
                                           pi_image_format *image_format,

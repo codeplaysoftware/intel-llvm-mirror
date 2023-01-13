@@ -6,13 +6,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <sycl/ext/oneapi/bindless_textures.hpp>
 #include <sycl/detail/common.hpp>
 #include <sycl/detail/pi.hpp>
+#include <sycl/ext/oneapi/bindless_textures.hpp>
+#include <sycl/sampler.hpp>
 
 #include <detail/context_impl.hpp>
-#include <detail/plugin_printers.hpp>
 #include <detail/image_impl.hpp>
+#include <detail/plugin_printers.hpp>
+#include <detail/sampler_impl.hpp>
 
 #include <memory>
 
@@ -86,8 +88,7 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
 }
 
 __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
-                                        void *devPtr
-                                        /*, sampler, pitch*/) {
+                                        void *devPtr) {
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
@@ -99,6 +100,32 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
   pi_image_handle piImageHandle;
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCreate>(
       C, devPtr, &piImageHandle);
+
+  if (Error != PI_SUCCESS) {
+    return image_handle{nullptr};
+  }
+  return image_handle{piImageHandle};
+}
+
+__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
+                                        void *devPtr, sampler &sampler) {
+
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  // Obtain pi_sampler
+  std::shared_ptr<sycl::detail::sampler_impl> SamplerImpl =
+      sycl::detail::getSyclObjImpl(sampler);
+  pi_sampler piSampler = SamplerImpl->getOrCreateSampler(syclContext);
+
+  // Call impl.
+  pi_image_handle piImageHandle;
+  Error =
+      Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemSampledImageCreate>(
+          C, piSampler, devPtr, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
     return image_handle{nullptr};

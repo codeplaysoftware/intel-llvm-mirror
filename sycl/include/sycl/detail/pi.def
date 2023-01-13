@@ -141,6 +141,7 @@ _PI_API(piextPluginGetOpaqueData)
 _PI_API(piextMemImageHandleDestroy)
 _PI_API(piextMemImageAllocate)
 _PI_API(piextMemImageCreate)
+_PI_API(piextMemSampledImageCreate)
 _PI_API(piextMemImageCopy)
 
 _PI_API(piPluginGetLastError)
