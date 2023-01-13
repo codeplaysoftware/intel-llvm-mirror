@@ -9,9 +9,10 @@
 #pragma once
 
 #include <sycl/detail/defines_elementary.hpp>
+#include <sycl/detail/image_ocl_types.hpp>
 #include <sycl/image.hpp>
 #include <sycl/range.hpp>
-#include <sycl/detail/image_ocl_types.hpp>
+#include <sycl/sampler.hpp>
 
 #include <cstdint>
 
@@ -85,6 +86,16 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
                                         void *devPtr);
 
 /**
+ *  @brief   Create a sampled image and return the device handle
+ *  @param   syclContext The context in which we create our handle
+ *  @param   devPtr Device memory handle for created image
+ *  @param   sampler SYCL sampler to sample the image
+ *  @returns Handle to created image object on the GPU
+ */
+__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
+                                        void *devPtr, sampler &sampler);
+
+/**
  *  @brief   Copy image data between device and host
  *  @param   syclContext The context in which we create our handle
  *  @param   dst_ptr Destination memory handle/pointer
@@ -100,6 +111,8 @@ namespace detail {
 template<typename CoordT>
 constexpr size_t coord_size(){
   if constexpr (std::is_same<CoordT, int>::value) {
+    return 1;
+  } else if constexpr (std::is_same<CoordT, float>::value) {
     return 1;
   } else {
     return CoordT::size();

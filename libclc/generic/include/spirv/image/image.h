@@ -30,8 +30,13 @@ _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
     unsigned long imageHandle, int2 coord);
 _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
     unsigned long imageHandle, int4 coord);
-
-
+    
+_CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
+    unsigned long imageHandle, float coord);
+_CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
+    unsigned long imageHandle, float2 coord);
+_CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageRead__Rfloat4(
+    unsigned long imageHandle, float4 coord);
 
 _CLC_OVERLOAD _CLC_DECL float4 __spirv_ImageSampleExplicitcoord__Rfloat4(
     sampler_t sampler, float coord, int op1, float op2);

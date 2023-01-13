@@ -5485,6 +5485,20 @@ pi_result piextMemImageCreate(pi_context context, void *image_array,
   return retErr;
 }
 
+pi_result piextMemSampledImageCreate(pi_context context, pi_sampler sampler, 
+                                     void *image_array,
+                                     void **ret_mem) {
+
+  assert(context != nullptr);
+  assert(image_array != nullptr);
+  assert(ret_mem != nullptr);
+
+  die("piExtMemSampledImageCreate not implemented on level zero backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
 pi_result piextMemImageCopy(pi_context context, void *image_array,
                                  void *host_ptr, pi_image_format *image_format,
                                  pi_image_desc *image_desc, uint32_t direction) {
