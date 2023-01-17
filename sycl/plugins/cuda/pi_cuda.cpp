@@ -3095,7 +3095,6 @@ pi_result cuda_piextMemImageAllocate(pi_context context, pi_mem_flags flags,
   // a minimum value of 1, so we need to convert the answer.
   CUDA_ARRAY3D_DESCRIPTOR array_desc = {};
 
-  unsigned int num_channels = 0;
   retErr = piCalculateNumChannels(image_format->image_channel_order,
                                   &array_desc.NumChannels);
   if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
@@ -3402,7 +3401,7 @@ pi_result cuda_piextMemImageHandleDestroy(pi_context context,
   assert(handle != nullptr);
 
   pi_result retErr = PI_SUCCESS;
-  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUtexObject)handle));
+  retErr = PI_CHECK_ERROR(cuSurfObjectDestroy((CUsurfObject)handle));
   return retErr;
 }
 
