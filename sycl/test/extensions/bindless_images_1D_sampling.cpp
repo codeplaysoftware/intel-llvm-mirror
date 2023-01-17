@@ -26,14 +26,14 @@ int main() {
   }
 
   // Image descriptor
-  _V1::ext::oneapi::image_descriptor desc({width}, image_channel_order::rgba,
-                                          image_channel_type::fp32);
+  sycl::ext::oneapi::image_descriptor desc({width}, image_channel_order::rgba,
+                                           image_channel_type::fp32);
 
   sampler samp1(coordinate_normalization_mode::normalized,
                 addressing_mode::clamp, filtering_mode::linear);
 
   // Extension: returns the device pointer to the allocated memory
-  auto device_ptr1 = _V1::ext::oneapi::allocate_image(ctxt, desc);
+  auto device_ptr1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
   if (device_ptr1 == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
@@ -41,12 +41,12 @@ int main() {
   }
 
   // Extension: copy over data to device
-  _V1::ext::oneapi::copy_image(ctxt, device_ptr1, dataIn1.data(), desc,
-                               _V1::ext::oneapi::image_copy_flags::HtoD);
+  sycl::ext::oneapi::copy_image(ctxt, device_ptr1, dataIn1.data(), desc,
+                                sycl::ext::oneapi::image_copy_flags::HtoD);
 
   // Extension: create the image and return the handle
-  _V1::ext::oneapi::image_handle imgHandle1 =
-      _V1::ext::oneapi::create_image(ctxt, device_ptr1, samp1);
+  sycl::ext::oneapi::image_handle imgHandle1 =
+      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1);
 
   try {
     buffer<float, 1> buf((float *)out.data(), N);
@@ -57,7 +57,7 @@ int main() {
         // Normalize coordinate -- +0.5 to look towards centre of pixel
         float x = float(id[0] + 0.5) / (float)N;
         // Extension: read image data from handle
-        float4 px1 = _V1::ext::oneapi::read_image<float4>(imgHandle1, x);
+        float4 px1 = sycl::ext::oneapi::read_image<float4>(imgHandle1, x);
 
         outAcc[id] = px1[0];
       });
@@ -69,8 +69,8 @@ int main() {
 
   // Cleanup
   try {
-    _V1::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
-    _V1::ext::oneapi::free_image(ctxt, device_ptr1);
+    sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
+    sycl::ext::oneapi::free_image(ctxt, device_ptr1);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

@@ -18,53 +18,54 @@ int main() {
   size_t width = 4;
   size_t depth = 4;
   size_t N = height * width * depth;
-  std::vector<float2> out(N);
-  std::vector<float> expected(N);
-  std::vector<float2> dataIn1(N);
-  std::vector<float2> dataIn2(N);
+  std::vector<int> out(N);
+  std::vector<int> expected(N);
+  std::vector<int> dataIn1(N);
+  std::vector<int> dataIn2(N);
   for (int i = 0; i < height; i++) {  // row
     for (int j = 0; j < width; j++) { // column
       for (int k = 0; k < depth; k++) // depth
       {
         expected[i + height * (j + width * k)] = j * 3;
-        dataIn1[i + height * (j + width * k)] = {j, j};
-      dataIn2[i + height * (j + width * k)] = {j * 2, j * 2};
+        dataIn1[i + height * (j + width * k)] = {j};
+        dataIn2[i + height * (j + width * k)] = {j * 2};
       }
     }
   }
 
   // Image descriptor - can use the same for both images
-  _V1::ext::oneapi::image_descriptor desc({width, height, depth},
-                                          image_channel_order::rg,
-                                          image_channel_type::fp32);
+  sycl::ext::oneapi::image_descriptor desc({width, height, depth},
+                                           image_channel_order::r,
+                                           image_channel_type::signed_int32);
 
   // Extension: returns the device pointer to the allocated memory
   // Input images memory
-  auto device_ptr1 = _V1::ext::oneapi::allocate_image(ctxt, desc);
-  auto device_ptr2 = _V1::ext::oneapi::allocate_image(ctxt, desc);
+  auto device_ptr1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto device_ptr2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
   // Output image memory
-  auto device_ptr3 = _V1::ext::oneapi::allocate_image(ctxt, desc);
+  auto device_ptr3 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
-  if (device_ptr1 == nullptr || device_ptr2 == nullptr) {
+  if (device_ptr1 == nullptr || device_ptr2 == nullptr ||
+      device_ptr3 == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return 1;
   }
 
   // Extension: copy over data to device
-  _V1::ext::oneapi::copy_image(ctxt, device_ptr1, dataIn1.data(), desc,
-                               _V1::ext::oneapi::image_copy_flags::HtoD);
-  _V1::ext::oneapi::copy_image(ctxt, device_ptr2, dataIn2.data(), desc,
-                               _V1::ext::oneapi::image_copy_flags::HtoD);
+  sycl::ext::oneapi::copy_image(ctxt, device_ptr1, dataIn1.data(), desc,
+                                sycl::ext::oneapi::image_copy_flags::HtoD);
+  sycl::ext::oneapi::copy_image(ctxt, device_ptr2, dataIn2.data(), desc,
+                                sycl::ext::oneapi::image_copy_flags::HtoD);
 
   // Extension: create the image and return the handle
-  _V1::ext::oneapi::image_handle imgIn1 =
-      _V1::ext::oneapi::create_image(ctxt, device_ptr1);
-  _V1::ext::oneapi::image_handle imgIn2 =
-      _V1::ext::oneapi::create_image(ctxt, device_ptr2);
+  sycl::ext::oneapi::image_handle imgIn1 =
+      sycl::ext::oneapi::create_image(ctxt, device_ptr1);
+  sycl::ext::oneapi::image_handle imgIn2 =
+      sycl::ext::oneapi::create_image(ctxt, device_ptr2);
 
-  _V1::ext::oneapi::image_handle imgOut =
-      _V1::ext::oneapi::create_image(ctxt, device_ptr3);
+  sycl::ext::oneapi::image_handle imgOut =
+      sycl::ext::oneapi::create_image(ctxt, device_ptr3);
 
   try {
     q.submit([&](handler &cgh) {
@@ -76,15 +77,15 @@ int main() {
             size_t dim2 = it.get_local_id(2);
             float sum = 0;
             // Extension: read image data from handle
-            float2 px1 = _V1::ext::oneapi::read_image<float2>(
+            int px1 = sycl::ext::oneapi::read_image<int>(
                 imgIn1, int4(dim0, dim1, dim2, 0));
-            float2 px2 = _V1::ext::oneapi::read_image<float2>(
+            int px2 = sycl::ext::oneapi::read_image<int>(
                 imgIn2, int4(dim0, dim1, dim2, 0));
 
-            sum = px1[0] + px2[0];
+            sum = px1 + px2;
             // Extension: write to image with handle
-            _V1::ext::oneapi::write_image<float2>(
-                imgOut, int4(dim0, dim1, dim2, 0), float2(sum));
+            sycl::ext::oneapi::write_image<int>(
+                imgOut, int4(dim0, dim1, dim2, 0), int(sum));
           });
     });
   } catch (...) {
@@ -92,17 +93,17 @@ int main() {
     assert(false);
   }
 
-  _V1::ext::oneapi::copy_image(ctxt, out.data(), device_ptr3, desc,
-                               _V1::ext::oneapi::image_copy_flags::DtoH);
+  sycl::ext::oneapi::copy_image(ctxt, out.data(), device_ptr3, desc,
+                                sycl::ext::oneapi::image_copy_flags::DtoH);
 
   // Cleanup
   try {
-    _V1::ext::oneapi::destroy_image_handle(ctxt, imgIn1);
-    _V1::ext::oneapi::destroy_image_handle(ctxt, imgIn2);
-    _V1::ext::oneapi::destroy_image_handle(ctxt, imgOut);
-    _V1::ext::oneapi::free_image(ctxt, device_ptr1);
-    _V1::ext::oneapi::free_image(ctxt, device_ptr2);
-    _V1::ext::oneapi::free_image(ctxt, device_ptr3);
+    sycl::ext::oneapi::destroy_image_handle(ctxt, imgIn1);
+    sycl::ext::oneapi::destroy_image_handle(ctxt, imgIn2);
+    sycl::ext::oneapi::destroy_image_handle(ctxt, imgOut);
+    sycl::ext::oneapi::free_image(ctxt, device_ptr1);
+    sycl::ext::oneapi::free_image(ctxt, device_ptr2);
+    sycl::ext::oneapi::free_image(ctxt, device_ptr3);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);
@@ -112,14 +113,14 @@ int main() {
   bool validated = true;
   for (int i = 0; i < N; i++) {
     bool mismatch = false;
-    if (out[i][0] != expected[i]) {
+    if (out[i] != expected[i]) {
       mismatch = true;
       validated = false;
     }
 
     if (mismatch) {
       std::cout << "Result mismatch! Expected: " << expected[i]
-                << ", Actual: " << out[i][0] << std::endl;
+                << ", Actual: " << out[i] << std::endl;
     }
   }
   if (validated) {
