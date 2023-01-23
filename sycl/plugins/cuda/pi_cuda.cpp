@@ -3111,6 +3111,22 @@ pi_result cuda_piextMemImageAllocate(pi_context context, pi_mem_flags flags,
   return retErr;
 }
 
+pi_result cuda_piextMemImageFree(pi_context context, void *memory_handle) {
+  assert(memory_handle);
+
+  pi_result retErr = PI_SUCCESS;
+
+  ScopedContext active(context);
+  try {
+    retErr = PI_CHECK_ERROR(cuArrayDestroy((CUarray)memory_handle));
+  } catch (pi_result err) {
+    return err;
+  } catch (...) {
+    return PI_ERROR_UNKNOWN;
+  }
+  return retErr;
+}
+
 pi_result
 cuda_piextMemImageCreate(pi_context context, void *image_array,
                          void **ret_mem) { // Need input memory object
@@ -6021,6 +6037,7 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   // Bindless Images
   _PI_CL(piextMemImageHandleDestroy, cuda_piextMemImageHandleDestroy)
   _PI_CL(piextMemImageAllocate, cuda_piextMemImageAllocate)
+  _PI_CL(piextMemImageFree, cuda_piextMemImageFree)
   _PI_CL(piextMemImageCreate, cuda_piextMemImageCreate)
   _PI_CL(piextMemSampledImageCreate, cuda_piextMemSampledImageCreate)
   _PI_CL(piextMemImageCopy, cuda_piextMemImageCopy)

@@ -1945,6 +1945,13 @@ __SYCL_EXPORT pi_result piextMemImageAllocate(
     pi_context context, pi_mem_flags flags, pi_image_format *image_format,
     pi_image_desc *image_desc, void **ret_mem);
 
+/// API to free memory for bindless images.
+///
+/// \param context is the pi_context
+/// \param memory_handle is the handle to image memory to be freed
+__SYCL_EXPORT pi_result piextMemImageFree(pi_context context,
+                                          void *memory_handle);
+
 /// API to create bindless image handles.
 ///
 /// \param context is the pi_context

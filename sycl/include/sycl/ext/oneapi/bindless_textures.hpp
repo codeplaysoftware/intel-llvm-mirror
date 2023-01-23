@@ -77,6 +77,14 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
                                    image_descriptor desc);
 
 /**
+ *  @brief   Free image memory
+ *  @param   syclContext The context in which we create our handle
+ *  @param   memory_handle The image memory handle
+ */
+__SYCL_EXPORT void free_image(const sycl::context &syclContext,
+                                   void *memory_handle);
+
+/**
  *  @brief   Create an image and return the device handle
  *  @param   syclContext The context in which we create our handle
  *  @param   devPtr Device memory handle for created image
