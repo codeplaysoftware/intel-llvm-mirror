@@ -86,6 +86,7 @@ int main() {
   // Cleanup
   try {
     _V1::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
+    _V1::ext::oneapi::free_image(ctxt, device_ptr1);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

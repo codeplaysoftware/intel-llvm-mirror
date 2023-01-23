@@ -5472,6 +5472,17 @@ pi_result piextMemImageAllocate(pi_context context, pi_mem_flags flags,
   return retErr;
 }
 
+pi_result piextMemImageFree(pi_context context, void *memory_handle) {
+
+  assert(context != nullptr);
+  assert(memory_handle != nullptr);
+
+  pi_result retErr = PI_SUCCESS;
+  die("piExtMemImageFree not implemented on level zero backend.\n");
+
+  return retErr;
+}
+
 pi_result piextMemImageCreate(pi_context context, void *image_array,
                               void **ret_mem) {
 

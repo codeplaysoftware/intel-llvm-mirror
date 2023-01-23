@@ -140,6 +140,7 @@ _PI_API(piextPluginGetOpaqueData)
 // Bindless Images
 _PI_API(piextMemImageHandleDestroy)
 _PI_API(piextMemImageAllocate)
+_PI_API(piextMemImageFree)
 _PI_API(piextMemImageCreate)
 _PI_API(piextMemSampledImageCreate)
 _PI_API(piextMemImageCopy)

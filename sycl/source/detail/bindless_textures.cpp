@@ -87,6 +87,19 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
   return devPtr;
 }
 
+__SYCL_EXPORT void free_image(const sycl::context &syclContext,
+                              void *memory_handle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+
+  Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageFree>(
+      C, memory_handle);
+
+  return;
+}
+
 __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
                                         void *devPtr) {
 
