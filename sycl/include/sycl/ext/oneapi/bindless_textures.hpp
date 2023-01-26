@@ -13,6 +13,7 @@
 #include <sycl/image.hpp>
 #include <sycl/range.hpp>
 #include <sycl/sampler.hpp>
+#include <sycl/queue.hpp>
 
 #include <cstdint>
 
@@ -109,13 +110,13 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
 
 /**
  *  @brief   Copy image data between device and host
- *  @param   syclContext The context in which we create our handle
+ *  @param   syclQueue The queue in which we copy our image
  *  @param   dst_ptr Destination memory handle/pointer
  *  @param   src_ptr Source memory handle/pointer
  *  @param   desc Image descriptor
  *  @param   flags Image copy flags for copy direction
  */
-__SYCL_EXPORT void copy_image(const sycl::context &syclContext, void *dst_ptr,
+__SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *dst_ptr,
                               void *src_ptr, image_descriptor desc,
                               image_copy_flags flags);
 

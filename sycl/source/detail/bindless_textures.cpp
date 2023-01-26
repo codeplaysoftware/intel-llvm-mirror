@@ -14,6 +14,7 @@
 #include <detail/context_impl.hpp>
 #include <detail/image_impl.hpp>
 #include <detail/plugin_printers.hpp>
+#include <detail/queue_impl.hpp>
 #include <detail/sampler_impl.hpp>
 
 #include <memory>
@@ -144,9 +145,15 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
   return image_handle{piImageHandle};
 }
 
-__SYCL_EXPORT void copy_image(const sycl::context &syclContext, void *devPtr,
+__SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *devPtr,
                               void *data, image_descriptor desc,
                               image_copy_flags flags) {
+
+  auto syclContext = syclQueue.get_context();
+  std::shared_ptr<sycl::detail::queue_impl> QImpl =
+      sycl::detail::getSyclObjImpl(syclQueue);
+  pi_queue Q = QImpl->getHandleRef();
+
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
@@ -174,7 +181,7 @@ __SYCL_EXPORT void copy_image(const sycl::context &syclContext, void *devPtr,
       sycl::_V1::detail::convertChannelOrder(desc.channel_order);
 
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCopy>(
-      C, devPtr, data, &piFormat, &piDesc, flags);
+      Q, devPtr, data, &piFormat, &piDesc, flags);
 
   if (Error != PI_SUCCESS) {
     throw std::invalid_argument("Failed to copy image");

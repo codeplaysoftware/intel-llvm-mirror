@@ -5510,10 +5510,10 @@ pi_result piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
   return retErr;
 }
 
-pi_result piextMemImageCopy(pi_context context, void *image_array,
+pi_result piextMemImageCopy(pi_queue queue, void *image_array,
                                  void *host_ptr, pi_image_format *image_format,
                                  pi_image_desc *image_desc, uint32_t direction) {
-  assert(context != nullptr);
+  assert(queue != nullptr);
   assert(image_array != nullptr);
   assert(host_ptr != nullptr);
 

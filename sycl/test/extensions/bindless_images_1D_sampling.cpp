@@ -41,7 +41,7 @@ int main() {
   }
 
   // Extension: copy over data to device
-  sycl::ext::oneapi::copy_image(ctxt, device_ptr1, dataIn1.data(), desc,
+  sycl::ext::oneapi::copy_image(q, device_ptr1, dataIn1.data(), desc,
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
 
   // Extension: create the image and return the handle
