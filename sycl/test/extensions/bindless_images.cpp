@@ -69,9 +69,9 @@ struct util {
             typename = std::enable_if_t<NDims == 3>>
   static void run_ndim_test(sycl::queue q, sycl::range<3> globalSize,
                             sycl::range<3> localSize,
-                            sycl::ext::oneapi::image_handle input_0,
-                            sycl::ext::oneapi::image_handle input_1,
-                            sycl::ext::oneapi::image_handle output) {
+                            sycl::ext::oneapi::unsampled_image_handle input_0,
+                            sycl::ext::oneapi::unsampled_image_handle input_1,
+                            sycl::ext::oneapi::unsampled_image_handle output) {
     using VecType = sycl::vec<DType, NChannels>;
     try {
       q.submit([&](handler &cgh) {
@@ -102,9 +102,9 @@ struct util {
             typename = std::enable_if_t<NDims == 2>>
   static void run_ndim_test(sycl::queue q, sycl::range<2> globalSize,
                             sycl::range<2> localSize,
-                            sycl::ext::oneapi::image_handle input_0,
-                            sycl::ext::oneapi::image_handle input_1,
-                            sycl::ext::oneapi::image_handle output) {
+                            sycl::ext::oneapi::unsampled_image_handle input_0,
+                            sycl::ext::oneapi::unsampled_image_handle input_1,
+                            sycl::ext::oneapi::unsampled_image_handle output) {
     using VecType = sycl::vec<DType, NChannels>;
     try {
       q.submit([&](handler &cgh) {
@@ -134,9 +134,9 @@ struct util {
             typename = std::enable_if_t<NDims == 1>>
   static void run_ndim_test(sycl::queue q, sycl::range<1> globalSize,
                             sycl::range<1> localSize,
-                            sycl::ext::oneapi::image_handle input_0,
-                            sycl::ext::oneapi::image_handle input_1,
-                            sycl::ext::oneapi::image_handle output) {
+                            sycl::ext::oneapi::unsampled_image_handle input_0,
+                            sycl::ext::oneapi::unsampled_image_handle input_1,
+                            sycl::ext::oneapi::unsampled_image_handle output) {
     using VecType = sycl::vec<DType, NChannels>;
     try {
       q.submit([&](handler &cgh) {
@@ -202,11 +202,11 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize) {
   sycl::ext::oneapi::copy_image(q, device_ptr_1, input_1.data(), desc,
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
 
-  sycl::ext::oneapi::image_handle img_input_0 =
+  sycl::ext::oneapi::unsampled_image_handle img_input_0 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr_0);
-  sycl::ext::oneapi::image_handle img_input_1 =
+  sycl::ext::oneapi::unsampled_image_handle img_input_1 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr_1);
-  sycl::ext::oneapi::image_handle img_output =
+  sycl::ext::oneapi::unsampled_image_handle img_output =
       sycl::ext::oneapi::create_image(ctxt, device_ptr_2);
 
   sycl::range<NDims> globalSize = dims;

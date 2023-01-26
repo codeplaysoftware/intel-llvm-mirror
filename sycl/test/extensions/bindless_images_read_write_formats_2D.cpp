@@ -57,12 +57,12 @@ int main() {
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
 
   // Extension: create the image and return the handle
-  sycl::ext::oneapi::image_handle imgIn1 =
+  sycl::ext::oneapi::unsampled_image_handle imgIn1 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr1);
-  sycl::ext::oneapi::image_handle imgIn2 =
+  sycl::ext::oneapi::unsampled_image_handle imgIn2 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr2);
 
-  sycl::ext::oneapi::image_handle imgOut =
+  sycl::ext::oneapi::unsampled_image_handle imgOut =
       sycl::ext::oneapi::create_image(ctxt, device_ptr3);
 
   try {

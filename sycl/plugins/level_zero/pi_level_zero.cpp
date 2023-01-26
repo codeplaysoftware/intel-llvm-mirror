@@ -5445,7 +5445,19 @@ pi_result piToLZImageDesc(const pi_image_format *ImageFormat,
   return PI_SUCCESS;
 }
 
-pi_result piextMemImageHandleDestroy(pi_context context, pi_image_handle handle) {
+pi_result piextMemUnsampledImageHandleDestroy(pi_context context, pi_image_handle handle) {
+
+  assert(context != nullptr);
+  assert(handle != nullptr);
+
+  pi_result retErr = PI_SUCCESS;
+
+  ZE_CALL(zeImageDestroy, (pi_cast<ze_image_handle_t>(handle)));
+
+  return retErr;
+}
+
+pi_result piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle handle) {
 
   assert(context != nullptr);
   assert(handle != nullptr);
@@ -5483,7 +5495,7 @@ pi_result piextMemImageFree(pi_context context, void *memory_handle) {
   return retErr;
 }
 
-pi_result piextMemImageCreate(pi_context context, void *image_array,
+pi_result piextMemUnsampledImageCreate(pi_context context, void *image_array,
                               void **ret_mem) {
 
   assert(context != nullptr);
