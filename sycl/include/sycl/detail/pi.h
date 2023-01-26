@@ -1926,13 +1926,20 @@ __SYCL_EXPORT pi_result piGetDeviceAndHostTimer(pi_device Device,
                                                 uint64_t *DeviceTime,
                                                 uint64_t *HostTime);
 
-/// API to destroy bindless image handles.
+/// API to destroy bindless unsampled image handles.
 ///
 /// \param context is the pi_context
 /// \param handle is a pointer to the image handle
-__SYCL_EXPORT pi_result piextMemImageHandleDestroy(
+__SYCL_EXPORT pi_result piextMemUnsampledImageHandleDestroy(
   pi_context context,
   pi_image_handle handle);
+
+/// API to destroy bindless sampled image handles.
+///
+/// \param context is the pi_context
+/// \param handle is a pointer to the image handle
+__SYCL_EXPORT pi_result
+piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle handle);
 
 /// API to allocate memory for bindless images.
 ///
@@ -1957,7 +1964,7 @@ __SYCL_EXPORT pi_result piextMemImageFree(pi_context context,
 /// \param context is the pi_context
 /// \param image_array is the handle to memory from which to create the image
 /// \param ret_mem is the returning memory handle to newly allocated memory
-__SYCL_EXPORT pi_result piextMemImageCreate(pi_context context,
+__SYCL_EXPORT pi_result piextMemUnsampledImageCreate(pi_context context,
                                             void *image_array,
                                             void **ret_mem);
 

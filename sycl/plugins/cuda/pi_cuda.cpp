@@ -3156,8 +3156,8 @@ pi_result cuda_piextMemImageFree(pi_context context, void *memory_handle) {
 }
 
 pi_result
-cuda_piextMemImageCreate(pi_context context, void *image_array,
-                         void **ret_mem) { // Need input memory object
+cuda_piextMemUnsampledImageCreate(pi_context context, void *image_array,
+                                  void **ret_mem) { // Need input memory object
 
   assert(ret_mem != nullptr);
   pi_result retErr = PI_SUCCESS;
@@ -3181,7 +3181,7 @@ cuda_piextMemImageCreate(pi_context context, void *image_array,
     CUsurfObject surface;
     retErr = PI_CHECK_ERROR(cuSurfObjectCreate(&surface, &image_res_desc));
 
-    *ret_mem = (void*)surface;
+    *ret_mem = (void *)surface;
   } catch (pi_result err) {
     cuArrayDestroy((CUarray)image_array);
     return err;
@@ -3276,7 +3276,8 @@ cuda_piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
   return retErr;
 }
 
-pi_result cuda_piextMemImageCopy(pi_queue command_queue, /*pi_context context,*/ void *dst_ptr,
+pi_result cuda_piextMemImageCopy(pi_queue command_queue,
+                                 /*pi_context context,*/ void *dst_ptr,
                                  void *src_ptr, pi_image_format *image_format,
                                  pi_image_desc *image_desc, uint32_t flags) {
 
@@ -3305,7 +3306,7 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue, /*pi_context context,*/
         "cuda_piextMemImageCopy given unsupported image_channel_data_type");
   }
 
-  array_desc.Flags = 0;       // No flags required
+  array_desc.Flags = 0; // No flags required
   array_desc.Width = image_desc->image_width;
   if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
     array_desc.Height = 0;
@@ -3328,8 +3329,8 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue, /*pi_context context,*/
     if (flags == PI_IMAGE_COPY_HTOD) {
       if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
         size_t image_size_bytes_1d = pixel_size_bytes * image_desc->image_width;
-        retErr = PI_CHECK_ERROR(cuMemcpyHtoAAsync((CUarray)dst_ptr, 0, src_ptr,
-                                             image_size_bytes_1d, cuStream));
+        retErr = PI_CHECK_ERROR(cuMemcpyHtoAAsync(
+            (CUarray)dst_ptr, 0, src_ptr, image_size_bytes_1d, cuStream));
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
         CUDA_MEMCPY2D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
@@ -3355,8 +3356,8 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue, /*pi_context context,*/
     } else if (flags == PI_IMAGE_COPY_DTOH) {
       if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
         size_t image_size_bytes_1d = pixel_size_bytes * image_desc->image_width;
-        retErr = PI_CHECK_ERROR(cuMemcpyAtoHAsync(dst_ptr, (CUarray)src_ptr, 0,
-                                             image_size_bytes_1d, cuStream));
+        retErr = PI_CHECK_ERROR(cuMemcpyAtoHAsync(
+            dst_ptr, (CUarray)src_ptr, 0, image_size_bytes_1d, cuStream));
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
         CUDA_MEMCPY2D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
@@ -3398,13 +3399,23 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue, /*pi_context context,*/
   return retErr;
 }
 
-pi_result cuda_piextMemImageHandleDestroy(pi_context context,
-                                     pi_image_handle handle) {
+pi_result cuda_piextMemUnsampledImageHandleDestroy(pi_context context,
+                                                   pi_image_handle handle) {
   assert(context != nullptr);
   assert(handle != nullptr);
 
   pi_result retErr = PI_SUCCESS;
   retErr = PI_CHECK_ERROR(cuSurfObjectDestroy((CUsurfObject)handle));
+  return retErr;
+}
+
+pi_result cuda_piextMemSampledImageHandleDestroy(pi_context context,
+                                                 pi_image_handle handle) {
+  assert(context != nullptr);
+  assert(handle != nullptr);
+
+  pi_result retErr = PI_SUCCESS;
+  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUtexObject)handle));
   return retErr;
 }
 
@@ -6069,10 +6080,13 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   _PI_CL(piextKernelSetArgSampler, cuda_piextKernelSetArgSampler)
 
   // Bindless Images
-  _PI_CL(piextMemImageHandleDestroy, cuda_piextMemImageHandleDestroy)
+  _PI_CL(piextMemUnsampledImageHandleDestroy,
+         cuda_piextMemUnsampledImageHandleDestroy)
+  _PI_CL(piextMemSampledImageHandleDestroy,
+         cuda_piextMemSampledImageHandleDestroy)
   _PI_CL(piextMemImageAllocate, cuda_piextMemImageAllocate)
   _PI_CL(piextMemImageFree, cuda_piextMemImageFree)
-  _PI_CL(piextMemImageCreate, cuda_piextMemImageCreate)
+  _PI_CL(piextMemUnsampledImageCreate, cuda_piextMemUnsampledImageCreate)
   _PI_CL(piextMemSampledImageCreate, cuda_piextMemSampledImageCreate)
   _PI_CL(piextMemImageCopy, cuda_piextMemImageCopy)
 

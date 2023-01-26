@@ -162,57 +162,114 @@ int __nvvm_suq_depth_3i(read_only image3d_t arg) {
 }
 
 // BINDLESS IMAGES PROTOTYPE
-float4 __nvvm_tex_1d_v4f32_s32(unsigned long,
-                             int) __asm("__clc_llvm_nvvm_tex_1d_v4f32_s32");
-float4 __nvvm_tex_2d_v4f32_s32(unsigned long,
-                             int, int) __asm("__clc_llvm_nvvm_tex_2d_v4f32_s32");
-float4 __nvvm_tex_3d_v4f32_s32(unsigned long,
-                             int, int, int) __asm("__clc_llvm_nvvm_tex_3d_v4f32_s32");
 
-float4 __nvvm_tex_1d_v4f32_f32(unsigned long, float) __asm("__clc_llvm_nvvm_tex_1d_v4f32_f32");
-float4 __nvvm_tex_2d_v4f32_f32(unsigned long, float, float) __asm("__clc_llvm_nvvm_tex_2d_v4f32_f32");
-float4 __nvvm_tex_3d_v4f32_f32(unsigned long, float, float, float) __asm("__clc_llvm_nvvm_tex_3d_v4f32_f32");
+// <--- SURFACES --->
+// ASSUME TRAP FOR BOTH READS AND WRITES
+// floats not provided
+// use bitcast to read floats
+// use bitcasts to write floats
+// coordinates are all i32
 
-int4 __nvvm_tex_1d_v4s32_s32(unsigned long,
-                             int) __asm("__clc_llvm_nvvm_tex_1d_v4s32_s32");
+// READS
 
-int4 __nvvm_tex_2d_v4s32_s32(unsigned long, int,
-                             int) __asm("__clc_llvm_nvvm_tex_2d_v4s32_s32");
+// Return: float -- no float return on surface intrinsics
+//               -- must bitcast
+float4
+__nvvm_suld_1d_v4f32_trap(unsigned long,
+                          int) __asm("__clc_llvm_nvvm_suld_1d_v4f32_trap");
+float4
+__nvvm_suld_2d_v4f32_trap(unsigned long, int,
+                          int) __asm("__clc_llvm_nvvm_suld_2d_v4f32_trap");
+float4
+__nvvm_suld_3d_v4f32_trap(unsigned long, int, int,
+                          int) __asm("__clc_llvm_nvvm_suld_3d_v4f32_trap");
 
-int4 __nvvm_tex_3d_v4s32_s32(unsigned long, int, int,
-                             int) __asm("__clc_llvm_nvvm_tex_3d_v4s32_s32");
+// Return: i32
+//
+int4 __nvvm_suld_1d_v4s32_trap(unsigned long,
+                               int) __asm("__clc_llvm_nvvm_suld_1d_v4i32_trap");
 
-void __nvvm_sust_p_1d_v4i32_trap(
+int4 __nvvm_suld_2d_v4s32_trap(unsigned long, int,
+                               int) __asm("__clc_llvm_nvvm_suld_2d_v4i32_trap");
+
+int4 __nvvm_suld_3d_v4s32_trap(unsigned long, int, int,
+                               int) __asm("__clc_llvm_nvvm_suld_3d_v4i32_trap");
+
+// WRITES
+
+// Store: float -- no float store on surface intrinsics
+//              -- must bitcast float to i32
+void __nvvm_sust_p_1d_v4f32_trap(
     unsigned long, int, float, float, float,
-    float) __asm("__clc_llvm_nvvm_sust_p_1d_v4i32_trap");
+    float) __asm("__clc_llvm_nvvm_sust_p_1d_v4f32_trap");
 
-void __nvvm_sust_p_2d_v4i32_trap(
+void __nvvm_sust_p_2d_v4f32_trap(
     unsigned long, int, int, float, float, float,
-    float) __asm("__clc_llvm_nvvm_sust_p_2d_v4i32_trap");
+    float) __asm("__clc_llvm_nvvm_sust_p_2d_v4f32_trap");
 
-void __nvvm_sust_p_3d_v4i32_trap(
+void __nvvm_sust_p_3d_v4f32_trap(
     unsigned long, int, int, int, float, float, float,
-    float) __asm("__clc_llvm_nvvm_sust_p_3d_v4i32_trap");
+    float) __asm("__clc_llvm_nvvm_sust_p_3d_v4f32_trap");
 
+void __nvvm_sust_p_1d_v2f32_trap(unsigned long, int, float, float) __asm(
+    "__clc_llvm_nvvm_sust_p_1d_v2f32_trap");
 
-void __nvvm_sust_p_1d_i32_trap(unsigned long, int, float) __asm(
-    "__clc_llvm_nvvm_sust_p_1d_i32_trap");
+void __nvvm_sust_p_2d_v2f32_trap(unsigned long, int, int, float, float) __asm(
+    "__clc_llvm_nvvm_sust_p_2d_v2f32_trap");
 
-void __nvvm_sust_p_2d_i32_trap(unsigned long, int, int, float) __asm(
-    "__clc_llvm_nvvm_sust_p_2d_i32_trap");
-
-void __nvvm_sust_p_3d_i32_trap(unsigned long, int, int, int, float) __asm(
-    "__clc_llvm_nvvm_sust_p_3d_i32_trap");
-
-void __nvvm_sust_p_1d_v2i32_trap(unsigned long, int, float, float) __asm(
-    "__clc_llvm_nvvm_sust_p_1d_v2i32_trap");
-
-void __nvvm_sust_p_2d_v2i32_trap(unsigned long, int, int, float, float) __asm(
-    "__clc_llvm_nvvm_sust_p_2d_v2i32_trap");
-
-void __nvvm_sust_p_3d_v2i32_trap(
+void __nvvm_sust_p_3d_v2f32_trap(
     unsigned long, int, int, int, float,
-    float) __asm("__clc_llvm_nvvm_sust_p_3d_v2i32_trap");
+    float) __asm("__clc_llvm_nvvm_sust_p_3d_v2f32_trap");
+
+void __nvvm_sust_p_1d_f32_trap(unsigned long, int, float) __asm(
+    "__clc_llvm_nvvm_sust_p_1d_f32_trap");
+
+void __nvvm_sust_p_2d_f32_trap(unsigned long, int, int, float) __asm(
+    "__clc_llvm_nvvm_sust_p_2d_f32_trap");
+
+void __nvvm_sust_p_3d_f32_trap(unsigned long, int, int, int, float) __asm(
+    "__clc_llvm_nvvm_sust_p_3d_f32_trap");
+
+// Store: i32
+//
+// Call directly
+void __nvvm_sust_p_1d_i32_trap(unsigned long, int,
+                               int) __asm("llvm.nvvm.sust.p.1d.i32.trap");
+
+void __nvvm_sust_p_1d_v2i32_trap(unsigned long, int, int,
+                                 int) __asm("llvm.nvvm.sust.p.1d.v2i32.trap");
+
+void __nvvm_sust_p_1d_v4i32_trap(unsigned long, int, int, int, int,
+                                 int) __asm("llvm.nvvm.sust.p.1d.v4i32.trap");
+
+void __nvvm_sust_p_2d_i32_trap(unsigned long, int, int,
+                               int) __asm("llvm.nvvm.sust.p.2d.i32.trap");
+
+void __nvvm_sust_p_2d_v2i32_trap(unsigned long, int, int, int,
+                                 int) __asm("llvm.nvvm.sust.p.2d.v2i32.trap");
+
+void __nvvm_sust_p_2d_v4i32_trap(unsigned long, int, int, int, int, int,
+                                 int) __asm("llvm.nvvm.sust.p.2d.v4i32.trap");
+
+void __nvvm_sust_p_3d_i32_trap(unsigned long, int, int, int,
+                               int) __asm("llvm.nvvm.sust.p.3d.i32.trap");
+
+void __nvvm_sust_p_3d_v2i32_trap(unsigned long, int, int, int, int,
+                                 int) __asm("llvm.nvvm.sust.p.3d.v2i32.trap");
+
+void __nvvm_sust_p_3d_v4i32_trap(unsigned long, int, int, int, int, int, int,
+                                 int) __asm("llvm.nvvm.sust.p.3d.v4i32.trap");
+
+// <--- TEXTURES --->
+
+// ONLY READS
+
+float4 __nvvm_tex_1d_v4f32_f32(unsigned long,
+                               float) __asm("__clc_llvm_nvvm_tex_1d_v4f32_f32");
+float4 __nvvm_tex_2d_v4f32_f32(unsigned long, float,
+                               float) __asm("__clc_llvm_nvvm_tex_2d_v4f32_f32");
+float4 __nvvm_tex_3d_v4f32_f32(unsigned long, float, float,
+                               float) __asm("__clc_llvm_nvvm_tex_3d_v4f32_f32");
 
 // Helpers
 
@@ -1029,40 +1086,33 @@ _CLC_DEF int3 _Z22__spirv_ImageQuerySizeIDv3_i14ocl_image3d_roET_T0_(
   return (int3)(width, height, depth);
 }
 
-// BINDLESS IMAGES PROTOTYPE.
+// BINDLESS IMAGES PROTOTYPE
+
+// <--- SURFACES --->
+
+// READS
+
+// RETURN: float(s)
 _CLC_DEF float4
 _Z17__spirv_ImageReadIDv4_fmiET_T0_T1_(unsigned long imageHandle, int coord) {
-  return __nvvm_tex_1d_v4f32_s32(imageHandle, coord);
+  return __nvvm_suld_1d_v4f32_trap(imageHandle, coord * sizeof(float4));
 }
 
 _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv2_iET_T0_T1_(
     unsigned long imageHandle, int2 coord) {
-  return __nvvm_tex_2d_v4f32_s32(imageHandle, coord.x, coord.y);
+  return __nvvm_suld_2d_v4f32_trap(imageHandle, coord.x * sizeof(float4),
+                                   coord.y);
 }
 
 _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv4_iET_T0_T1_(
     unsigned long imageHandle, int4 coord) {
-  return __nvvm_tex_3d_v4f32_s32(imageHandle, coord.x, coord.y, coord.z);
-}
-
-_CLC_DEF float _Z17__spirv_ImageReadIfmiET_T0_T1_(unsigned long imageHandle,
-                                                  int coord) {
-  return __nvvm_tex_1d_v4f32_s32(imageHandle, coord)[0];
-}
-
-_CLC_DEF float _Z17__spirv_ImageReadIfmDv2_iET_T0_T1_(unsigned long imageHandle,
-                                                      int2 coord) {
-  return __nvvm_tex_2d_v4f32_s32(imageHandle, coord.x, coord.y)[0];
-}
-
-_CLC_DEF float _Z17__spirv_ImageReadIfmDv4_iET_T0_T1_(unsigned long imageHandle,
-                                                      int4 coord) {
-  return __nvvm_tex_3d_v4f32_s32(imageHandle, coord.x, coord.y, coord.z)[0];
+  return __nvvm_suld_3d_v4f32_trap(imageHandle, coord.x * sizeof(float4),
+                                   coord.y, coord.z);
 }
 
 _CLC_DEF float2
 _Z17__spirv_ImageReadIDv2_fmiET_T0_T1_(unsigned long imageHandle, int coord) {
-  float4 read = __nvvm_tex_1d_v4f32_s32(imageHandle, coord);
+  float4 read = __nvvm_suld_1d_v4f32_trap(imageHandle, coord * sizeof(float2));
   float2 ret;
   ret.x = read.x;
   ret.y = read.y;
@@ -1071,7 +1121,8 @@ _Z17__spirv_ImageReadIDv2_fmiET_T0_T1_(unsigned long imageHandle, int coord) {
 
 _CLC_DEF float2 _Z17__spirv_ImageReadIDv2_fmDv2_iET_T0_T1_(
     unsigned long imageHandle, int2 coord) {
-  float4 read = __nvvm_tex_2d_v4f32_s32(imageHandle, coord.x, coord.y);
+  float4 read =
+      __nvvm_suld_2d_v4f32_trap(imageHandle, coord.x * sizeof(float2), coord.y);
   float2 ret;
   ret.x = read.x;
   ret.y = read.y;
@@ -1080,118 +1131,141 @@ _CLC_DEF float2 _Z17__spirv_ImageReadIDv2_fmDv2_iET_T0_T1_(
 
 _CLC_DEF float2 _Z17__spirv_ImageReadIDv2_fmDv4_iET_T0_T1_(
     unsigned long imageHandle, int4 coord) {
-  float4 read = __nvvm_tex_3d_v4f32_s32(imageHandle, coord.x, coord.y, coord.z);
+  float4 read = __nvvm_suld_3d_v4f32_trap(imageHandle, coord.x * sizeof(float2),
+                                          coord.y, coord.z);
   float2 ret;
   ret.x = read.x;
   ret.y = read.y;
   return ret;
 }
 
-_CLC_DEF int _Z17__spirv_ImageReadIimDv2_iET_T0_T1_(unsigned long imageHandle,
-                                                    int2 coord) {
-  return __nvvm_tex_2d_v4s32_s32(imageHandle, coord.x, coord.y)[0];
+_CLC_DEF float _Z17__spirv_ImageReadIfmiET_T0_T1_(unsigned long imageHandle,
+                                                  int coord) {
+  return __nvvm_suld_1d_v4f32_trap(imageHandle, coord * sizeof(float))[0];
 }
 
-_CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imS0_ET_T0_T1_(
+_CLC_DEF float _Z17__spirv_ImageReadIfmDv2_iET_T0_T1_(unsigned long imageHandle,
+                                                      int2 coord) {
+  return __nvvm_suld_2d_v4f32_trap(imageHandle, coord.x * sizeof(float),
+                                   coord.y)[0];
+}
+
+_CLC_DEF float _Z17__spirv_ImageReadIfmDv4_iET_T0_T1_(unsigned long imageHandle,
+                                                      int4 coord) {
+  return __nvvm_suld_3d_v4f32_trap(imageHandle, coord.x * sizeof(float),
+                                   coord.y, coord.z)[0];
+}
+
+// RETURN: int(s)
+
+_CLC_DEF int4 _Z17__spirv_ImageReadIDv4_imiET_T0_T1_(unsigned long imageHandle,
+                                                     int coord) {
+  return __nvvm_suld_1d_v4s32_trap(imageHandle, coord * sizeof(int4));
+}
+
+_CLC_DEF int4 _Z17__spirv_ImageReadIDv4_imDv2_iET_T0_T1_(
     unsigned long imageHandle, int2 coord) {
-  int4 read = __nvvm_tex_2d_v4s32_s32(imageHandle, coord.x, coord.y);
+  return __nvvm_suld_2d_v4s32_trap(imageHandle, coord.x * sizeof(int4),
+                                   coord.y);
+}
+
+_CLC_DEF int4 _Z17__spirv_ImageReadIDv4_imS0_ET_T0_T1_(
+    unsigned long imageHandle, int4 coord) {
+  return __nvvm_suld_3d_v4s32_trap(imageHandle, coord.x * sizeof(int4), coord.y,
+                                   coord.z);
+}
+
+_CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imiET_T0_T1_(unsigned long imageHandle,
+                                                     int coord) {
+  int4 read = __nvvm_suld_1d_v4s32_trap(imageHandle, coord * sizeof(int2));
   int2 ret;
   ret.x = read.x;
   ret.y = read.y;
   return ret;
 }
 
-_CLC_DEF int4 _Z17__spirv_ImageReadIDv4_imDv2_iET_T0_T1_(
+_CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imS0_ET_T0_T1_(
     unsigned long imageHandle, int2 coord) {
-  return __nvvm_tex_2d_v4s32_s32(imageHandle, coord.x, coord.y);
+  int4 read =
+      __nvvm_suld_2d_v4s32_trap(imageHandle, coord.x * sizeof(int2), coord.y);
+  int2 ret;
+  ret.x = read.x;
+  ret.y = read.y;
+  return ret;
+}
+
+_CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imDv4_iET_T0_T1_(
+    unsigned long imageHandle, int4 coord) {
+  int4 read = __nvvm_suld_3d_v4s32_trap(imageHandle, coord.x * sizeof(int2),
+                                        coord.y, coord.z);
+  int2 ret;
+  ret.x = read.x;
+  ret.y = read.y;
+  return ret;
+}
+
+_CLC_DEF int _Z17__spirv_ImageReadIimiET_T0_T1_(unsigned long imageHandle,
+                                                int coord) {
+  return __nvvm_suld_1d_v4s32_trap(imageHandle, coord * sizeof(int))[0];
+}
+
+_CLC_DEF int _Z17__spirv_ImageReadIimDv2_iET_T0_T1_(unsigned long imageHandle,
+                                                    int2 coord) {
+  return __nvvm_suld_2d_v4s32_trap(imageHandle, coord.x * sizeof(int),
+                                   coord.y)[0];
+}
+
+_CLC_DEF int _Z17__spirv_ImageReadIimDv4_iET_T0_T1_(unsigned long imageHandle,
+                                                    int4 coord) {
+  return __nvvm_suld_3d_v4s32_trap(imageHandle, coord.x * sizeof(int), coord.y,
+                                   coord.z)[0];
+}
+
+// RETURN: uint(s)
+
+_CLC_DEF uint4 _Z17__spirv_ImageReadIDv4_jmiET_T0_T1_(unsigned long imageHandle,
+                                                      int coord) {
+  return cast_int4_to_uint4(
+      __nvvm_suld_1d_v4s32_trap(imageHandle, coord * sizeof(uint4)));
 }
 
 _CLC_DEF uint4 _Z17__spirv_ImageReadIDv4_jmDv2_iET_T0_T1_(
     unsigned long imageHandle, int2 coord) {
   return cast_int4_to_uint4(
-      __nvvm_tex_2d_v4s32_s32(imageHandle, coord.x, coord.y));
+      __nvvm_suld_2d_v4s32_trap(imageHandle, coord.x * sizeof(uint4), coord.y));
+}
+
+_CLC_DEF uint4 _Z17__spirv_ImageReadIDv4_jmDv4_iET_T0_T1_(
+    unsigned long imageHandle, int4 coord) {
+  return cast_int4_to_uint4(__nvvm_suld_3d_v4s32_trap(
+      imageHandle, coord.x * sizeof(uint4), coord.y, coord.z));
+}
+
+_CLC_DEF uint2 _Z17__spirv_ImageReadIDv2_jmiET_T0_T1_(unsigned long imageHandle,
+                                                      int coord) {
+  uint4 read = cast_int4_to_uint4(
+      __nvvm_suld_1d_v4s32_trap(imageHandle, coord * sizeof(uint2)));
+  uint2 ret;
+  ret.x = read.x;
+  ret.y = read.y;
+  return ret;
 }
 
 _CLC_DEF uint2 _Z17__spirv_ImageReadIDv2_jmDv2_iET_T0_T1_(
     unsigned long imageHandle, int2 coord) {
   uint4 read = cast_int4_to_uint4(
-      __nvvm_tex_2d_v4s32_s32(imageHandle, coord.x, coord.y));
+      __nvvm_suld_2d_v4s32_trap(imageHandle, coord.x * sizeof(uint2), coord.y));
   uint2 ret;
   ret.x = read.x;
   ret.y = read.y;
   return ret;
-}
-
-_CLC_DEF uint _Z17__spirv_ImageReadIjmDv2_iET_T0_T1_(unsigned long imageHandle,
-                                                     int2 coord) {
-  return cast_int4_to_uint4(
-      __nvvm_tex_2d_v4s32_s32(imageHandle, coord.x, coord.y))[0];
-}
-
-_CLC_DEF int4 _Z17__spirv_ImageReadIDv4_imS0_ET_T0_T1_(
-    unsigned long imageHandle, int4 coord) {
-  return __nvvm_tex_3d_v4s32_s32(imageHandle, coord.x, coord.y, coord.z);
-}
-
-_CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imDv4_iET_T0_T1_(
-    unsigned long imageHandle, int4 coord) {
-  int4 read = __nvvm_tex_3d_v4s32_s32(imageHandle, coord.x, coord.y, coord.z);
-  int2 ret;
-  ret.x = read.x;
-  ret.y = read.y;
-  return ret;
-}
-
-_CLC_DEF int _Z17__spirv_ImageReadIimDv4_iET_T0_T1_(unsigned long imageHandle,
-                                                    int4 coord) {
-  return __nvvm_tex_3d_v4s32_s32(imageHandle, coord.x, coord.y, coord.z)[0];
-}
-
-_CLC_DEF uint4 _Z17__spirv_ImageReadIDv4_jmDv4_iET_T0_T1_(
-    unsigned long imageHandle, int4 coord) {
-  return cast_int4_to_uint4(
-      __nvvm_tex_3d_v4s32_s32(imageHandle, coord.x, coord.y, coord.z));
 }
 
 _CLC_DEF uint2 _Z17__spirv_ImageReadIDv2_jmDv4_iET_T0_T1_(
     unsigned long imageHandle, int4 coord) {
-  uint4 read = cast_int4_to_uint4(
-      __nvvm_tex_3d_v4s32_s32(imageHandle, coord.x, coord.y, coord.z));
+  uint4 read = cast_int4_to_uint4(__nvvm_suld_3d_v4s32_trap(
+      imageHandle, coord.x * sizeof(uint2), coord.y, coord.z));
   uint2 ret;
-  ret.x = read.x;
-  ret.y = read.y;
-  return ret;
-}
-
-_CLC_DEF uint _Z17__spirv_ImageReadIjmDv4_iET_T0_T1_(unsigned long imageHandle,
-                                                     int4 coord) {
-  return cast_int4_to_uint4(
-      __nvvm_tex_3d_v4s32_s32(imageHandle, coord.x, coord.y, coord.z))[0];
-}
-
-_CLC_DEF int4 _Z17__spirv_ImageReadIDv4_imiET_T0_T1_(unsigned long imageHandle,
-                                                     int coord) {
-  return __nvvm_tex_1d_v4s32_s32(imageHandle, coord);
-}
-
-_CLC_DEF uint4 _Z17__spirv_ImageReadIDv4_jmiET_T0_T1_(unsigned long imageHandle,
-                                                      int coord) {
-  return cast_int4_to_uint4(__nvvm_tex_1d_v4s32_s32(imageHandle, coord));
-}
-
-_CLC_DEF uint2 _Z17__spirv_ImageReadIDv2_jmiET_T0_T1_(unsigned long imageHandle,
-                                                      int coord) {
-  uint4 read = cast_int4_to_uint4(__nvvm_tex_1d_v4s32_s32(imageHandle, coord));
-  uint2 ret;
-  ret.x = read.x;
-  ret.y = read.y;
-  return ret;
-}
-
-_CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imiET_T0_T1_(unsigned long imageHandle,
-                                                     int coord) {
-  int4 read = __nvvm_tex_1d_v4s32_s32(imageHandle, coord);
-  int2 ret;
   ret.x = read.x;
   ret.y = read.y;
   return ret;
@@ -1199,232 +1273,232 @@ _CLC_DEF int2 _Z17__spirv_ImageReadIDv2_imiET_T0_T1_(unsigned long imageHandle,
 
 _CLC_DEF uint _Z17__spirv_ImageReadIjmiET_T0_T1_(unsigned long imageHandle,
                                                  int coord) {
-  return __nvvm_tex_1d_v4s32_s32(imageHandle, coord)[0];
+  return __nvvm_suld_1d_v4s32_trap(imageHandle, coord * sizeof(uint))[0];
 }
 
-_CLC_DEF int _Z17__spirv_ImageReadIimiET_T0_T1_(unsigned long imageHandle,
-                                                int coord) {
-  return __nvvm_tex_1d_v4s32_s32(imageHandle, coord)[0];
+_CLC_DEF uint _Z17__spirv_ImageReadIjmDv2_iET_T0_T1_(unsigned long imageHandle,
+                                                     int2 coord) {
+  return cast_int4_to_uint4(__nvvm_suld_2d_v4s32_trap(
+      imageHandle, coord.x * sizeof(uint), coord.y))[0];
 }
+
+_CLC_DEF uint _Z17__spirv_ImageReadIjmDv4_iET_T0_T1_(unsigned long imageHandle,
+                                                     int4 coord) {
+  return cast_int4_to_uint4(__nvvm_suld_3d_v4s32_trap(
+      imageHandle, coord.x * sizeof(uint), coord.y, coord.z))[0];
+}
+
+// WRITES
+
+// WRITE: float(s)
+// must bitcast float data to i32
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImiDv4_fEvT_T0_T1_(unsigned long imageHandle,
                                              int coord, float4 data) {
-  return __nvvm_sust_p_1d_v4i32_trap(imageHandle, coord, data.x, data.y, data.z,
+  return __nvvm_sust_p_1d_v4f32_trap(imageHandle, coord, data.x, data.y, data.z,
                                      data.w);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImDv2_iDv4_fEvT_T0_T1_(unsigned long imageHandle,
                                              int2 coord, float4 data) {
-  return __nvvm_sust_p_2d_v4i32_trap(imageHandle, coord.x, coord.y, data.x,
+  return __nvvm_sust_p_2d_v4f32_trap(imageHandle, coord.x, coord.y, data.x,
                                      data.y, data.z, data.w);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImDv4_iDv4_fEvT_T0_T1_(unsigned long imageHandle,
                                              int4 coord, float4 data) {
-  return __nvvm_sust_p_3d_v4i32_trap(imageHandle, coord.x, coord.y, coord.z,
+  return __nvvm_sust_p_3d_v4f32_trap(imageHandle, coord.x, coord.y, coord.z,
                                      data.x, data.y, data.z, data.w);
-}
-
-_CLC_DEF void _Z18__spirv_ImageWriteImifEvT_T0_T1_(unsigned long imageHandle,
-                                                   int coord, float data) {
-  return __nvvm_sust_p_1d_i32_trap(imageHandle, coord, data);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv2_ifEvT_T0_T1_(unsigned long imageHandle, int2 coord,
-                                         float data) {
-  return __nvvm_sust_p_2d_i32_trap(imageHandle, coord.x, coord.y, data);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv4_ifEvT_T0_T1_(unsigned long imageHandle, int4 coord,
-                                         float data) {
-  return __nvvm_sust_p_3d_i32_trap(imageHandle, coord.x, coord.y, coord.z,
-                                   data);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImiDv2_fEvT_T0_T1_(unsigned long imageHandle, int coord,
                                          float2 data) {
-  return __nvvm_sust_p_1d_v2i32_trap(imageHandle, coord, data.x, data.y);
+  return __nvvm_sust_p_1d_v2f32_trap(imageHandle, coord, data.x, data.y);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImDv2_iDv2_fEvT_T0_T1_(unsigned long imageHandle,
                                              int2 coord, float2 data) {
-  return __nvvm_sust_p_2d_v2i32_trap(imageHandle, coord.x, coord.y, data.x,
+  return __nvvm_sust_p_2d_v2f32_trap(imageHandle, coord.x, coord.y, data.x,
                                      data.y);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImDv4_iDv2_fEvT_T0_T1_(unsigned long imageHandle,
                                              int4 coord, float2 data) {
-  return __nvvm_sust_p_3d_v2i32_trap(imageHandle, coord.x, coord.y, coord.z,
+  return __nvvm_sust_p_3d_v2f32_trap(imageHandle, coord.x, coord.y, coord.z,
                                      data.x, data.y);
 }
 
-void __nvvm_sust_p_1d_i32_trap_i(unsigned long, int,
-                                 int) __asm("llvm.nvvm.sust.p.1d.i32.trap");
+_CLC_DEF void _Z18__spirv_ImageWriteImifEvT_T0_T1_(unsigned long imageHandle,
+                                                   int coord, float data) {
+  return __nvvm_sust_p_1d_f32_trap(imageHandle, coord, data);
+}
 
-void __nvvm_sust_p_1d_v2i32_trap_i(unsigned long, int, int,
-                                   int) __asm("llvm.nvvm.sust.p.1d.v2i32.trap");
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_ifEvT_T0_T1_(unsigned long imageHandle, int2 coord,
+                                         float data) {
+  return __nvvm_sust_p_2d_f32_trap(imageHandle, coord.x, coord.y, data);
+}
 
-void __nvvm_sust_p_1d_v4i32_trap_i(unsigned long, int, int, int, int,
-                                   int) __asm("llvm.nvvm.sust.p.1d.v4i32.trap");
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_ifEvT_T0_T1_(unsigned long imageHandle, int4 coord,
+                                         float data) {
+  return __nvvm_sust_p_3d_f32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                   data);
+}
 
-void __nvvm_sust_p_2d_i32_trap_i(unsigned long, int, int,
-                                 int) __asm("llvm.nvvm.sust.p.2d.i32.trap");
+// WRITE: int(s)
 
-void __nvvm_sust_p_2d_v2i32_trap_i(unsigned long, int, int, int,
-                                   int) __asm("llvm.nvvm.sust.p.2d.v2i32.trap");
-
-void __nvvm_sust_p_2d_v4i32_trap_i(unsigned long, int, int, int, int, int,
-                                   int) __asm("llvm.nvvm.sust.p.2d.v4i32.trap");
-
-void __nvvm_sust_p_3d_i32_trap_i(unsigned long, int, int, int,
-                                 int) __asm("llvm.nvvm.sust.p.3d.i32.trap");
-
-void __nvvm_sust_p_3d_v2i32_trap_i(unsigned long, int, int, int, int,
-                                   int) __asm("llvm.nvvm.sust.p.3d.v2i32.trap");
-
-void __nvvm_sust_p_3d_v4i32_trap_i(unsigned long, int, int, int, int, int, int,
-                                   int) __asm("llvm.nvvm.sust.p.3d.v4i32.trap");
+_CLC_DEF void
+_Z18__spirv_ImageWriteImiDv4_iEvT_T0_T1_(unsigned long imageHandle, int coord,
+                                         int4 data) {
+  return __nvvm_sust_p_1d_v4i32_trap(imageHandle, coord, data.x, data.y, data.z,
+                                     data.w);
+}
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImDv2_iDv4_iEvT_T0_T1_(unsigned long imageHandle,
                                              int2 coord, int4 data) {
-  return __nvvm_sust_p_2d_v4i32_trap_i(imageHandle, coord.x, coord.y, data.x,
-                                       data.y, data.z, data.w);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv2_iDv4_jEvT_T0_T1_(unsigned long imageHandle,
-                                             int2 coord, uint4 data) {
-  return __nvvm_sust_p_2d_v4i32_trap_i(imageHandle, coord.x, coord.y, data.x,
-                                       data.y, data.z, data.w);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv2_iS0_EvT_T0_T1_(unsigned long imageHandle,
-                                           int2 coord, int2 data) {
-  return __nvvm_sust_p_2d_v2i32_trap_i(imageHandle, coord.x, coord.y, data.x,
-                                       data.y);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv2_iiEvT_T0_T1_(unsigned long imageHandle, int2 coord,
-                                         int data) {
-  return __nvvm_sust_p_2d_i32_trap_i(imageHandle, coord.x, coord.y, data);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv2_iDv2_jEvT_T0_T1_(unsigned long imageHandle,
-                                             int2 coord, uint2 data) {
-  return __nvvm_sust_p_2d_v2i32_trap_i(imageHandle, coord.x, coord.y, data.x,
-                                       data.y);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv2_ijEvT_T0_T1_(unsigned long imageHandle, int2 coord,
-                                         uint data) {
-  return __nvvm_sust_p_2d_i32_trap_i(imageHandle, coord.x, coord.y, data);
+  return __nvvm_sust_p_2d_v4i32_trap(imageHandle, coord.x, coord.y, data.x,
+                                     data.y, data.z, data.w);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImDv4_iS0_EvT_T0_T1_(unsigned long imageHandle,
                                            int4 coord, int4 data) {
-  return __nvvm_sust_p_3d_v4i32_trap_i(imageHandle, coord.x, coord.y, coord.z,
-                                       data.x, data.y, data.z, data.w);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv4_iDv2_iEvT_T0_T1_(unsigned long imageHandle,
-                                             int4 coord, int2 data) {
-  return __nvvm_sust_p_3d_v2i32_trap_i(imageHandle, coord.x, coord.y, coord.z,
-                                       data.x, data.y);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv4_iiEvT_T0_T1_(unsigned long imageHandle, int4 coord,
-                                         int data) {
-  return __nvvm_sust_p_3d_i32_trap_i(imageHandle, coord.x, coord.y, coord.z,
-                                     data);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv4_iDv4_jEvT_T0_T1_(unsigned long imageHandle,
-                                             int4 coord, uint4 data) {
-  return __nvvm_sust_p_3d_v4i32_trap_i(imageHandle, coord.x, coord.y, coord.z,
-                                       (int)data.x, (int)data.y, (int)data.z,
-                                       (int)data.w);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv4_iDv2_jEvT_T0_T1_(unsigned long imageHandle,
-                                             int4 coord, uint2 data) {
-  return __nvvm_sust_p_3d_v2i32_trap_i(imageHandle, coord.x, coord.y, coord.z,
-                                       (int)data.x, (int)data.y);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImDv4_ijEvT_T0_T1_(unsigned long imageHandle, int4 coord,
-                                         uint data) {
-  return __nvvm_sust_p_3d_i32_trap_i(imageHandle, coord.x, coord.y, coord.z,
-                                     (int)data);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImiDv4_iEvT_T0_T1_(unsigned long imageHandle, int coord,
-                                         int4 data) {
-  return __nvvm_sust_p_1d_v4i32_trap_i(imageHandle, coord, data.x, data.y,
-                                       data.z, data.w);
-}
-
-_CLC_DEF void
-_Z18__spirv_ImageWriteImiDv4_jEvT_T0_T1_(unsigned long imageHandle, int coord,
-                                         uint4 data) {
-  return __nvvm_sust_p_1d_v4i32_trap_i(imageHandle, coord, (int)data.x,
-                                       (int)data.y, (int)data.z, (int)data.w);
+  return __nvvm_sust_p_3d_v4i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                     data.x, data.y, data.z, data.w);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImiDv2_iEvT_T0_T1_(unsigned long imageHandle, int coord,
                                          int2 data) {
-  return __nvvm_sust_p_1d_v2i32_trap_i(imageHandle, coord, data.x, data.y);
+  return __nvvm_sust_p_1d_v2i32_trap(imageHandle, coord, data.x, data.y);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_iS0_EvT_T0_T1_(unsigned long imageHandle,
+                                           int2 coord, int2 data) {
+  return __nvvm_sust_p_2d_v2i32_trap(imageHandle, coord.x, coord.y, data.x,
+                                     data.y);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_iDv2_iEvT_T0_T1_(unsigned long imageHandle,
+                                             int4 coord, int2 data) {
+  return __nvvm_sust_p_3d_v2i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                     data.x, data.y);
+}
+
+_CLC_DEF void _Z18__spirv_ImageWriteImiiEvT_T0_T1_(unsigned long imageHandle,
+                                                   int coord, int data) {
+  return __nvvm_sust_p_1d_i32_trap(imageHandle, coord, data);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_iiEvT_T0_T1_(unsigned long imageHandle, int2 coord,
+                                         int data) {
+  return __nvvm_sust_p_2d_i32_trap(imageHandle, coord.x, coord.y, data);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_iiEvT_T0_T1_(unsigned long imageHandle, int4 coord,
+                                         int data) {
+  return __nvvm_sust_p_3d_i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                   data);
+}
+
+// WRITE: uint(s)
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImiDv4_jEvT_T0_T1_(unsigned long imageHandle, int coord,
+                                         uint4 data) {
+  return __nvvm_sust_p_1d_v4i32_trap(imageHandle, coord, (int)data.x,
+                                     (int)data.y, (int)data.z, (int)data.w);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_iDv4_jEvT_T0_T1_(unsigned long imageHandle,
+                                             int2 coord, uint4 data) {
+  return __nvvm_sust_p_2d_v4i32_trap(imageHandle, coord.x, coord.y, data.x,
+                                     data.y, data.z, data.w);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_iDv4_jEvT_T0_T1_(unsigned long imageHandle,
+                                             int4 coord, uint4 data) {
+  return __nvvm_sust_p_3d_v4i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                     (int)data.x, (int)data.y, (int)data.z,
+                                     (int)data.w);
 }
 
 _CLC_DEF void
 _Z18__spirv_ImageWriteImiDv2_jEvT_T0_T1_(unsigned long imageHandle, int coord,
                                          uint2 data) {
-  return __nvvm_sust_p_1d_v2i32_trap_i(imageHandle, coord, (int)data.x,
-                                       (int)data.y);
+  return __nvvm_sust_p_1d_v2i32_trap(imageHandle, coord, (int)data.x,
+                                     (int)data.y);
 }
 
-_CLC_DEF void _Z18__spirv_ImageWriteImiiEvT_T0_T1_(unsigned long imageHandle,
-                                                   int coord, int data) {
-  return __nvvm_sust_p_1d_i32_trap_i(imageHandle, coord, data);
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_iDv2_jEvT_T0_T1_(unsigned long imageHandle,
+                                             int2 coord, uint2 data) {
+  return __nvvm_sust_p_2d_v2i32_trap(imageHandle, coord.x, coord.y, data.x,
+                                     data.y);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_iDv2_jEvT_T0_T1_(unsigned long imageHandle,
+                                             int4 coord, uint2 data) {
+  return __nvvm_sust_p_3d_v2i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                     (int)data.x, (int)data.y);
 }
 
 _CLC_DEF void _Z18__spirv_ImageWriteImijEvT_T0_T1_(unsigned long imageHandle,
                                                    int coord, uint data) {
-  return __nvvm_sust_p_1d_i32_trap_i(imageHandle, coord, (int)data);
+  return __nvvm_sust_p_1d_i32_trap(imageHandle, coord, (int)data);
 }
 
-// FLOAT coords
-_CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmfET_T0_T1_(
-    unsigned long imageHandle, float coord){
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv2_ijEvT_T0_T1_(unsigned long imageHandle, int2 coord,
+                                         uint data) {
+  return __nvvm_sust_p_2d_i32_trap(imageHandle, coord.x, coord.y, data);
+}
+
+_CLC_DEF void
+_Z18__spirv_ImageWriteImDv4_ijEvT_T0_T1_(unsigned long imageHandle, int4 coord,
+                                         uint data) {
+  return __nvvm_sust_p_3d_i32_trap(imageHandle, coord.x, coord.y, coord.z,
+                                   (int)data);
+}
+
+// <--- TEXTURES --->
+// Since we use textures for sampled images
+// only floating point coordinates make sense
+// TODO: perhaps provide non-float coords by casting ints to floats
+// This WILL require overhaul to how the name-mangling works
+// as we currently split to either surface or texture based on
+// coordinate type (ints for surfaces) (floats for textures)
+
+// READS
+
+// RETURN: float(s)
+
+_CLC_DEF float4
+_Z17__spirv_ImageReadIDv4_fmfET_T0_T1_(unsigned long imageHandle, float coord) {
   return __nvvm_tex_1d_v4f32_f32(imageHandle, coord);
 }
 
 _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmDv2_fET_T0_T1_(
-  unsigned long imageHandle, float2 coord){
-    return __nvvm_tex_2d_v4f32_f32(imageHandle, coord.x, coord.y);
+    unsigned long imageHandle, float2 coord) {
+  return __nvvm_tex_2d_v4f32_f32(imageHandle, coord.x, coord.y);
 }
 
 _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmS0_ET_T0_T1_(
-  unsigned long imageHandle, float4 coord){
-    return __nvvm_tex_3d_v4f32_f32(imageHandle, coord.x, coord.y, coord.z);
+    unsigned long imageHandle, float4 coord) {
+  return __nvvm_tex_3d_v4f32_f32(imageHandle, coord.x, coord.y, coord.z);
 }

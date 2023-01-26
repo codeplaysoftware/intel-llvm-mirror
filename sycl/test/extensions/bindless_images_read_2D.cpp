@@ -51,9 +51,9 @@ int main() {
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
 
   // Extension: create the image and return the handle
-  sycl::ext::oneapi::image_handle imgHandle1 =
+  sycl::ext::oneapi::unsampled_image_handle imgHandle1 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr1);
-  sycl::ext::oneapi::image_handle imgHandle2 =
+  sycl::ext::oneapi::unsampled_image_handle imgHandle2 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr2);
 
   try {
@@ -72,10 +72,10 @@ int main() {
             size_t dim1 = it.get_local_id(1);
             float sum = 0;
             // Extension: read image data from handle
-            float4 px1 = sycl::ext::oneapi::read_image<float4>(imgHandle1,
-                                                              int2(dim0, dim1));
-            float4 px2 = sycl::ext::oneapi::read_image<float4>(imgHandle2,
-                                                              int2(dim0, dim1));
+            float4 px1 = sycl::ext::oneapi::read_image<float4>(
+                imgHandle1, int2(dim0, dim1));
+            float4 px2 = sycl::ext::oneapi::read_image<float4>(
+                imgHandle2, int2(dim0, dim1));
 
             sum = px1[0] + px2[0];
             outAcc[id<2>{dim1, dim0}] = sum;

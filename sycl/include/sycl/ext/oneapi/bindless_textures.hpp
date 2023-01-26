@@ -54,10 +54,15 @@ enum image_copy_flags : unsigned int {
   DtoD = 2,
 };
 
-/// Opaque image handle type.
+/// Opaque unsampled image handle type.
 typedef struct {
   void *value;
-} image_handle;
+} unsampled_image_handle;
+
+/// Opaque sampled image handle type.
+typedef struct {
+  void *value;
+} sampled_image_handle;
 
 #ifdef __SYCL_DEVICE_ONLY__
 using OCLImageTy = typename sycl::detail::opencl_image_type<1, sycl::access::mode::read,
@@ -70,7 +75,15 @@ using OCLImageTy = typename sycl::detail::opencl_image_type<1, sycl::access::mod
  *  @param syclContext The context the handle is valid in.
  **/
 __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
-                                        image_handle &imageHandle);
+                                        unsampled_image_handle &imageHandle);
+
+/**
+ *  @brief Destroy an image handle. Does not free memory backing the handle.
+ *  @param imageHandle The handle to destroy.
+ *  @param syclContext The context the handle is valid in.
+ **/
+__SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
+                                        sampled_image_handle &imageHandle);
 
 /**
  *  @brief   Allocate image memory based on image_descriptor
@@ -95,8 +108,8 @@ __SYCL_EXPORT void free_image(const sycl::context &syclContext,
  *  @param   devPtr Device memory handle for created image
  *  @returns Handle to created image object on the GPU
  */
-__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
-                                        void *devPtr);
+__SYCL_EXPORT unsampled_image_handle
+create_image(const sycl::context &syclContext, void *devPtr);
 
 /**
  *  @brief   Create a sampled image and return the device handle
@@ -105,8 +118,8 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
  *  @param   sampler SYCL sampler to sample the image
  *  @returns Handle to created image object on the GPU
  */
-__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
-                                        void *devPtr, sampler &sampler);
+__SYCL_EXPORT sampled_image_handle
+create_image(const sycl::context &syclContext, void *devPtr, sampler &sampler);
 
 /**
  *  @brief   Copy image data between device and host
@@ -123,24 +136,29 @@ __SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *dst_ptr,
 namespace detail {
 template<typename CoordT>
 constexpr size_t coord_size(){
-  if constexpr (std::is_same<CoordT, int>::value) {
-    return 1;
-  } else if constexpr (std::is_same<CoordT, float>::value) {
+  if constexpr (std::is_scalar<CoordT>::value) {
     return 1;
   } else {
     return CoordT::size();
   }
 }
 }
-/** Read an image using its handle.
+
+/** Read an unsampled image using its handle.
  *  @tparam DataT is the type of data to return.
- *  @tparam CoordT is the input coordinate type. Float, float2, or float4 for 1D, 2D and 3D respectively.
+ *  @tparam CoordT is the input coordinate type. Float, float2, or float4 for
+ *1D, 2D and 3D respectively.
  *  @param imageHandle is the image's handle.
  *  @param coords is the coordinate at which to get image data.
  *  @return data from the image.
+ *
+ * __NVPTX__: Name mangling info
+ *            Cuda surfaces require integer coordinates (by bytes)
+ *            Cuda textures require float coordinates (by index or normalized)
+ *            The name mangling should therefore not interfere with one another
  **/
-template <typename DataT, typename CoordT>
-DataT read_image(const image_handle &imageHandle, const CoordT &coords) {
+template <typename DataT, typename CoordT, typename Handle>
+DataT read_image(const Handle &imageHandle, const CoordT &coords) {
   constexpr size_t coordSize = detail::coord_size<CoordT>();
   if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4) {
 #ifdef __SYCL_DEVICE_ONLY__
@@ -162,8 +180,8 @@ DataT read_image(const image_handle &imageHandle, const CoordT &coords) {
 }
 
 template <typename DataT, typename CoordT>
-void write_image(const image_handle &imageHandle, const CoordT &Coords,
-           const DataT &Color) {
+void write_image(const unsampled_image_handle &imageHandle,
+                 const CoordT &Coords, const DataT &Color) {
   constexpr size_t coordSize = detail::coord_size<CoordT>();
   if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4) {
 #ifdef __SYCL_DEVICE_ONLY__

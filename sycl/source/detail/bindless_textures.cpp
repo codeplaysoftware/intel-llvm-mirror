@@ -25,7 +25,7 @@ namespace ext {
 namespace oneapi {
 
 __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
-                                        image_handle &imageHandle) {
+                                        unsampled_image_handle &imageHandle) {
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
@@ -33,7 +33,29 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
   pi_result Error;
   pi_image_handle piImageHandle = imageHandle.value;
 
-  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageHandleDestroy>(
+  Error = Plugin.call_nocheck<
+      sycl::detail::PiApiKind::piextMemUnsampledImageHandleDestroy>(
+      C, piImageHandle);
+
+  if (Error != PI_SUCCESS) {
+    throw std::invalid_argument("Failed to destroy image_handle");
+  }
+
+  /// TODO: would be nice to have overloaded assignment operator for this
+  imageHandle.value = piImageHandle;
+}
+
+__SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
+                                        sampled_image_handle &imageHandle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+  pi_image_handle piImageHandle = imageHandle.value;
+
+  Error = Plugin.call_nocheck<
+      sycl::detail::PiApiKind::piextMemSampledImageHandleDestroy>(
       C, piImageHandle);
 
   if (Error != PI_SUCCESS) {
@@ -99,8 +121,8 @@ __SYCL_EXPORT void free_image(const sycl::context &syclContext,
   return;
 }
 
-__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
-                                        void *devPtr) {
+__SYCL_EXPORT unsampled_image_handle
+create_image(const sycl::context &syclContext, void *devPtr) {
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
@@ -110,17 +132,19 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
 
   // Call impl.
   pi_image_handle piImageHandle;
-  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCreate>(
-      C, devPtr, &piImageHandle);
+  Error =
+      Plugin
+          .call_nocheck<sycl::detail::PiApiKind::piextMemUnsampledImageCreate>(
+              C, devPtr, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
-    return image_handle{nullptr};
+    return unsampled_image_handle{nullptr};
   }
-  return image_handle{piImageHandle};
+  return unsampled_image_handle{piImageHandle};
 }
 
-__SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
-                                        void *devPtr, sampler &sampler) {
+__SYCL_EXPORT sampled_image_handle
+create_image(const sycl::context &syclContext, void *devPtr, sampler &sampler) {
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
@@ -140,9 +164,9 @@ __SYCL_EXPORT image_handle create_image(const sycl::context &syclContext,
           C, piSampler, devPtr, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
-    return image_handle{nullptr};
+    return sampled_image_handle{nullptr};
   }
-  return image_handle{piImageHandle};
+  return sampled_image_handle{piImageHandle};
 }
 
 __SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *devPtr,
@@ -156,7 +180,6 @@ __SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *devPtr,
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
-  pi_context C = CtxImpl->getHandleRef();
   const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
   pi_result Error;
 
