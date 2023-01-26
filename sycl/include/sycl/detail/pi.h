@@ -1972,7 +1972,7 @@ __SYCL_EXPORT pi_result piextMemSampledImageCreate(pi_context context,
                                                    void *image_array,
                                                    void **ret_mem);
 
-__SYCL_EXPORT pi_result piextMemImageCopy(pi_context context,
+__SYCL_EXPORT pi_result piextMemImageCopy(pi_queue queue,
                                           void *dst_ptr, void *src_ptr,
                                           pi_image_format *image_format,
                                           pi_image_desc *image_desc,

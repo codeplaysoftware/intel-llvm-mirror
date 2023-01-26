@@ -191,20 +191,16 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize) {
   auto device_ptr_1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
   auto device_ptr_2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
-  q.wait();
-
   if (device_ptr_0 == nullptr || device_ptr_1 == nullptr ||
       device_ptr_2 == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return false;
   }
 
-  sycl::ext::oneapi::copy_image(ctxt, device_ptr_0, input_0.data(), desc,
+  sycl::ext::oneapi::copy_image(q, device_ptr_0, input_0.data(), desc,
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
-  sycl::ext::oneapi::copy_image(ctxt, device_ptr_1, input_1.data(), desc,
+  sycl::ext::oneapi::copy_image(q, device_ptr_1, input_1.data(), desc,
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
-
-  q.wait();
 
   sycl::ext::oneapi::image_handle img_input_0 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr_0);
@@ -220,10 +216,8 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize) {
       q, globalSize, localSize, img_input_0, img_input_1, img_output);
   q.wait();
 
-  sycl::ext::oneapi::copy_image(ctxt, actual.data(), device_ptr_2, desc,
+  sycl::ext::oneapi::copy_image(q, actual.data(), device_ptr_2, desc,
                                 sycl::ext::oneapi::image_copy_flags::DtoH);
-                                
-  q.wait();
 
   // Cleanup
   try {

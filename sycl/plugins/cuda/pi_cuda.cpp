@@ -3241,7 +3241,7 @@ cuda_piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
         filterModeProp ? CU_TR_FILTER_MODE_LINEAR : CU_TR_FILTER_MODE_POINT;
     image_tex_desc.filterMode = filterMode;
 
-    // The address modes can interfere with other dimensions
+    // The address modes can interfere with other dimensionsenqueueEventsWait
     // e.g. 1D texture sampling can be interfered with when setting other
     // dimension address modes despite their nonexistence
     //
@@ -3276,7 +3276,7 @@ cuda_piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
   return retErr;
 }
 
-pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
+pi_result cuda_piextMemImageCopy(pi_queue command_queue, /*pi_context context,*/ void *dst_ptr,
                                  void *src_ptr, pi_image_format *image_format,
                                  pi_image_desc *image_desc, uint32_t flags) {
 
@@ -3320,15 +3320,16 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
 
   size_t pixel_size_bytes = pixel_type_size_bytes * array_desc.NumChannels;
 
-  ScopedContext active(context);
+  CUstream cuStream = command_queue->get_next_transfer_stream();
 
   try {
+    ScopedContext active(command_queue->get_context());
     // We have to use a different copy function for each image dimensionality
     if (flags == PI_IMAGE_COPY_HTOD) {
       if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
         size_t image_size_bytes_1d = pixel_size_bytes * image_desc->image_width;
-        retErr = PI_CHECK_ERROR(cuMemcpyHtoA((CUarray)dst_ptr, 0, src_ptr,
-                                             image_size_bytes_1d));
+        retErr = PI_CHECK_ERROR(cuMemcpyHtoAAsync((CUarray)dst_ptr, 0, src_ptr,
+                                             image_size_bytes_1d, cuStream));
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
         CUDA_MEMCPY2D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
@@ -3338,7 +3339,7 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
         cpy_desc.dstArray = (CUarray)dst_ptr;
         cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
         cpy_desc.Height = image_desc->image_height;
-        retErr = PI_CHECK_ERROR(cuMemcpy2D(&cpy_desc));
+        retErr = PI_CHECK_ERROR(cuMemcpy2DAsync(&cpy_desc, cuStream));
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE3D) {
         CUDA_MEMCPY3D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
@@ -3349,13 +3350,13 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
         cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
         cpy_desc.Height = image_desc->image_height;
         cpy_desc.Depth = image_desc->image_depth;
-        retErr = PI_CHECK_ERROR(cuMemcpy3D(&cpy_desc));
+        retErr = PI_CHECK_ERROR(cuMemcpy3DAsync(&cpy_desc, cuStream));
       }
     } else if (flags == PI_IMAGE_COPY_DTOH) {
       if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
         size_t image_size_bytes_1d = pixel_size_bytes * image_desc->image_width;
-        retErr = PI_CHECK_ERROR(cuMemcpyAtoH(dst_ptr, (CUarray)src_ptr, 0,
-                                             image_size_bytes_1d));
+        retErr = PI_CHECK_ERROR(cuMemcpyAtoHAsync(dst_ptr, (CUarray)src_ptr, 0,
+                                             image_size_bytes_1d, cuStream));
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
         CUDA_MEMCPY2D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
@@ -3365,7 +3366,7 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
         cpy_desc.dstHost = dst_ptr;
         cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
         cpy_desc.Height = image_desc->image_height;
-        retErr = PI_CHECK_ERROR(cuMemcpy2D(&cpy_desc));
+        retErr = PI_CHECK_ERROR(cuMemcpy2DAsync(&cpy_desc, cuStream));
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE3D) {
         CUDA_MEMCPY3D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
@@ -3376,7 +3377,7 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
         cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
         cpy_desc.Height = image_desc->image_height;
         cpy_desc.Depth = image_desc->image_depth;
-        retErr = PI_CHECK_ERROR(cuMemcpy3D(&cpy_desc));
+        retErr = PI_CHECK_ERROR(cuMemcpy3DAsync(&cpy_desc, cuStream));
       }
     } else if (flags == PI_IMAGE_COPY_DTOD) {
       /// TODO: implemet device to device copy
@@ -3384,6 +3385,8 @@ pi_result cuda_piextMemImageCopy(pi_context context, void *dst_ptr,
       sycl::detail::pi::die(
           "cuda_piMemImageCreate given unsupported image copy flags");
     }
+
+    retErr = PI_CHECK_ERROR(cuStreamSynchronize(cuStream));
 
   } catch (pi_result err) {
     // TODO: appropriate error handling
