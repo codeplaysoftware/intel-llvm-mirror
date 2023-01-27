@@ -15,6 +15,10 @@
 #include <sycl/sampler.hpp>
 #include <sycl/queue.hpp>
 
+#include <sycl/detail/common.hpp>
+#include <sycl/detail/pi.hpp>
+#include <sycl/ext/oneapi/bindless_textures.hpp>
+
 #include <cstdint>
 
 namespace sycl {
@@ -29,21 +33,22 @@ struct image_descriptor {
   unsigned int depth;
   image_channel_type channel_type;
   image_channel_order channel_order;
+  size_t row_pitch;
 
   image_descriptor(range<1> dims, image_channel_order order,
-                   image_channel_type type)
+                   image_channel_type type, size_t pitch = 0)
       : width(dims[0]), height(0), depth(0), channel_type(type),
-        channel_order(order) {}
+        channel_order(order), row_pitch(pitch) {}
 
   image_descriptor(range<2> dims, image_channel_order order,
-                   image_channel_type type)
+                   image_channel_type type, size_t pitch = 0)
       : width(dims[0]), height(dims[1]), depth(0), channel_type(type),
-        channel_order(order) {}
+        channel_order(order), row_pitch(pitch) {}
 
   image_descriptor(range<3> dims, image_channel_order order,
-                   image_channel_type type)
+                   image_channel_type type, size_t pitch = 0)
       : width(dims[0]), height(dims[1]), depth(dims[2]), channel_type(type),
-        channel_order(order) {}
+        channel_order(order), row_pitch(pitch) {}
 };
 
 /// Direction to copy data from bindless image handle
@@ -70,6 +75,55 @@ using OCLImageTy = typename sycl::detail::opencl_image_type<1, sycl::access::mod
 #endif
 
 /**
+ *  @brief   Allocate image memory based on image_descriptor
+ *  @param   syclContext The context in which we create our handle
+ *  @param   desc The image descriptor
+ *  @returns Handle to allocated memory on the GPU
+ */
+__SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
+                                   image_descriptor desc);
+
+/**
+ *  @brief   Create an image and return the device handle
+ *  @param   syclContext The context in which we create our handle
+ *  @param   devPtr Device memory handle for created image
+ *  @returns Handle to created image object on the GPU
+ */
+__SYCL_EXPORT unsampled_image_handle create_image(
+    const sycl::context &syclContext, void *devPtr, image_descriptor desc);
+
+/**
+ *  @brief   Create a sampled image and return the device handle
+ *  @param   syclContext The context in which we create our handle
+ *  @param   devPtr Device memory handle for created image
+ *  @param   sampler SYCL sampler to sample the image
+ *  @returns Handle to created image object on the GPU
+ */
+__SYCL_EXPORT sampled_image_handle
+create_image(const sycl::context &syclContext, void *devPtr,
+                     sampler &sampler, image_descriptor desc);
+
+/**
+ *  @brief   Copy image data between device and host
+ *  @param   syclQueue The queue in which we copy our image
+ *  @param   dst_ptr Destination memory handle/pointer
+ *  @param   src_ptr Source memory handle/pointer
+ *  @param   desc Image descriptor
+ *  @param   flags Image copy flags for copy direction
+ */
+__SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *dst_ptr,
+                              void *src_ptr, image_descriptor desc,
+                              image_copy_flags flags);
+
+/**
+ *  @brief   Free image memory
+ *  @param   syclContext The context in which we create our handle
+ *  @param   memory_handle The image memory handle
+ */
+__SYCL_EXPORT void free_image(const sycl::context &syclContext,
+                              void *memory_handle);
+
+/**
  *  @brief Destroy an image handle. Does not free memory backing the handle.
  *  @param imageHandle The handle to destroy.
  *  @param syclContext The context the handle is valid in.
@@ -85,53 +139,10 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
 __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
                                         sampled_image_handle &imageHandle);
 
-/**
- *  @brief   Allocate image memory based on image_descriptor
- *  @param   syclContext The context in which we create our handle
- *  @param   desc The image descriptor
- *  @returns Handle to allocated memory on the GPU
- */
-__SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
-                                   image_descriptor desc);
-
-/**
- *  @brief   Free image memory
- *  @param   syclContext The context in which we create our handle
- *  @param   memory_handle The image memory handle
- */
-__SYCL_EXPORT void free_image(const sycl::context &syclContext,
-                                   void *memory_handle);
-
-/**
- *  @brief   Create an image and return the device handle
- *  @param   syclContext The context in which we create our handle
- *  @param   devPtr Device memory handle for created image
- *  @returns Handle to created image object on the GPU
- */
-__SYCL_EXPORT unsampled_image_handle
-create_image(const sycl::context &syclContext, void *devPtr);
-
-/**
- *  @brief   Create a sampled image and return the device handle
- *  @param   syclContext The context in which we create our handle
- *  @param   devPtr Device memory handle for created image
- *  @param   sampler SYCL sampler to sample the image
- *  @returns Handle to created image object on the GPU
- */
-__SYCL_EXPORT sampled_image_handle
-create_image(const sycl::context &syclContext, void *devPtr, sampler &sampler);
-
-/**
- *  @brief   Copy image data between device and host
- *  @param   syclQueue The queue in which we copy our image
- *  @param   dst_ptr Destination memory handle/pointer
- *  @param   src_ptr Source memory handle/pointer
- *  @param   desc Image descriptor
- *  @param   flags Image copy flags for copy direction
- */
-__SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *dst_ptr,
-                              void *src_ptr, image_descriptor desc,
-                              image_copy_flags flags);
+__SYCL_EXPORT void *
+pitched_alloc_device(size_t *result_pitch, size_t width_in_bytes, size_t height,
+                     unsigned int element_size_bytes,
+                     const queue &q);
 
 namespace detail {
 template<typename CoordT>

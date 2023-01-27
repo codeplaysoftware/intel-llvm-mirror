@@ -3155,71 +3155,182 @@ pi_result cuda_piextMemImageFree(pi_context context, void *memory_handle) {
   return retErr;
 }
 
-pi_result
-cuda_piextMemUnsampledImageCreate(pi_context context, void *image_array,
-                                  void **ret_mem) { // Need input memory object
-
-  assert(ret_mem != nullptr);
+pi_result cuda_piextMemUnsampledImageCreate(pi_context context, void *img_mem,
+                                            pi_image_format *image_format,
+                                            pi_image_desc *desc,
+                                            void **ret_handle) {
+  assert(context != nullptr);
+  assert(img_mem != nullptr);
+  assert(ret_handle != nullptr);
   pi_result retErr = PI_SUCCESS;
-  ScopedContext active(context);
+
+  unsigned int num_channels = 0;
+  retErr =
+      piCalculateNumChannels(image_format->image_channel_order, &num_channels);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piextMemImageAllocate given unsupported image_channel_order");
+  }
+
+  CUarray_format format;
+  size_t pixel_type_size_bytes;
+  retErr = piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                      &format, &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "cuda_piextMemImageAllocate given unsupported image_channel_data_type");
+  }
 
   try {
-    // CUDA_RESOURCE_DESC is a union of different structs, shown here
-    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TEXOBJECT.html
-    // We need to fill it as described here to use it for a surface or texture
-    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__SURFOBJECT.html
-    // CUDA_RESOURCE_DESC::resType must be CU_RESOURCE_TYPE_ARRAY and
-    // CUDA_RESOURCE_DESC::res::array::hArray must be set to a valid CUDA array
-    // handle.
-    // CUDA_RESOURCE_DESC::flags must be set to zero
 
-    CUDA_RESOURCE_DESC image_res_desc;
-    image_res_desc.res.array.hArray = (CUarray)image_array;
-    image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
-    image_res_desc.flags = 0;
+    ScopedContext active(context);
 
-    CUsurfObject surface;
-    retErr = PI_CHECK_ERROR(cuSurfObjectCreate(&surface, &image_res_desc));
+    CUDA_RESOURCE_DESC image_res_desc = {};
 
-    *ret_mem = (void *)surface;
+    unsigned int mem_type;
+    // If this function doesn't return successfully, we assume that img_mem is a
+    // CUarray
+    // If this function returns successfully, we check whether img_mem is
+    // device memory (even managed memory isn't considered shared)
+    CUresult err = cuPointerGetAttribute(
+        &mem_type, CU_POINTER_ATTRIBUTE_MEMORY_TYPE, (CUdeviceptr)img_mem);
+
+    if (err != CUDA_SUCCESS) {
+      // We have a CUarray
+      image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
+      image_res_desc.res.array.hArray = (CUarray)img_mem;
+
+      // We create surfaces in the non-USM unsampled images case 
+      // as it conforms to how CUDA deals with unsampled images
+      CUsurfObject surface;
+      retErr = PI_CHECK_ERROR(cuSurfObjectCreate(&surface, &image_res_desc));
+      *ret_handle = (void *)surface;
+    } else if (mem_type == CU_MEMORYTYPE_DEVICE) {
+      // We have a USM pointer
+      if (desc->image_type == PI_MEM_TYPE_IMAGE1D) {
+        image_res_desc.resType = CU_RESOURCE_TYPE_LINEAR;
+        image_res_desc.res.linear.devPtr = (CUdeviceptr)img_mem;
+        image_res_desc.res.linear.format = format;
+        image_res_desc.res.linear.numChannels = num_channels;
+        image_res_desc.res.linear.sizeInBytes =
+            desc->image_width * pixel_type_size_bytes * num_channels;
+      } else if (desc->image_type == PI_MEM_TYPE_IMAGE2D) {
+        image_res_desc.resType = CU_RESOURCE_TYPE_PITCH2D;
+        image_res_desc.res.pitch2D.devPtr = (CUdeviceptr)img_mem;
+        image_res_desc.res.pitch2D.format = format;
+        image_res_desc.res.pitch2D.numChannels = num_channels;
+        image_res_desc.res.pitch2D.width = desc->image_width;
+        image_res_desc.res.pitch2D.height = desc->image_height;
+        image_res_desc.res.pitch2D.pitchInBytes = desc->image_row_pitch;
+      } else if (desc->image_type == PI_MEM_TYPE_IMAGE3D) {
+        sycl::detail::pi::die("cuda_piextMemUnsampledImageCreate cannot "
+                              "create 3D image from USM");
+      }
+
+      CUDA_TEXTURE_DESC image_tex_desc = {};
+      image_tex_desc.filterMode = CU_TR_FILTER_MODE_POINT;
+      CUaddress_mode addrMode = CU_TR_ADDRESS_MODE_CLAMP;
+      // The address modes can interfere with other dimensions
+      // e.g. 1D texture sampling can be interfered with when setting other
+      // dimension address modes despite their nonexistence
+      image_tex_desc.addressMode[0] = addrMode; // 1D
+      image_tex_desc.addressMode[1] = desc->image_height > 0
+                                          ? addrMode
+                                          : image_tex_desc.addressMode[1]; // 2D
+      image_tex_desc.addressMode[2] = (CUaddress_mode)0; // No 3D USM
+
+      // We create a texture with USM (despite being unsampled)
+      // as only textures can be created with USM memory (linear or pitched)
+      CUtexObject texture;
+      retErr = PI_CHECK_ERROR(cuTexObjectCreate(&texture, &image_res_desc,
+                                                &image_tex_desc, nullptr));
+      *ret_handle = (void *)texture;
+    } else {
+      sycl::detail::pi::die(
+          "cuda_piextMemUnsampledImageCreate unknown memory type passed");
+    }
+
   } catch (pi_result err) {
-    cuArrayDestroy((CUarray)image_array);
     return err;
   } catch (...) {
-    cuArrayDestroy((CUarray)image_array);
     return PI_ERROR_UNKNOWN;
   }
 
   return retErr;
 }
 
-pi_result
-cuda_piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
-                                void *image_array,
-                                void **ret_mem) { // Need input memory object
-
-  assert(ret_mem != nullptr);
+pi_result cuda_piextMemSampledImageCreate(pi_context context, void *img_mem,
+                                          pi_image_format *image_format,
+                                          pi_image_desc *desc,
+                                          pi_sampler sampler,
+                                          void **ret_handle) {
+  assert(context != nullptr);
+  assert(img_mem != nullptr);
+  assert(ret_handle != nullptr);
   pi_result retErr = PI_SUCCESS;
   ScopedContext active(context);
 
+  unsigned int num_channels = 0;
+  retErr =
+      piCalculateNumChannels(image_format->image_channel_order, &num_channels);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die("cuda_piextMemSampledImageCreate given "
+                          "unsupported image_channel_order");
+  }
+
+  CUarray_format format;
+  size_t pixel_type_size_bytes;
+  retErr = piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                      &format, &pixel_type_size_bytes);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die("cuda_piextMemSampledImageCreate given "
+                          "unsupported image_channel_data_type");
+  }
+
   try {
-    // CUDA_RESOURCE_DESC is a union of different structs, shown here
-    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TEXOBJECT.html
-    // We need to fill it as described here to use it for a surface or texture
-    // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__SURFOBJECT.html
-    // CUDA_RESOURCE_DESC::resType must be CU_RESOURCE_TYPE_ARRAY and
-    // CUDA_RESOURCE_DESC::res::array::hArray must be set to a valid CUDA array
-    // handle.
-    // CUDA_RESOURCE_DESC::flags must be set to zero
-    CUDA_RESOURCE_DESC image_res_desc{};
-    image_res_desc.res.array.hArray = (CUarray)image_array;
-    image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
-    image_res_desc.flags = 0;
+    CUDA_RESOURCE_DESC image_res_desc = {};
+
+    unsigned int mem_type;
+    // If this function doesn't return successfully, we assume that img_mem is a
+    // CUarray
+    // If this function returns successfully, we check whether img_mem is
+    // device memory (even managed memory isn't considered shared)
+    CUresult err = cuPointerGetAttribute(
+        &mem_type, CU_POINTER_ATTRIBUTE_MEMORY_TYPE, (CUdeviceptr)img_mem);
+    if (err != CUDA_SUCCESS) {
+      // We have a CUarray
+      image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
+      image_res_desc.res.array.hArray = (CUarray)img_mem;
+    } else if (mem_type == CU_MEMORYTYPE_DEVICE) {
+      // We have a USM pointer
+      if (desc->image_type == PI_MEM_TYPE_IMAGE1D) {
+        image_res_desc.resType = CU_RESOURCE_TYPE_LINEAR;
+        image_res_desc.res.linear.devPtr = (CUdeviceptr)img_mem;
+        image_res_desc.res.linear.format = format;
+        image_res_desc.res.linear.numChannels = num_channels;
+        image_res_desc.res.linear.sizeInBytes =
+            desc->image_width * pixel_type_size_bytes * num_channels;
+      } else if (desc->image_type == PI_MEM_TYPE_IMAGE2D) {
+        image_res_desc.resType = CU_RESOURCE_TYPE_PITCH2D;
+        image_res_desc.res.pitch2D.devPtr = (CUdeviceptr)img_mem;
+        image_res_desc.res.pitch2D.format = format;
+        image_res_desc.res.pitch2D.numChannels = num_channels;
+        image_res_desc.res.pitch2D.width = desc->image_width;
+        image_res_desc.res.pitch2D.height = desc->image_height;
+        image_res_desc.res.pitch2D.pitchInBytes = desc->image_row_pitch;
+      } else if (desc->image_type == PI_MEM_TYPE_IMAGE3D) {
+        sycl::detail::pi::die("cuda_piextMemSampledImageCreate cannot "
+                              "create 3D image from USM");
+      }
+    } else {
+      sycl::detail::pi::die(
+          "cuda_piextMemSampledImageCreate unknown image memory type");
+    }
 
     /// pi_sampler_properties
     /// | 31 30 ... 6 5 |      4 3 2      |     1      |         0        |
     /// |      N/A      | addressing mode | fiter mode | normalize coords |
-    CUDA_TEXTURE_DESC image_tex_desc{};
+    CUDA_TEXTURE_DESC image_tex_desc = {};
     CUaddress_mode addrMode;
     uint32_t addrModeProp = ((sampler->props_ >> 2) & 7);
     if (addrModeProp == (PI_SAMPLER_ADDRESSING_MODE_CLAMP_TO_EDGE -
@@ -3244,40 +3355,34 @@ cuda_piextMemSampledImageCreate(pi_context context, pi_sampler sampler,
     // The address modes can interfere with other dimensionsenqueueEventsWait
     // e.g. 1D texture sampling can be interfered with when setting other
     // dimension address modes despite their nonexistence
-    //
-    // Get dimensions from cuArray
-    CUDA_ARRAY3D_DESCRIPTOR array_desc;
-    retErr = PI_CHECK_ERROR(
-        cuArray3DGetDescriptor(&array_desc, image_res_desc.res.array.hArray));
     image_tex_desc.addressMode[0] = addrMode; // 1D
     image_tex_desc.addressMode[1] =
-        array_desc.Height > 0 ? addrMode : image_tex_desc.addressMode[1]; // 2D
+        desc->image_height > 0 ? addrMode : image_tex_desc.addressMode[1]; // 2D
     image_tex_desc.addressMode[2] =
-        array_desc.Depth > 0 ? addrMode : image_tex_desc.addressMode[2]; // 3D
+        desc->image_depth > 0 ? addrMode : image_tex_desc.addressMode[2]; // 3D
 
     // flags takes the normalized coordinates setting -- unnormalized is default
     image_tex_desc.flags = (sampler->props_ & 1)
                                ? CU_TRSF_NORMALIZED_COORDINATES
                                : image_tex_desc.flags;
 
+    // We create a texture for both the USM and non-USM sampled image case
+    // as it conforms to how CUDA deals with sampled images
     CUtexObject texture;
     retErr = PI_CHECK_ERROR(
         cuTexObjectCreate(&texture, &image_res_desc, &image_tex_desc, nullptr));
 
-    *ret_mem = (void *)texture;
+    *ret_handle = (void *)texture;
   } catch (pi_result err) {
-    cuArrayDestroy((CUarray)image_array);
     return err;
   } catch (...) {
-    cuArrayDestroy((CUarray)image_array);
     return PI_ERROR_UNKNOWN;
   }
 
   return retErr;
 }
 
-pi_result cuda_piextMemImageCopy(pi_queue command_queue,
-                                 /*pi_context context,*/ void *dst_ptr,
+pi_result cuda_piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
                                  void *src_ptr, pi_image_format *image_format,
                                  pi_image_desc *image_desc, uint32_t flags) {
 
@@ -3386,9 +3491,7 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue,
       sycl::detail::pi::die(
           "cuda_piMemImageCreate given unsupported image copy flags");
     }
-
     retErr = PI_CHECK_ERROR(cuStreamSynchronize(cuStream));
-
   } catch (pi_result err) {
     // TODO: appropriate error handling
     return err;
@@ -3405,7 +3508,7 @@ pi_result cuda_piextMemUnsampledImageHandleDestroy(pi_context context,
   assert(handle != nullptr);
 
   pi_result retErr = PI_SUCCESS;
-  retErr = PI_CHECK_ERROR(cuSurfObjectDestroy((CUsurfObject)handle));
+  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUsurfObject)handle));
   return retErr;
 }
 
@@ -5465,6 +5568,28 @@ pi_result cuda_piextUSMDeviceAlloc(void **result_ptr, pi_context context,
   return result;
 }
 
+pi_result cuda_piextUSMPitchedAlloc(void **result_ptr, size_t *result_pitch,
+                                    pi_context context, pi_device device,
+                                    pi_usm_mem_properties *properties,
+                                    size_t width_in_bytes, size_t height,
+                                    unsigned int element_size_bytes) {
+  assert(result_ptr != nullptr);
+  assert(context != nullptr);
+  assert(device != nullptr);
+  assert(properties == nullptr || *properties == 0);
+  pi_result result = PI_SUCCESS;
+  try {
+    ScopedContext active(context);
+    result = PI_CHECK_ERROR(cuMemAllocPitch((CUdeviceptr *)result_ptr,
+                                            result_pitch, width_in_bytes,
+                                            height, element_size_bytes));
+  } catch (pi_result error) {
+    result = error;
+  }
+
+  return result;
+}
+
 /// USM: Implements USM Shared allocations using CUDA Managed Memory
 ///
 pi_result cuda_piextUSMSharedAlloc(void **result_ptr, pi_context context,
@@ -6066,6 +6191,7 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   _PI_CL(piextUSMHostAlloc, cuda_piextUSMHostAlloc)
   _PI_CL(piextUSMDeviceAlloc, cuda_piextUSMDeviceAlloc)
   _PI_CL(piextUSMSharedAlloc, cuda_piextUSMSharedAlloc)
+  _PI_CL(piextUSMPitchedAlloc, cuda_piextUSMPitchedAlloc)
   _PI_CL(piextUSMFree, cuda_piextUSMFree)
   _PI_CL(piextUSMEnqueueMemset, cuda_piextUSMEnqueueMemset)
   _PI_CL(piextUSMEnqueueMemcpy, cuda_piextUSMEnqueueMemcpy)

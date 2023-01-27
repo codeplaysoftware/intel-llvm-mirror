@@ -113,7 +113,7 @@ __SYCL_EXPORT void free_image(const sycl::context &syclContext,
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
-  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
 
   Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageFree>(
       C, memory_handle);
@@ -121,8 +121,8 @@ __SYCL_EXPORT void free_image(const sycl::context &syclContext,
   return;
 }
 
-__SYCL_EXPORT unsampled_image_handle
-create_image(const sycl::context &syclContext, void *devPtr) {
+__SYCL_EXPORT unsampled_image_handle create_image(
+    const sycl::context &syclContext, void *devPtr, image_descriptor desc) {
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
@@ -130,12 +130,27 @@ create_image(const sycl::context &syclContext, void *devPtr) {
   const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
   pi_result Error;
 
+  pi_image_desc piDesc = {};
+  piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
+  piDesc.image_width = desc.width;
+  piDesc.image_height = desc.height;
+  piDesc.image_depth = desc.depth;
+  piDesc.image_row_pitch = desc.row_pitch;
+
+  pi_image_format piFormat;
+  piFormat.image_channel_data_type =
+      sycl::_V1::detail::convertChannelType(desc.channel_type);
+  piFormat.image_channel_order =
+      sycl::_V1::detail::convertChannelOrder(desc.channel_order);
+
   // Call impl.
   pi_image_handle piImageHandle;
   Error =
       Plugin
           .call_nocheck<sycl::detail::PiApiKind::piextMemUnsampledImageCreate>(
-              C, devPtr, &piImageHandle);
+              C, devPtr, &piFormat, &piDesc, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
     return unsampled_image_handle{nullptr};
@@ -144,7 +159,8 @@ create_image(const sycl::context &syclContext, void *devPtr) {
 }
 
 __SYCL_EXPORT sampled_image_handle
-create_image(const sycl::context &syclContext, void *devPtr, sampler &sampler) {
+create_image(const sycl::context &syclContext, void *devPtr,
+                     sampler &sampler, image_descriptor desc) {
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
@@ -157,11 +173,26 @@ create_image(const sycl::context &syclContext, void *devPtr, sampler &sampler) {
       sycl::detail::getSyclObjImpl(sampler);
   pi_sampler piSampler = SamplerImpl->getOrCreateSampler(syclContext);
 
+  pi_image_desc piDesc = {};
+  piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
+  piDesc.image_width = desc.width;
+  piDesc.image_height = desc.height;
+  piDesc.image_depth = desc.depth;
+  piDesc.image_row_pitch = desc.row_pitch;
+
+  pi_image_format piFormat;
+  piFormat.image_channel_data_type =
+      sycl::_V1::detail::convertChannelType(desc.channel_type);
+  piFormat.image_channel_order =
+      sycl::_V1::detail::convertChannelOrder(desc.channel_order);
+
   // Call impl.
   pi_image_handle piImageHandle;
   Error =
       Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemSampledImageCreate>(
-          C, piSampler, devPtr, &piImageHandle);
+          C, devPtr, &piFormat, &piDesc, piSampler, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
     return sampled_image_handle{nullptr};
@@ -183,19 +214,13 @@ __SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *devPtr,
   const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
   pi_result Error;
 
-  pi_image_desc piDesc;
+  pi_image_desc piDesc = {};
   piDesc.image_width = desc.width;
   piDesc.image_height = desc.height;
   piDesc.image_depth = desc.depth;
   piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
                                      : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
                                                         : PI_MEM_TYPE_IMAGE1D);
-  piDesc.image_array_size = 0;
-  piDesc.image_row_pitch = 0;
-  piDesc.image_slice_pitch = 0;
-  piDesc.num_mip_levels = 0;
-  piDesc.num_samples = 0;
-  piDesc.buffer = nullptr;
 
   pi_image_format piFormat;
   piFormat.image_channel_data_type =
@@ -210,6 +235,35 @@ __SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *devPtr,
     throw std::invalid_argument("Failed to copy image");
   }
 }
+
+__SYCL_EXPORT void *pitched_alloc_device(size_t *ResultPitch,
+                                         size_t WidthInBytes, size_t Height,
+                                         unsigned int ElementSizeBytes,
+                                         const queue &Q) {
+  void *RetVal = nullptr;
+  if (WidthInBytes == 0 || Height == 0 || ElementSizeBytes == 0)
+    return nullptr;
+
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(Q.get_context());
+  if (CtxImpl->is_host()) {
+    return nullptr;
+  }
+
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+  pi_device Id;
+
+  Id = sycl::detail::getSyclObjImpl(Q.get_device())->getHandleRef();
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextUSMPitchedAlloc>(
+      &RetVal, ResultPitch, C, Id, nullptr, WidthInBytes, Height,
+      ElementSizeBytes);
+
+  return RetVal;
+}
+
 } // namespace oneapi
 } // namespace ext
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)

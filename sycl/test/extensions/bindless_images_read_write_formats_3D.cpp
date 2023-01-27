@@ -60,12 +60,12 @@ int main() {
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::unsampled_image_handle imgIn1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1);
+      sycl::ext::oneapi::create_image(ctxt, device_ptr1, desc);
   sycl::ext::oneapi::unsampled_image_handle imgIn2 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr2);
+      sycl::ext::oneapi::create_image(ctxt, device_ptr2, desc);
 
   sycl::ext::oneapi::unsampled_image_handle imgOut =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr3);
+      sycl::ext::oneapi::create_image(ctxt, device_ptr3, desc);
 
   try {
     q.submit([&](handler &cgh) {
