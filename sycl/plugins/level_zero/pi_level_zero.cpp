@@ -5495,12 +5495,13 @@ pi_result piextMemImageFree(pi_context context, void *memory_handle) {
   return retErr;
 }
 
-pi_result piextMemUnsampledImageCreate(pi_context context, void *image_array,
-                              void **ret_mem) {
+pi_result piextMemUnsampledImageCreate(pi_context context, void *img_mem,
+                                       pi_image_format *image_format,
+                                       pi_image_desc *desc, void **ret_handle) {
 
   assert(context != nullptr);
-  assert(image_array != nullptr);
-  assert(ret_mem != nullptr);
+  assert(img_mem != nullptr);
+  assert(ret_handle != nullptr);
 
   die("piExtMemImageCreate not implemented on level zero backend.\n");
   // No image formats are supported!
@@ -5508,13 +5509,14 @@ pi_result piextMemUnsampledImageCreate(pi_context context, void *image_array,
   return retErr;
 }
 
-pi_result piextMemSampledImageCreate(pi_context context, pi_sampler sampler, 
-                                     void *image_array,
-                                     void **ret_mem) {
+pi_result piextMemSampledImageCreate(pi_context context, void *img_mem,
+                                     pi_image_format *format,
+                                     pi_image_desc *desc, pi_sampler sampler,
+                                     void **ret_handle) {
 
   assert(context != nullptr);
-  assert(image_array != nullptr);
-  assert(ret_mem != nullptr);
+  assert(img_mem != nullptr);
+  assert(ret_handle != nullptr);
 
   die("piExtMemSampledImageCreate not implemented on level zero backend.\n");
   // No image formats are supported!
@@ -8511,6 +8513,20 @@ pi_result piextUSMSharedAlloc(void **ResultPtr, pi_context Context,
   }
 
   return PI_SUCCESS;
+}
+
+pi_result piextUSMPitchedAlloc(void **result_ptr, size_t *result_pitch,
+                               pi_context context, pi_device device,
+                               pi_usm_mem_properties *properties,
+                               size_t width_in_bytes, size_t height,
+                               unsigned int element_size_bytes) {
+  die("piextUSMPitchedAlloc: not implemented");
+
+  assert(result_ptr != nullptr);
+  assert(context != nullptr);
+  assert(device != nullptr);
+  assert(properties == nullptr || *properties == 0);
+  return {};
 }
 
 pi_result piextUSMHostAlloc(void **ResultPtr, pi_context Context,

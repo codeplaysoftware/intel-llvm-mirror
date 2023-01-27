@@ -53,9 +53,9 @@ int main() {
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::unsampled_image_handle imgHandle1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1);
+      sycl::ext::oneapi::create_image(ctxt, device_ptr1, desc);
   sycl::ext::oneapi::unsampled_image_handle imgHandle2 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr2);
+      sycl::ext::oneapi::create_image(ctxt, device_ptr2, desc);
 
   try {
     buffer<float, 1> buf((float *)out.data(), N);

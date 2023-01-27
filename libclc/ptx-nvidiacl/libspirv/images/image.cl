@@ -1502,3 +1502,13 @@ _CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmS0_ET_T0_T1_(
     unsigned long imageHandle, float4 coord) {
   return __nvvm_tex_3d_v4f32_f32(imageHandle, coord.x, coord.y, coord.z);
 }
+
+_CLC_DEF float _Z17__spirv_ImageReadIfmfET_T0_T1_(
+  unsigned long imageHandle, float coord){
+    return __nvvm_tex_1d_v4f32_f32(imageHandle, coord)[0];
+}
+
+_CLC_DEF float _Z17__spirv_ImageReadIfmDv2_fET_T0_T1_(
+  unsigned long imageHandle, float2 coord){
+    return __nvvm_tex_2d_v4f32_f32(imageHandle, coord.x, coord.y)[0];
+}

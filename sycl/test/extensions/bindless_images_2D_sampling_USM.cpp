@@ -15,10 +15,9 @@ int main() {
 
   // declare image data
   // we use float4s but only take the first element
-  size_t width = 1024;
-  size_t height = 1024;
-  size_t depth = 16;
-  size_t N = width * height * depth;
+  size_t width = 5;
+  size_t height = 6;
+  size_t N = width * height;
   std::vector<float> out(N);
   std::vector<float> expected(N);
   std::vector<float4> dataIn1(N);
@@ -26,21 +25,32 @@ int main() {
   // ROW-MAJOR
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
-      for (int k = 0; k < depth; k++) {
-        expected[k + depth * (j + height * i)] = j * 3;
-        dataIn1[k + depth * (j + height * i)] = {j, j, j, j};
-        dataIn2[k + depth * (j + height * i)] = {j * 2, j * 2, j * 2, j * 2};
-      }
+      expected[j + (height * i)] = (j + (height * i)) * 3;
+      dataIn1[j + (height * i)] = {j + (height * i), 0, 0, 0};
+      dataIn2[j + (height * i)] = {(j + (height * i)) * 2, 0, 0, 0};
     }
   }
 
-  // Image descriptor - can use the same for both images
-  sycl::ext::oneapi::image_descriptor desc({width, height, depth},
-                                           image_channel_order::rgba,
-                                           image_channel_type::fp32, 0);
+  sampler samp1(coordinate_normalization_mode::normalized,
+                addressing_mode::repeat, filtering_mode::linear);
 
-  // Extension: returns the device pointer to the allocated memory
-  auto device_ptr1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  unsigned int element_size_bytes = sizeof(float) * 4;
+  size_t width_in_bytes = width * element_size_bytes;
+  size_t pitch = 0;
+
+  // USM allocation
+  auto device_ptr1 = sycl::ext::oneapi::pitched_alloc_device(
+      &pitch, width_in_bytes, height, element_size_bytes, q);
+
+  // Image descriptor - USM
+  sycl::ext::oneapi::image_descriptor descUSM({width, height},
+                                              image_channel_order::rgba,
+                                              image_channel_type::fp32, pitch);
+  // Image descriptor - non-USM
+  sycl::ext::oneapi::image_descriptor desc(
+      {width, height}, image_channel_order::rgba, image_channel_type::fp32);
+
+  // non-USM allocation
   auto device_ptr2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
   if (device_ptr1 == nullptr || device_ptr2 == nullptr) {
@@ -48,43 +58,47 @@ int main() {
     return 1;
   }
 
-  // Extension: copy over data to device
-  sycl::ext::oneapi::copy_image(q, device_ptr1, dataIn1.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
+  // Copy data over via USM
+  for (int i = 0; i < height; ++i) {
+    q.memcpy((char *)device_ptr1 + (pitch * i), &dataIn1[width * i],
+             width_in_bytes);
+  }
+  // Copy over data via extension
   sycl::ext::oneapi::copy_image(q, device_ptr2, dataIn2.data(), desc,
                                 sycl::ext::oneapi::image_copy_flags::HtoD);
 
   // Extension: create the image and return the handle
-  sycl::ext::oneapi::unsampled_image_handle imgHandle1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1, desc);
-  sycl::ext::oneapi::unsampled_image_handle imgHandle2 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr2, desc);
+  sycl::ext::oneapi::sampled_image_handle imgHandle1 =
+      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1, descUSM);
+  sycl::ext::oneapi::sampled_image_handle imgHandle2 =
+      sycl::ext::oneapi::create_image(ctxt, device_ptr2, samp1, desc);
 
   try {
     // Cuda stores data in column-major fashion
     // SYCL deals with indexing in row-major fashion
     // Reverse output buffer dimensions and access to convert
     // the cuda column-major data back to row-major
-    buffer<float, 3> buf((float *)out.data(), range<3>{depth, height, width});
+    buffer<float, 2> buf((float *)out.data(), range<2>{height, width});
     q.submit([&](handler &cgh) {
-      auto outAcc = buf.get_access<access_mode::write>(
-          cgh, range<3>{depth, height, width});
+      auto outAcc =
+          buf.get_access<access_mode::write>(cgh, range<2>{height, width});
 
       cgh.parallel_for<image_addition>(
-          nd_range<3>{{width, height, depth}, {16, 16, 4}},
-          [=](nd_item<3> it) {
-            size_t dim0 = it.get_global_id(0);
-            size_t dim1 = it.get_global_id(1);
-            size_t dim2 = it.get_global_id(2);
-            float sum = 0;
+          nd_range<2>{{width, height}, {width, height}}, [=](nd_item<2> it) {
+            size_t dim0 = it.get_local_id(0);
+            size_t dim1 = it.get_local_id(1);
+
+            // Normalize coordinates -- +0.5 to look towards centre of pixel
+            float fdim0 = float(dim0 + 0.5) / (float)width;
+            float fdim1 = float(dim1 + 0.5) / (float)height;
+
             // Extension: read image data from handle
             float4 px1 = sycl::ext::oneapi::read_image<float4>(
-                imgHandle1, int4(dim0, dim1, dim2, 0));
+                imgHandle1, float2(fdim0, fdim1));
             float4 px2 = sycl::ext::oneapi::read_image<float4>(
-                imgHandle2, int4(dim0, dim1, dim2, 0));
+                imgHandle2, float2(fdim0, fdim1));
 
-            sum = px1[0] + px2[0];
-            outAcc[id<3>{dim2, dim1, dim0}] = sum;
+            outAcc[id<2>{dim1, dim0}] = px1[0] + px2[0];
           });
     });
   } catch (...) {
@@ -96,8 +110,8 @@ int main() {
   try {
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle2);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr1);
     sycl::ext::oneapi::free_image(ctxt, device_ptr2);
+    sycl::free(device_ptr1, ctxt);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

@@ -1740,9 +1740,26 @@ __SYCL_EXPORT pi_result piextUSMSharedAlloc(void **result_ptr,
                                             pi_usm_mem_properties *properties,
                                             size_t size, pi_uint32 alignment);
 
-/// Indicates that the allocated USM memory is no longer needed on the runtime
-/// side. The actual freeing of the memory may be done in a blocking or deferred
-/// manner, e.g. to avoid issues with indirect memory access from kernels.
+/// Allocates memory accessible on both host and device
+///
+/// \param result_ptr contains the allocated memory
+/// \param result_pitch contains the returned memory pitch
+/// \param context is the pi_context
+/// \param device is the device the memory will be allocated on
+/// \param properties are optional allocation properties
+/// \param width_in_bytes is the width of the allocation in bytes
+/// \param height is the height of the allocation
+/// \param element_size_bytes is the size in bytes of an element in the
+/// allocation
+__SYCL_EXPORT pi_result piextUSMPitchedAlloc(
+    void **result_ptr, size_t *result_pitch, pi_context context,
+    pi_device device, pi_usm_mem_properties *properties, size_t width_in_bytes,
+    size_t height, unsigned int element_size_bytes);
+
+/// Indicates that the allocated USM memory is no longer needed on the
+/// runtime side. The actual freeing of the memory may be done in a blocking
+/// or deferred manner, e.g. to avoid issues with indirect memory access
+/// from kernels.
 ///
 /// \param context is the pi_context of the allocation
 /// \param ptr is the memory to be freed
@@ -1962,22 +1979,25 @@ __SYCL_EXPORT pi_result piextMemImageFree(pi_context context,
 /// API to create bindless image handles.
 ///
 /// \param context is the pi_context
-/// \param image_array is the handle to memory from which to create the image
+/// \param mem is the handle to memory from which to create the image
+/// \param image_format format of the image (channel order and data type)
+/// \param image_desc image descriptor
 /// \param ret_mem is the returning memory handle to newly allocated memory
-__SYCL_EXPORT pi_result piextMemUnsampledImageCreate(pi_context context,
-                                            void *image_array,
-                                            void **ret_mem);
+__SYCL_EXPORT pi_result piextMemUnsampledImageCreate(
+    pi_context context, void *img_mem, pi_image_format *image_format,
+    pi_image_desc *desc, void **ret_handle);
 
 /// API to create sampled bindless image handles.
 ///
 /// \param context is the pi_context
+/// \param image_format format of the image (channel order and data type)
+/// \param image_desc image descriptor
 /// \param sampler is the pi_sampler
-/// \param image_array is the handle to memory from which to create the image
+/// \param mem is the handle to memory from which to create the image
 /// \param ret_mem is the returning memory handle to newly allocated memory
-__SYCL_EXPORT pi_result piextMemSampledImageCreate(pi_context context,
-                                                   pi_sampler sampler,
-                                                   void *image_array,
-                                                   void **ret_mem);
+__SYCL_EXPORT pi_result piextMemSampledImageCreate(
+    pi_context context, void *mem, pi_image_format *format, pi_image_desc *desc,
+    pi_sampler sampler, void **ret_handle);
 
 __SYCL_EXPORT pi_result piextMemImageCopy(pi_queue queue,
                                           void *dst_ptr, void *src_ptr,

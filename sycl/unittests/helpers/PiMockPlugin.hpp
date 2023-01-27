@@ -1010,6 +1010,16 @@ inline pi_result mock_piextUSMSharedAlloc(void **result_ptr, pi_context context,
   return PI_SUCCESS;
 }
 
+inline pi_result mock_piextUSMPitchedAlloc(void **result_ptr,
+                                           size_t *result_pitch,
+                                           pi_context context, pi_device device,
+                                           pi_usm_mem_properties *properties,
+                                           size_t width_in_bytes, size_t height,
+                                           unsigned int element_size_bytes) {
+  *result_ptr = createDummyHandle<void *>(width_in_bytes * height);
+  return PI_SUCCESS;
+}
+
 inline pi_result mock_piextUSMFree(pi_context context, void *ptr) {
   return PI_SUCCESS;
 }
