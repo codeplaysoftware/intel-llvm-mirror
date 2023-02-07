@@ -14,7 +14,6 @@ int main() {
   auto ctxt = q.get_context();
 
   // declare image data
-  // we use float4s but only take the first element
   size_t width = 5;
   size_t height = 6;
   size_t N = width * height;
@@ -29,24 +28,30 @@ int main() {
     }
   }
 
-  // Image descriptor - can use the same for both images
-  sycl::ext::oneapi::image_descriptor desc(
-      {width, height}, image_channel_order::rgba, image_channel_type::fp32);
-
   sampler samp1(coordinate_normalization_mode::normalized,
-                addressing_mode::clamp, filtering_mode::linear);
+                addressing_mode::repeat, filtering_mode::linear);
 
-  // Extension: returns the device pointer to the allocated memory
-  auto device_ptr1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  unsigned int element_size_bytes = sizeof(float) * 4;
+  size_t width_in_bytes = width * element_size_bytes;
+  size_t pitch = 0;
+  // Extension: returns the device pointer to USM allocated pitched memory
+  auto device_ptr1 = sycl::pitched_alloc_device(
+      &pitch, width_in_bytes, height, element_size_bytes, q);
+
+  // Image descriptor - can use the same for both images
+  sycl::ext::oneapi::image_descriptor desc({width, height},
+                                           image_channel_order::rgba,
+                                           image_channel_type::fp32, pitch);
 
   if (device_ptr1 == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return 1;
   }
 
-  // Extension: copy over data to device
-  sycl::ext::oneapi::copy_image(q, device_ptr1, dataIn1.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
+  for (int i = 0; i < height; ++i) {
+    q.memcpy((char *)device_ptr1 + (pitch * i), &dataIn1[width * i],
+             width_in_bytes);
+  }
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::sampled_image_handle imgHandle1 =
@@ -83,10 +88,12 @@ int main() {
     assert(false);
   }
 
+  q.wait();
+
   // Cleanup
   try {
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr1);
+    sycl::free(device_ptr1, ctxt);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

@@ -25,6 +25,8 @@
 #include <sycl/property_list.hpp>
 #include <sycl/stl.hpp>
 
+#include <sycl/ext/oneapi/bindless_image_descriptor.hpp>
+
 // Explicitly request format macros
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS 1
@@ -1057,6 +1059,18 @@ public:
       CGH.ext_oneapi_fill2d<T>(Dest, DestPitch, Pattern, Width, Height);
     } _CODELOCFW(CodeLoc));
   }
+
+  event ext_image_memcpy(void *Dest, void *Src,
+                         const sycl::_V1::ext::oneapi::image_descriptor &Desc,
+                         sycl::_V1::ext::oneapi::image_copy_flags Flags);
+  event ext_image_memcpy(void *Dest, void *Src,
+                         const sycl::_V1::ext::oneapi::image_descriptor &Desc,
+                         sycl::_V1::ext::oneapi::image_copy_flags Flags,
+                         event DepEvent);
+  event ext_image_memcpy(void *Dest, void *Src,
+                         const sycl::_V1::ext::oneapi::image_descriptor &Desc,
+                         sycl::_V1::ext::oneapi::image_copy_flags Flags,
+                         const std::vector<event> &DepEvents);
 
   /// single_task version with a kernel represented as a lambda.
   ///

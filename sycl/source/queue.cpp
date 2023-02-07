@@ -8,6 +8,7 @@
 
 #include <detail/backend_impl.hpp>
 #include <detail/event_impl.hpp>
+#include <detail/image_impl.hpp>
 #include <detail/queue_impl.hpp>
 #include <sycl/detail/common.hpp>
 #include <sycl/event.hpp>
@@ -126,6 +127,40 @@ event queue::mem_advise(const void *Ptr, size_t Length, int Advice,
 event queue::mem_advise(const void *Ptr, size_t Length, int Advice,
                         const std::vector<event> &DepEvents) {
   return impl->mem_advise(impl, Ptr, Length, pi_mem_advice(Advice), DepEvents);
+}
+
+event queue::ext_image_memcpy(
+    void *Dest, void *Src, const sycl::_V1::ext::oneapi::image_descriptor &Desc,
+    sycl::_V1::ext::oneapi::image_copy_flags Flags) {
+  return this->ext_image_memcpy(Dest, Src, Desc, Flags, std::vector<event>{});
+}
+
+event queue::ext_image_memcpy(
+    void *Dest, void *Src, const sycl::_V1::ext::oneapi::image_descriptor &Desc,
+    sycl::_V1::ext::oneapi::image_copy_flags Flags, event DepEvent) {
+  return this->ext_image_memcpy(Dest, Src, Desc, Flags, {DepEvent});
+}
+
+event queue::ext_image_memcpy(
+    void *Dest, void *Src, const sycl::_V1::ext::oneapi::image_descriptor &Desc,
+    sycl::_V1::ext::oneapi::image_copy_flags Flags,
+    const std::vector<event> &DepEvents) {
+  RT::PiMemImageDesc PiDesc = {};
+  PiDesc.image_width = Desc.width;
+  PiDesc.image_height = Desc.height;
+  PiDesc.image_depth = Desc.depth;
+  PiDesc.image_row_pitch = Desc.row_pitch;
+  PiDesc.image_type = Desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (Desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
+  RT::PiMemImageFormat PiFormat;
+  PiFormat.image_channel_data_type =
+      sycl::_V1::detail::convertChannelType(Desc.channel_type);
+  PiFormat.image_channel_order =
+      sycl::_V1::detail::convertChannelOrder(Desc.channel_order);
+
+  return impl->ext_image_memcpy(impl, Dest, Src, PiDesc, PiFormat, Flags,
+                                DepEvents);
 }
 
 event queue::discard_or_return(const event &Event) {

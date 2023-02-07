@@ -229,6 +229,53 @@ event queue_impl::mem_advise(const std::shared_ptr<detail::queue_impl> &Self,
   return MDiscardEvents ? createDiscardedEvent() : ResEvent;
 }
 
+event queue_impl::ext_image_memcpy(const std::shared_ptr<queue_impl> &Self,
+                                   void *Dest, void *Src,
+                                   const RT::PiMemImageDesc &Desc,
+                                   const RT::PiMemImageFormat &Format,
+                                   ext::oneapi::image_copy_flags Flags,
+                                   const std::vector<event> &DepEvents) {
+  if (MHasDiscardEventsSupport) {
+    MemoryManager::copy_image_bindless(Dest, Self, Src, Desc, Format, Flags,
+                                       getOrWaitEvents(DepEvents, MContext),
+                                       nullptr);
+    return createDiscardedEvent();
+  }
+  event ResEvent;
+  {
+    // We need to submit command and update the last event under same lock if we
+    // have in-order queue.
+    auto ScopeLock = isInOrder() ? std::unique_lock<std::mutex>(MLastEventMtx)
+                                 : std::unique_lock<std::mutex>();
+    // If the last submitted command in the in-order queue is host_task then
+    // wait for it before submitting bindless copy command.
+    if (isInOrder() && (MLastCGType == CG::CGTYPE::CodeplayHostTask ||
+                        MLastCGType == CG::CGTYPE::CodeplayInteropTask))
+      MLastEvent.wait();
+
+    RT::PiEvent NativeEvent{};
+    auto PiDepEvents = getOrWaitEvents(DepEvents, MContext);
+    MemoryManager::copy_image_bindless(Dest, Self, Src, Desc, Format, Flags,
+                                       getOrWaitEvents(DepEvents, MContext),
+                                       &NativeEvent);
+    
+
+    // We have a bindless copy event but prepareUSMEvent does what we need
+    ResEvent = prepareUSMEvent(Self, NativeEvent);
+    if (isInOrder()) {
+      MLastEvent = ResEvent;
+      // We don't create a command group for bindless copy commands, so set it
+      // to None. This variable is used to perform explicit dependency
+      // management when required.
+      MLastCGType = CG::CGTYPE::None;
+    }
+  }
+  // Track only if we won't be able to handle it with piQueueFinish.
+  if (!MSupportOOO)
+    addSharedEvent(ResEvent);
+  return MDiscardEvents ? createDiscardedEvent() : ResEvent;
+}
+
 void queue_impl::addEvent(const event &Event) {
   EventImplPtr EImpl = getSyclObjImpl(Event);
   assert(EImpl && "Event implementation is missing");

@@ -17,7 +17,8 @@
 
 #include <sycl/detail/common.hpp>
 #include <sycl/detail/pi.hpp>
-#include <sycl/ext/oneapi/bindless_textures.hpp>
+
+#include <sycl/ext/oneapi/bindless_image_descriptor.hpp>
 
 #include <cstdint>
 
@@ -25,39 +26,6 @@ namespace sycl {
 __SYCL_INLINE_VER_NAMESPACE(_V1) {
 namespace ext {
 namespace oneapi {
-
-/// A class to describe the properties of an image.
-struct image_descriptor {
-  unsigned int width;
-  unsigned int height;
-  unsigned int depth;
-  image_channel_type channel_type;
-  image_channel_order channel_order;
-  size_t row_pitch;
-
-  image_descriptor(range<1> dims, image_channel_order order,
-                   image_channel_type type, size_t pitch = 0)
-      : width(dims[0]), height(0), depth(0), channel_type(type),
-        channel_order(order), row_pitch(pitch) {}
-
-  image_descriptor(range<2> dims, image_channel_order order,
-                   image_channel_type type, size_t pitch = 0)
-      : width(dims[0]), height(dims[1]), depth(0), channel_type(type),
-        channel_order(order), row_pitch(pitch) {}
-
-  image_descriptor(range<3> dims, image_channel_order order,
-                   image_channel_type type, size_t pitch = 0)
-      : width(dims[0]), height(dims[1]), depth(dims[2]), channel_type(type),
-        channel_order(order), row_pitch(pitch) {}
-};
-
-/// Direction to copy data from bindless image handle
-/// (Host -> Device) (Device -> Host) etc.
-enum image_copy_flags : unsigned int {
-  HtoD = 0,
-  DtoH = 1,
-  DtoD = 2,
-};
 
 /// Opaque unsampled image handle type.
 typedef struct {
@@ -103,18 +71,6 @@ __SYCL_EXPORT unsampled_image_handle create_image(
 __SYCL_EXPORT sampled_image_handle
 create_image(const sycl::context &syclContext, void *devPtr,
                      sampler &sampler, image_descriptor desc);
-
-/**
- *  @brief   Copy image data between device and host
- *  @param   syclQueue The queue in which we copy our image
- *  @param   dst_ptr Destination memory handle/pointer
- *  @param   src_ptr Source memory handle/pointer
- *  @param   desc Image descriptor
- *  @param   flags Image copy flags for copy direction
- */
-__SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *dst_ptr,
-                              void *src_ptr, image_descriptor desc,
-                              image_copy_flags flags);
 
 /**
  *  @brief   Free image memory

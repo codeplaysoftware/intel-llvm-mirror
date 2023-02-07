@@ -45,17 +45,19 @@ int main() {
     return 1;
   }
 
-  // Extension: copy over data to device
-  sycl::ext::oneapi::copy_image(q, device_ptr1, dataIn1.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
-  sycl::ext::oneapi::copy_image(q, device_ptr2, dataIn2.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
-
   // Extension: create the image and return the handle
   sycl::ext::oneapi::unsampled_image_handle imgHandle1 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr1, desc);
   sycl::ext::oneapi::unsampled_image_handle imgHandle2 =
       sycl::ext::oneapi::create_image(ctxt, device_ptr2, desc);
+
+  // Extension: copy over data to device
+  q.ext_image_memcpy(device_ptr1, dataIn1.data(), desc,
+                     ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(device_ptr2, dataIn2.data(), desc,
+                     ext::oneapi::image_copy_flags::HtoD);
+
+  q.wait();
 
   try {
     buffer<float, 1> buf((float *)out.data(), N);
@@ -78,6 +80,8 @@ int main() {
     std::cerr << "Kernel submission failed!" << std::endl;
     assert(false);
   }
+
+  q.wait();
 
   // Cleanup
   try {

@@ -3382,54 +3382,42 @@ pi_result cuda_piextMemSampledImageCreate(pi_context context, void *img_mem,
   return retErr;
 }
 
-pi_result cuda_piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
-                                 void *src_ptr, pi_image_format *image_format,
-                                 pi_image_desc *image_desc, uint32_t flags) {
-
+pi_result cuda_piextMemImageCopy(
+    pi_queue command_queue, void *dst_ptr, void *src_ptr,
+    const pi_image_format *image_format, const pi_image_desc *image_desc,
+    const pi_image_copy_flags flags, pi_uint32 num_events_in_wait_list,
+    const pi_event *event_wait_list, pi_event *event) {
+  assert(dst_ptr != nullptr);
   assert(src_ptr != nullptr);
+  assert(image_format != nullptr);
+  assert(image_desc != nullptr);
   pi_result retErr = PI_SUCCESS;
 
-  // We use cuArray3DCreate, which has some caveats. The height and
-  // depth parameters must be set to 0 produce 1D or 2D arrays. image_desc gives
-  // a minimum value of 1, so we need to convert the answer.
-  CUDA_ARRAY3D_DESCRIPTOR array_desc = {};
+  unsigned int num_channels = 0;
+  size_t pixel_type_size_bytes = 0;
 
-  retErr = piCalculateNumChannels(image_format->image_channel_order,
-                                  &array_desc.NumChannels);
+  retErr =
+      piCalculateNumChannels(image_format->image_channel_order, &num_channels);
   if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
     sycl::detail::pi::die(
         "cuda_piextMemImageCopy given unsupported image_channel_order");
   }
 
   // We need to get this now in bytes for calculating the total image size later
-  size_t pixel_type_size_bytes;
-  retErr =
-      piToCudaImageChannelFormat(image_format->image_channel_data_type,
-                                 &array_desc.Format, &pixel_type_size_bytes);
+  retErr = piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                      nullptr, &pixel_type_size_bytes);
   if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
     sycl::detail::pi::die(
         "cuda_piextMemImageCopy given unsupported image_channel_data_type");
   }
 
-  array_desc.Flags = 0; // No flags required
-  array_desc.Width = image_desc->image_width;
-  if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
-    array_desc.Height = 0;
-    array_desc.Depth = 0;
-  } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
-    array_desc.Height = image_desc->image_height;
-    array_desc.Depth = 0;
-  } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE3D) {
-    array_desc.Height = image_desc->image_height;
-    array_desc.Depth = image_desc->image_depth;
-  }
-
-  size_t pixel_size_bytes = pixel_type_size_bytes * array_desc.NumChannels;
-
-  CUstream cuStream = command_queue->get_next_transfer_stream();
+  size_t pixel_size_bytes = pixel_type_size_bytes * num_channels;
 
   try {
     ScopedContext active(command_queue->get_context());
+    CUstream cuStream = command_queue->get_next_transfer_stream();
+    retErr = enqueueEventsWait(command_queue, cuStream, num_events_in_wait_list,
+                               event_wait_list);
     // We have to use a different copy function for each image dimensionality
     if (flags == PI_IMAGE_COPY_HTOD) {
       if (image_desc->image_type == PI_MEM_TYPE_IMAGE1D) {
@@ -3491,7 +3479,13 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
       sycl::detail::pi::die(
           "cuda_piMemImageCreate given unsupported image copy flags");
     }
-    retErr = PI_CHECK_ERROR(cuStreamSynchronize(cuStream));
+
+    if (event) {
+      auto new_event = _pi_event::make_native(PI_COMMAND_TYPE_IMAGE_COPY,
+                                              command_queue, cuStream);
+      new_event->record();
+      *event = new_event;
+    }
   } catch (pi_result err) {
     // TODO: appropriate error handling
     return err;

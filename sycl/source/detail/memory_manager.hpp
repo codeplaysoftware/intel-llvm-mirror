@@ -11,6 +11,7 @@
 #include <detail/sycl_mem_obj_i.hpp>
 #include <sycl/access/access.hpp>
 #include <sycl/detail/export.hpp>
+#include <sycl/ext/oneapi/bindless_image_descriptor.hpp>
 #include <sycl/id.hpp>
 #include <sycl/property_list.hpp>
 #include <sycl/range.hpp>
@@ -163,6 +164,13 @@ public:
                             size_t Width, size_t Height, char Value,
                             std::vector<RT::PiEvent> DepEvents,
                             RT::PiEvent *OutEvent);
+
+  static void copy_image_bindless(void *Dst, QueueImplPtr Queue, void *Src,
+                                  const RT::PiMemImageDesc &Desc,
+                                  const RT::PiMemImageFormat &Format,
+                                  ext::oneapi::image_copy_flags Flags,
+                                  const std::vector<RT::PiEvent> &DepEvents,
+                                  RT::PiEvent *OutEvent);
 };
 } // namespace detail
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)

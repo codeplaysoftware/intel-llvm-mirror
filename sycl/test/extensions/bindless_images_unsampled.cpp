@@ -245,11 +245,10 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize,
   auto img_input_1 = sycl::ext::oneapi::create_image(ctxt, device_ptr_1, desc);
   auto img_output = sycl::ext::oneapi::create_image(ctxt, device_ptr_2, desc);
 
-  sycl::ext::oneapi::copy_image(q, device_ptr_0, input_0.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
-  sycl::ext::oneapi::copy_image(q, device_ptr_1, input_1.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
-
+  q.ext_image_memcpy(device_ptr_0, input_0.data(), desc,
+                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(device_ptr_1, input_1.data(), desc,
+                     sycl::ext::oneapi::image_copy_flags::HtoD);
   q.wait();
 
   {
@@ -259,8 +258,8 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize,
         q, globalSize, localSize, img_input_0, img_input_1, img_output);
     q.wait();
 
-    sycl::ext::oneapi::copy_image(q, actual.data(), device_ptr_2, desc,
-                                  sycl::ext::oneapi::image_copy_flags::DtoH);
+    q.ext_image_memcpy(actual.data(), device_ptr_2, desc,
+                     sycl::ext::oneapi::image_copy_flags::DtoH);
     q.wait();
   }
 
