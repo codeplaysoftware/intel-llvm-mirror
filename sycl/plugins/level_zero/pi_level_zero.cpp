@@ -5526,12 +5526,16 @@ pi_result piextMemSampledImageCreate(pi_context context, void *img_mem,
   return retErr;
 }
 
-pi_result piextMemImageCopy(pi_queue queue, void *image_array,
-                                 void *host_ptr, pi_image_format *image_format,
-                                 pi_image_desc *image_desc, uint32_t direction) {
-  assert(queue != nullptr);
-  assert(image_array != nullptr);
-  assert(host_ptr != nullptr);
+pi_result piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
+                                 void *src_ptr, const pi_image_format *image_format,
+                                 const pi_image_desc *image_desc,
+                                 const pi_image_copy_flags flags,
+                                 pi_uint32 num_events_in_wait_list,
+                                 const pi_event *event_wait_list,
+                                 pi_event *event) {
+  assert(command_queue != nullptr);
+  assert(dst_ptr != nullptr);
+  assert(src_ptr != nullptr);
 
   die("piextMemImageCopy not implemented on level zero backend.\n");
   // No image formats are supported!

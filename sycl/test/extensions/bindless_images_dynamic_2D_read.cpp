@@ -49,8 +49,8 @@ int main() {
   // Copy over data to device for each image
   for (int i = 0; i < numImages; i++) {
     // Extension: copy over data to device
-    sycl::ext::oneapi::copy_image(q, imgAllocations[i], dataIn.data(), desc,
-                                  sycl::ext::oneapi::image_copy_flags::HtoD);
+    q.ext_image_memcpy(imgAllocations[i], dataIn.data(), desc,
+                       sycl::ext::oneapi::image_copy_flags::HtoD);
   }
   q.wait();
 

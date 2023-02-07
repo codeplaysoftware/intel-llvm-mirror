@@ -1999,11 +1999,14 @@ __SYCL_EXPORT pi_result piextMemSampledImageCreate(
     pi_context context, void *mem, pi_image_format *format, pi_image_desc *desc,
     pi_sampler sampler, pi_image_handle *ret_handle);
 
-__SYCL_EXPORT pi_result piextMemImageCopy(pi_queue queue,
-                                          void *dst_ptr, void *src_ptr,
-                                          pi_image_format *image_format,
-                                          pi_image_desc *image_desc,
-                                          uint32_t direction);
+__SYCL_EXPORT pi_result piextMemImageCopy(pi_queue queue, void *dst_ptr,
+                                          void *src_ptr,
+                                          const pi_image_format *image_format,
+                                          const pi_image_desc *image_desc,
+                                          const pi_image_copy_flags flags,
+                                          pi_uint32 num_events_in_wait_list,
+                                          const pi_event *event_wait_list,
+                                          pi_event *event);
 
 struct _pi_plugin {
   // PI version supported by host passed to the plugin. The Plugin

@@ -990,6 +990,27 @@ void MemoryManager::memset_2d_usm(void *DstMem, QueueImplPtr Queue,
       Height, DepEvents.size(), DepEvents.data(), OutEvent);
 }
 
+void MemoryManager::copy_image_bindless(
+    void *Dst, QueueImplPtr Queue, void *Src, const RT::PiMemImageDesc &Desc,
+    const RT::PiMemImageFormat &Format, ext::oneapi::image_copy_flags Flags,
+    const std::vector<RT::PiEvent> &DepEvents, RT::PiEvent *OutEvent) {
+
+  assert(!Queue->getContextImplPtr()->is_host() &&
+         "Host queue not supported in copy_image_bindless.");
+  assert(Flags == ext::oneapi::image_copy_flags::HtoD ||
+         Flags == ext::oneapi::image_copy_flags::DtoH &&
+             "Invalid flags passed to copy_image_bindless.");
+  if (!Dst || !Src)
+    throw sycl::exception(
+        sycl::make_error_code(errc::invalid),
+        "NULL pointer argument in 2D memory memset operation.");
+
+  const detail::plugin &Plugin = Queue->getPlugin();
+  Plugin.call<PiApiKind::piextMemImageCopy>(
+      Queue->getHandleRef(), Dst, Src, &Format, &Desc,
+      (pi_image_copy_flags)Flags, DepEvents.size(), DepEvents.data(), OutEvent);
+}
+
 } // namespace detail
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)
 } // namespace sycl

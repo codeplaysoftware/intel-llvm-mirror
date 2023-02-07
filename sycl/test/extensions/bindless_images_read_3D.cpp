@@ -49,10 +49,11 @@ int main() {
   }
 
   // Extension: copy over data to device
-  sycl::ext::oneapi::copy_image(q, device_ptr1, dataIn1.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
-  sycl::ext::oneapi::copy_image(q, device_ptr2, dataIn2.data(), desc,
-                                sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(device_ptr1, dataIn1.data(), desc,
+                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(device_ptr2, dataIn2.data(), desc,
+                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.wait();
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::unsampled_image_handle imgHandle1 =
@@ -91,6 +92,8 @@ int main() {
     std::cerr << "Kernel submission failed!" << std::endl;
     assert(false);
   }
+
+  q.wait();
 
   // Cleanup
   try {

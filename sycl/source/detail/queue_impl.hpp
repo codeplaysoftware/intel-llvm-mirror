@@ -30,6 +30,8 @@
 #include <sycl/property_list.hpp>
 #include <sycl/stl.hpp>
 
+#include <sycl/ext/oneapi/bindless_image_descriptor.hpp>
+
 #include <utility>
 
 #ifdef XPTI_ENABLE_INSTRUMENTATION
@@ -586,6 +588,13 @@ public:
         std::hash<typename std::shared_ptr<queue_impl>::element_type *>()(
             this));
   }
+
+  event ext_image_memcpy(const std::shared_ptr<queue_impl> &Self,
+                         void *Dest, void *Src,
+                         const RT::PiMemImageDesc &Desc,
+                         const RT::PiMemImageFormat &Format,
+                         sycl::_V1::ext::oneapi::image_copy_flags Flags,
+                         const std::vector<event> &DepEvents);
 
 protected:
   // template is needed for proper unit testing

@@ -200,42 +200,6 @@ create_image(const sycl::context &syclContext, void *devPtr,
   return sampled_image_handle{piImageHandle};
 }
 
-__SYCL_EXPORT void copy_image(const sycl::queue &syclQueue, void *devPtr,
-                              void *data, image_descriptor desc,
-                              image_copy_flags flags) {
-
-  auto syclContext = syclQueue.get_context();
-  std::shared_ptr<sycl::detail::queue_impl> QImpl =
-      sycl::detail::getSyclObjImpl(syclQueue);
-  pi_queue Q = QImpl->getHandleRef();
-
-  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
-      sycl::detail::getSyclObjImpl(syclContext);
-  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
-  pi_result Error;
-
-  pi_image_desc piDesc = {};
-  piDesc.image_width = desc.width;
-  piDesc.image_height = desc.height;
-  piDesc.image_depth = desc.depth;
-  piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
-                                     : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
-                                                        : PI_MEM_TYPE_IMAGE1D);
-
-  pi_image_format piFormat;
-  piFormat.image_channel_data_type =
-      sycl::_V1::detail::convertChannelType(desc.channel_type);
-  piFormat.image_channel_order =
-      sycl::_V1::detail::convertChannelOrder(desc.channel_order);
-
-  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageCopy>(
-      Q, devPtr, data, &piFormat, &piDesc, flags);
-
-  if (Error != PI_SUCCESS) {
-    throw std::invalid_argument("Failed to copy image");
-  }
-}
-
 __SYCL_EXPORT void *pitched_alloc_device(size_t *ResultPitch,
                                          size_t WidthInBytes, size_t Height,
                                          unsigned int ElementSizeBytes,
