@@ -1060,16 +1060,22 @@ public:
     } _CODELOCFW(CodeLoc));
   }
 
-  event ext_image_memcpy(void *Dest, void *Src,
-                         const sycl::_V1::ext::oneapi::image_descriptor &Desc,
-                         sycl::_V1::ext::oneapi::image_copy_flags Flags);
-  event ext_image_memcpy(void *Dest, void *Src,
-                         const sycl::_V1::ext::oneapi::image_descriptor &Desc,
-                         sycl::_V1::ext::oneapi::image_copy_flags Flags,
+  event ext_image_memcpy(ext::oneapi::image_mem_handle Dest, void *Src,
+                         const ext::oneapi::image_descriptor &Desc);
+  event ext_image_memcpy(ext::oneapi::image_mem_handle Dest, void *Src,
+                         const ext::oneapi::image_descriptor &Desc,
                          event DepEvent);
-  event ext_image_memcpy(void *Dest, void *Src,
-                         const sycl::_V1::ext::oneapi::image_descriptor &Desc,
-                         sycl::_V1::ext::oneapi::image_copy_flags Flags,
+  event ext_image_memcpy(ext::oneapi::image_mem_handle Dest, void *Src,
+                         const ext::oneapi::image_descriptor &Desc,
+                         const std::vector<event> &DepEvents);
+
+  event ext_image_memcpy(void *Dest, ext::oneapi::image_mem_handle Src,
+                         const ext::oneapi::image_descriptor &Desc);
+  event ext_image_memcpy(void *Dest, ext::oneapi::image_mem_handle Src,
+                         const ext::oneapi::image_descriptor &Desc,
+                         event DepEvent);
+  event ext_image_memcpy(void *Dest, ext::oneapi::image_mem_handle Src,
+                         const ext::oneapi::image_descriptor &Desc,
                          const std::vector<event> &DepEvents);
 
   /// single_task version with a kernel represented as a lambda.

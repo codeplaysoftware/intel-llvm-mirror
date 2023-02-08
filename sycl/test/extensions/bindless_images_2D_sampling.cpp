@@ -35,7 +35,7 @@ int main() {
   size_t width_in_bytes = width * element_size_bytes;
   size_t pitch = 0;
   // Extension: returns the device pointer to USM allocated pitched memory
-  auto device_ptr1 = sycl::pitched_alloc_device(
+  auto img_mem_0 = sycl::ext::oneapi::pitched_alloc_device(
       &pitch, width_in_bytes, height, element_size_bytes, q);
 
   // Image descriptor - can use the same for both images
@@ -43,19 +43,19 @@ int main() {
                                            image_channel_order::rgba,
                                            image_channel_type::fp32, pitch);
 
-  if (device_ptr1 == nullptr) {
+  if (img_mem_0 == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return 1;
   }
 
   for (int i = 0; i < height; ++i) {
-    q.memcpy((char *)device_ptr1 + (pitch * i), &dataIn1[width * i],
+    q.memcpy((char *)img_mem_0 + (pitch * i), &dataIn1[width * i],
              width_in_bytes);
   }
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::sampled_image_handle imgHandle1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1, desc);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_0, samp1, desc);
 
   try {
     // Cuda stores data in column-major fashion
@@ -93,7 +93,7 @@ int main() {
   // Cleanup
   try {
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
-    sycl::free(device_ptr1, ctxt);
+    sycl::free(img_mem_0, ctxt);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

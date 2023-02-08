@@ -233,7 +233,7 @@ event queue_impl::ext_image_memcpy(const std::shared_ptr<queue_impl> &Self,
                                    void *Dest, void *Src,
                                    const RT::PiMemImageDesc &Desc,
                                    const RT::PiMemImageFormat &Format,
-                                   ext::oneapi::image_copy_flags Flags,
+                                   pi_image_copy_flags Flags,
                                    const std::vector<event> &DepEvents) {
   if (MHasDiscardEventsSupport) {
     MemoryManager::copy_image_bindless(Dest, Self, Src, Desc, Format, Flags,

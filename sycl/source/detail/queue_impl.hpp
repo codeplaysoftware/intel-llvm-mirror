@@ -593,7 +593,7 @@ public:
                          void *Dest, void *Src,
                          const RT::PiMemImageDesc &Desc,
                          const RT::PiMemImageFormat &Format,
-                         sycl::_V1::ext::oneapi::image_copy_flags Flags,
+                         pi_image_copy_flags Flags,
                          const std::vector<event> &DepEvents);
 
 protected:

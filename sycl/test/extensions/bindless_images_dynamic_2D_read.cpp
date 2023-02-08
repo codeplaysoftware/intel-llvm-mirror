@@ -35,22 +35,21 @@ int main() {
       {width, height}, image_channel_order::rgba, image_channel_type::fp32);
 
   // Allocate each image and save the device ptrs
-  std::vector<void *> imgAllocations;
+  std::vector<sycl::ext::oneapi::image_mem_handle> imgAllocations;
   for (int i = 0; i < numImages; i++) {
     // Extension: returns the device pointer to the allocated memory
-    auto device_ptr = sycl::ext::oneapi::allocate_image(ctxt, desc);
-    if (device_ptr == nullptr) {
+    auto img_mem = sycl::ext::oneapi::allocate_image(ctxt, desc);
+    if (img_mem.value == nullptr) {
       std::cout << "Error allocating image!" << std::endl;
       return 1;
     }
-    imgAllocations.push_back(device_ptr);
+    imgAllocations.push_back(img_mem);
   }
 
   // Copy over data to device for each image
   for (int i = 0; i < numImages; i++) {
     // Extension: copy over data to device
-    q.ext_image_memcpy(imgAllocations[i], dataIn.data(), desc,
-                       sycl::ext::oneapi::image_copy_flags::HtoD);
+    q.ext_image_memcpy(imgAllocations[i], dataIn.data(), desc);
   }
   q.wait();
 

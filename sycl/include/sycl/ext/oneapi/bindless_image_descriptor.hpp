@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 #pragma once
 
 #include <sycl/image.hpp>
@@ -17,6 +16,11 @@ namespace sycl {
 __SYCL_INLINE_VER_NAMESPACE(_V1) {
 namespace ext {
 namespace oneapi {
+
+// Handle to image memory allocated using `allocate_image`
+struct image_mem_handle {
+  void *value;
+};
 
 /// A class to describe the properties of an image.
 struct image_descriptor {
