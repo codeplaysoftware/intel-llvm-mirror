@@ -66,8 +66,8 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
   imageHandle.value = piImageHandle;
 }
 
-__SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
-                                      image_descriptor desc) {
+__SYCL_EXPORT image_mem_handle allocate_image(const sycl::context &syclContext,
+                                              image_descriptor desc) {
 
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
@@ -97,28 +97,34 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
 
   // Call impl.
   // TODO: replace 1 with flags
-  void *devPtr;
+  image_mem_handle devPtr;
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageAllocate>(
-      C, 1, &piFormat, &piDesc, &devPtr);
+      C, 1, &piFormat, &piDesc, &devPtr.value);
 
   if (Error != PI_SUCCESS) {
-    return nullptr;
+    return image_mem_handle{nullptr};
   }
 
   return devPtr;
 }
 
 __SYCL_EXPORT void free_image(const sycl::context &syclContext,
-                              void *memory_handle) {
+                              image_mem_handle memoryHandle) {
   std::shared_ptr<sycl::detail::context_impl> CtxImpl =
       sycl::detail::getSyclObjImpl(syclContext);
   pi_context C = CtxImpl->getHandleRef();
 const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
 
-  Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageFree>(
-      C, memory_handle);
+Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageFree>(
+    C, memoryHandle.value);
 
-  return;
+return;
+}
+
+__SYCL_EXPORT unsampled_image_handle
+create_image(const sycl::context &syclContext, image_mem_handle memHandle,
+             image_descriptor desc) {
+  return create_image(syclContext, memHandle.value, desc);
 }
 
 __SYCL_EXPORT unsampled_image_handle create_image(
@@ -156,6 +162,12 @@ __SYCL_EXPORT unsampled_image_handle create_image(
     return unsampled_image_handle{0};
   }
   return unsampled_image_handle{piImageHandle};
+}
+
+__SYCL_EXPORT sampled_image_handle
+create_image(const sycl::context &syclContext, image_mem_handle memHandle,
+             sampler &sampler, image_descriptor desc) {
+  return create_image(syclContext, memHandle.value, sampler, desc);
 }
 
 __SYCL_EXPORT sampled_image_handle

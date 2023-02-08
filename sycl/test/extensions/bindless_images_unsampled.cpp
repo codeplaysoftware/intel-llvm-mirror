@@ -228,27 +228,24 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize,
   util::fill_rand(input_1);
   util::add_host(input_0, input_1, expected);
 
-  void *device_ptr_0, *device_ptr_1, *device_ptr_2;
-
   sycl::ext::oneapi::image_descriptor desc(dims, COrder, CType);
 
-  device_ptr_0 = sycl::ext::oneapi::allocate_image(ctxt, desc);
-  device_ptr_1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
-  device_ptr_2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_0 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
-  if (device_ptr_0 == nullptr || device_ptr_1 == nullptr) {
+  if (img_mem_0.value == nullptr || img_mem_1.value == nullptr ||
+      img_mem_2.value == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return false;
   }
 
-  auto img_input_0 = sycl::ext::oneapi::create_image(ctxt, device_ptr_0, desc);
-  auto img_input_1 = sycl::ext::oneapi::create_image(ctxt, device_ptr_1, desc);
-  auto img_output = sycl::ext::oneapi::create_image(ctxt, device_ptr_2, desc);
+  auto img_input_0 = sycl::ext::oneapi::create_image(ctxt, img_mem_0, desc);
+  auto img_input_1 = sycl::ext::oneapi::create_image(ctxt, img_mem_1, desc);
+  auto img_output = sycl::ext::oneapi::create_image(ctxt, img_mem_2, desc);
 
-  q.ext_image_memcpy(device_ptr_0, input_0.data(), desc,
-                     sycl::ext::oneapi::image_copy_flags::HtoD);
-  q.ext_image_memcpy(device_ptr_1, input_1.data(), desc,
-                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(img_mem_0, input_0.data(), desc);
+  q.ext_image_memcpy(img_mem_1, input_1.data(), desc);
   q.wait();
 
   {
@@ -258,8 +255,7 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize,
         q, globalSize, localSize, img_input_0, img_input_1, img_output);
     q.wait();
 
-    q.ext_image_memcpy(actual.data(), device_ptr_2, desc,
-                     sycl::ext::oneapi::image_copy_flags::DtoH);
+    q.ext_image_memcpy(actual.data(), img_mem_2, desc);
     q.wait();
   }
 
@@ -268,9 +264,9 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize,
     sycl::ext::oneapi::destroy_image_handle(ctxt, img_input_0);
     sycl::ext::oneapi::destroy_image_handle(ctxt, img_input_1);
     sycl::ext::oneapi::destroy_image_handle(ctxt, img_output);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr_0);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr_1);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr_2);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_0);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_1);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_2);
   } catch (...) {
     std::cout << "Failed to destroy image handle." << std::endl;
     return false;

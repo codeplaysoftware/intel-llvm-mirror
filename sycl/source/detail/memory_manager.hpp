@@ -168,7 +168,7 @@ public:
   static void copy_image_bindless(void *Dst, QueueImplPtr Queue, void *Src,
                                   const RT::PiMemImageDesc &Desc,
                                   const RT::PiMemImageFormat &Format,
-                                  ext::oneapi::image_copy_flags Flags,
+                                  pi_image_copy_flags Flags,
                                   const std::vector<RT::PiEvent> &DepEvents,
                                   RT::PiEvent *OutEvent);
 };

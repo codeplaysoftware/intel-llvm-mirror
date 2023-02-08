@@ -39,7 +39,7 @@ int main() {
   size_t pitch = 0;
 
   // USM allocation
-  auto device_ptr1 = sycl::ext::oneapi::pitched_alloc_device(
+  auto img_mem_usm_0 = sycl::ext::oneapi::pitched_alloc_device(
       &pitch, width_in_bytes, height, element_size_bytes, q);
 
   // Image descriptor - USM
@@ -51,28 +51,27 @@ int main() {
       {width, height}, image_channel_order::rgba, image_channel_type::fp32);
 
   // non-USM allocation
-  auto device_ptr2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_handle_0 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
-  if (device_ptr1 == nullptr || device_ptr2 == nullptr) {
+  if (img_mem_usm_0 == nullptr || img_mem_handle_0.value == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return 1;
   }
 
   // Copy data over via USM
   for (int i = 0; i < height; ++i) {
-    q.memcpy((char *)device_ptr1 + (pitch * i), &dataIn1[width * i],
+    q.memcpy((char *)img_mem_usm_0 + (pitch * i), &dataIn1[width * i],
              width_in_bytes);
   }
   // Copy over data via extension
-  q.ext_image_memcpy(device_ptr2, dataIn2.data(), desc,
-                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(img_mem_handle_0, dataIn2.data(), desc);
   q.wait();
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::sampled_image_handle imgHandle1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1, descUSM);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_usm_0, samp1, descUSM);
   sycl::ext::oneapi::sampled_image_handle imgHandle2 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr2, samp1, desc);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_handle_0, samp1, desc);
 
   try {
     // Cuda stores data in column-major fashion
@@ -111,8 +110,8 @@ int main() {
   try {
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle2);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr2);
-    sycl::free(device_ptr1, ctxt);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_handle_0);
+    sycl::free(img_mem_usm_0, ctxt);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

@@ -37,33 +37,31 @@ int main() {
 
   // Extension: returns the device pointer to the allocated memory
   // Input images memory
-  auto device_ptr1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
-  auto device_ptr2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_0 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
   // Output image memory
-  auto device_ptr3 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_2 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
-  if (device_ptr1 == nullptr || device_ptr2 == nullptr ||
-      device_ptr3 == nullptr) {
+  if (img_mem_0.value == nullptr || img_mem_1.value == nullptr ||
+      img_mem_2.value == nullptr) {
     std::cout << "Error allocating images!" << std::endl;
     return 1;
   }
 
   // Extension: copy over data to device
-  q.ext_image_memcpy(device_ptr1, dataIn1.data(), desc,
-                     sycl::ext::oneapi::image_copy_flags::HtoD);
-  q.ext_image_memcpy(device_ptr2, dataIn2.data(), desc,
-                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(img_mem_0, dataIn1.data(), desc);
+  q.ext_image_memcpy(img_mem_1, dataIn2.data(), desc);
   q.wait();
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::unsampled_image_handle imgIn1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1, desc);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_0, desc);
   sycl::ext::oneapi::unsampled_image_handle imgIn2 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr2, desc);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_1, desc);
 
   sycl::ext::oneapi::unsampled_image_handle imgOut =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr3, desc);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_2, desc);
 
   try {
     q.submit([&](handler &cgh) {
@@ -84,8 +82,7 @@ int main() {
   }
 
   q.wait();
-  q.ext_image_memcpy(out.data(), device_ptr3, desc,
-                     sycl::ext::oneapi::image_copy_flags::DtoH);
+  q.ext_image_memcpy(out.data(), img_mem_2, desc);
   q.wait();
 
   // Cleanup
@@ -93,9 +90,9 @@ int main() {
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgIn1);
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgIn2);
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgOut);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr1);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr2);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr3);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_0);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_1);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_2);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);

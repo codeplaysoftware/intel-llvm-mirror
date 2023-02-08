@@ -28,14 +28,14 @@ namespace ext {
 namespace oneapi {
 
 /// Opaque unsampled image handle type.
-typedef struct {
+struct unsampled_image_handle {
   unsigned long value;
-} unsampled_image_handle;
+};
 
 /// Opaque sampled image handle type.
-typedef struct {
+struct sampled_image_handle {
   unsigned long value;
-} sampled_image_handle;
+};
 
 // SPIR-V Image Types
 #ifdef __SYCL_DEVICE_ONLY__
@@ -49,8 +49,8 @@ typedef struct {
  *  @param   desc The image descriptor
  *  @returns Handle to allocated memory on the GPU
  */
-__SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
-                                   image_descriptor desc);
+__SYCL_EXPORT image_mem_handle allocate_image(const sycl::context &syclContext,
+                                              image_descriptor desc);
 
 /**
  *  @brief   Create an image and return the device handle
@@ -60,6 +60,10 @@ __SYCL_EXPORT void *allocate_image(const sycl::context &syclContext,
  */
 __SYCL_EXPORT unsampled_image_handle create_image(
     const sycl::context &syclContext, void *devPtr, image_descriptor desc);
+
+__SYCL_EXPORT unsampled_image_handle
+create_image(const sycl::context &syclContext, image_mem_handle memHandle,
+             image_descriptor desc);
 
 /**
  *  @brief   Create a sampled image and return the device handle
@@ -72,13 +76,17 @@ __SYCL_EXPORT sampled_image_handle
 create_image(const sycl::context &syclContext, void *devPtr,
                      sampler &sampler, image_descriptor desc);
 
+__SYCL_EXPORT sampled_image_handle
+create_image(const sycl::context &syclContext, image_mem_handle memHandle,
+             sampler &sampler, image_descriptor desc);
+
 /**
  *  @brief   Free image memory
  *  @param   syclContext The context in which we create our handle
  *  @param   memory_handle The image memory handle
  */
 __SYCL_EXPORT void free_image(const sycl::context &syclContext,
-                              void *memory_handle);
+                              image_mem_handle memoryHandle);
 
 /**
  *  @brief Destroy an image handle. Does not free memory backing the handle.

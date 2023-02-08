@@ -42,21 +42,20 @@ int main() {
                 addressing_mode::clamp, filtering_mode::linear);
 
   // Extension: returns the device pointer to the allocated memory
-  auto device_ptr1 = sycl::ext::oneapi::allocate_image(ctxt, desc);
+  auto img_mem_0 = sycl::ext::oneapi::allocate_image(ctxt, desc);
 
-  if (device_ptr1 == nullptr) {
+  if (img_mem_0.value == nullptr) {
     std::cout << "Error allocating image!" << std::endl;
     return 1;
   }
 
   // Extension: copy over data to device
-  q.ext_image_memcpy(device_ptr1, dataIn1.data(), desc,
-                     sycl::ext::oneapi::image_copy_flags::HtoD);
+  q.ext_image_memcpy(img_mem_0, dataIn1.data(), desc);
   q.wait();
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::sampled_image_handle imgHandle1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1, desc);
+      sycl::ext::oneapi::create_image(ctxt, img_mem_0, samp1, desc);
 
   try {
     // Cuda stores data in column-major fashion
@@ -97,7 +96,7 @@ int main() {
   // Cleanup
   try {
     sycl::ext::oneapi::destroy_image_handle(ctxt, imgHandle1);
-    sycl::ext::oneapi::free_image(ctxt, device_ptr1);
+    sycl::ext::oneapi::free_image(ctxt, img_mem_0);
   } catch (...) {
     std::cerr << "Failed to destroy image handle." << std::endl;
     assert(false);
