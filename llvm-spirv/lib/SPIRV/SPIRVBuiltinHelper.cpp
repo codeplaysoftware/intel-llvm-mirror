@@ -269,6 +269,27 @@ Type *BuiltinCallHelper::adjustImageType(Type *T, StringRef OldImageKind,
   report_fatal_error("Expected type to be a SPIRV image type");
 }
 
+Type *BuiltinCallHelper::adjustSampledImageType(CallInst *T, StringRef OldImageKind,
+                                         StringRef NewSampledImageKind) {
+  auto funcName = T->getCalledFunction()->getName();
+
+  std::string ImageTypeName;
+  if (funcName.find("image1d_ro") != std::string::npos) {
+    ImageTypeName = "image1d_t";
+  } else if (funcName.find("image2d_ro") != std::string::npos) {
+    ImageTypeName = "image2d_t";
+  } else if (funcName.find("image3d_ro") != std::string::npos) {
+    ImageTypeName = "image3d_t";
+  } else {
+    report_fatal_error("Type did not have expected image kind");
+  }
+  auto Desc = map<SPIRVTypeImageDescriptor>(ImageTypeName);
+  spv::AccessQualifier Acc = AccessQualifierReadOnly;
+  auto NewImageType = SPIRVOpaqueTypeOpCodeMap::map(NewSampledImageKind.str());
+  return getSPIRVType(NewImageType, Type::getVoidTy(M->getContext()), Desc,
+                      Acc);
+}
+
 Type *BuiltinCallHelper::getSPIRVType(spv::Op TypeOpcode, bool UseRealType) {
   return getSPIRVType(TypeOpcode, "", {}, UseRealType);
 }

@@ -3158,7 +3158,7 @@ pi_result cuda_piextMemImageFree(pi_context context, void *memory_handle) {
 pi_result cuda_piextMemUnsampledImageCreate(pi_context context, void *img_mem,
                                             pi_image_format *image_format,
                                             pi_image_desc *desc,
-                                            void **ret_handle) {
+                                            pi_image_handle *ret_handle) {
   assert(context != nullptr);
   assert(img_mem != nullptr);
   assert(ret_handle != nullptr);
@@ -3204,7 +3204,7 @@ pi_result cuda_piextMemUnsampledImageCreate(pi_context context, void *img_mem,
       // as it conforms to how CUDA deals with unsampled images
       CUsurfObject surface;
       retErr = PI_CHECK_ERROR(cuSurfObjectCreate(&surface, &image_res_desc));
-      *ret_handle = (void *)surface;
+      *ret_handle = (pi_image_handle)surface;
     } else if (mem_type == CU_MEMORYTYPE_DEVICE) {
       // We have a USM pointer
       if (desc->image_type == PI_MEM_TYPE_IMAGE1D) {
@@ -3244,7 +3244,7 @@ pi_result cuda_piextMemUnsampledImageCreate(pi_context context, void *img_mem,
       CUtexObject texture;
       retErr = PI_CHECK_ERROR(cuTexObjectCreate(&texture, &image_res_desc,
                                                 &image_tex_desc, nullptr));
-      *ret_handle = (void *)texture;
+      *ret_handle = (pi_image_handle)texture;
     } else {
       sycl::detail::pi::die(
           "cuda_piextMemUnsampledImageCreate unknown memory type passed");
@@ -3263,7 +3263,7 @@ pi_result cuda_piextMemSampledImageCreate(pi_context context, void *img_mem,
                                           pi_image_format *image_format,
                                           pi_image_desc *desc,
                                           pi_sampler sampler,
-                                          void **ret_handle) {
+                                          pi_image_handle *ret_handle) {
   assert(context != nullptr);
   assert(img_mem != nullptr);
   assert(ret_handle != nullptr);
@@ -3372,7 +3372,7 @@ pi_result cuda_piextMemSampledImageCreate(pi_context context, void *img_mem,
     retErr = PI_CHECK_ERROR(
         cuTexObjectCreate(&texture, &image_res_desc, &image_tex_desc, nullptr));
 
-    *ret_handle = (void *)texture;
+    *ret_handle = (pi_image_handle)texture;
   } catch (pi_result err) {
     return err;
   } catch (...) {
@@ -3503,22 +3503,24 @@ pi_result cuda_piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
 }
 
 pi_result cuda_piextMemUnsampledImageHandleDestroy(pi_context context,
-                                                   pi_image_handle handle) {
+                                                   pi_image_handle *handle) {
   assert(context != nullptr);
   assert(handle != nullptr);
+  assert(*handle != 0);
 
   pi_result retErr = PI_SUCCESS;
-  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUsurfObject)handle));
+  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUsurfObject)*handle));
   return retErr;
 }
 
 pi_result cuda_piextMemSampledImageHandleDestroy(pi_context context,
-                                                 pi_image_handle handle) {
+                                                 pi_image_handle *handle) {
   assert(context != nullptr);
   assert(handle != nullptr);
+  assert(*handle != 0);
 
   pi_result retErr = PI_SUCCESS;
-  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUtexObject)handle));
+  retErr = PI_CHECK_ERROR(cuTexObjectDestroy((CUtexObject)*handle));
   return retErr;
 }
 

@@ -61,17 +61,18 @@ enum image_copy_flags : unsigned int {
 
 /// Opaque unsampled image handle type.
 typedef struct {
-  void *value;
+  unsigned long value;
 } unsampled_image_handle;
 
 /// Opaque sampled image handle type.
 typedef struct {
-  void *value;
+  unsigned long value;
 } sampled_image_handle;
 
+// SPIR-V Image Types
 #ifdef __SYCL_DEVICE_ONLY__
-using OCLImageTy = typename sycl::detail::opencl_image_type<1, sycl::access::mode::read,
-                                                        sycl::access::target::image>::type;
+#define img_type(Dim, AMSuffix) __ocl_image##Dim##d_##AMSuffix##_t
+#define smp_type(Dim, AMSuffix) __ocl_sampled_image##Dim##d_##AMSuffix##_t
 #endif
 
 /**
@@ -168,17 +169,67 @@ constexpr size_t coord_size(){
  *            Cuda textures require float coordinates (by index or normalized)
  *            The name mangling should therefore not interfere with one another
  **/
-template <typename DataT, typename CoordT, typename Handle>
-DataT read_image(const Handle &imageHandle, const CoordT &coords) {
+template <typename DataT, typename CoordT>
+DataT read_image(const unsampled_image_handle &imageHandle,
+                 const CoordT &coords) {
   constexpr size_t coordSize = detail::coord_size<CoordT>();
   if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4) {
 #ifdef __SYCL_DEVICE_ONLY__
 #if defined(__NVPTX__)
-    return __invoke__ImageRead<DataT, uint64_t, CoordT>(
-        (uint64_t)imageHandle.value, coords);
+    return __invoke__ImageRead<DataT, uint64_t, CoordT>(imageHandle.value,
+                                                        coords);
 #else
-    return __invoke__ImageRead<DataT, OCLImageTy, int>(
-        __spirv_ConvertUToImageNV<OCLImageTy>(imageHandle.value), (int)coords);
+    if constexpr (coordSize == 1) {
+      return __invoke__ImageRead<DataT, img_type(1, ro), CoordT>(
+          __spirv_ConvertUToImageNV<img_type(1, ro)>(imageHandle.value),
+          coords);
+    }
+    if constexpr (coordSize == 2) {
+      return __invoke__ImageRead<DataT, img_type(2, ro), CoordT>(
+          __spirv_ConvertUToImageNV<img_type(2, ro)>(imageHandle.value),
+          coords);
+    }
+    if constexpr (coordSize == 4) {
+      return __invoke__ImageRead<DataT, img_type(3, ro), CoordT>(
+          __spirv_ConvertUToImageNV<img_type(3, ro)>(imageHandle.value),
+          coords);
+    }
+#endif
+#else
+    assert(false); // Bindless images not yet implemented on host.
+#endif
+  } else {
+    static_assert(coordSize == 1 || coordSize == 2 || coordSize == 4,
+                  "Expected input coordinate to be have 1, 2, or 4 components "
+                  "for 1D, 2D and 3D images respectively.");
+  }
+}
+
+template <typename DataT, typename CoordT>
+DataT read_image(const sampled_image_handle &imageHandle,
+                 const CoordT &coords) {
+  constexpr size_t coordSize = detail::coord_size<CoordT>();
+  if constexpr (coordSize == 1 || coordSize == 2 || coordSize == 4) {
+#ifdef __SYCL_DEVICE_ONLY__
+#if defined(__NVPTX__)
+    return __invoke__ImageRead<DataT, uint64_t, CoordT>(imageHandle.value,
+                                                        coords);
+#else
+    if constexpr (coordSize == 1) {
+      return __invoke__ImageReadExpSampler<DataT, smp_type(1, ro), CoordT>(
+          __spirv_ConvertUToSampledImageNV<smp_type(1, ro)>(imageHandle.value),
+          coords);
+    }
+    if constexpr (coordSize == 2) {
+      return __invoke__ImageReadExpSampler<DataT, smp_type(2, ro), CoordT>(
+          __spirv_ConvertUToSampledImageNV<smp_type(2, ro)>(imageHandle.value),
+          coords);
+    }
+    if constexpr (coordSize == 4) {
+      return __invoke__ImageReadExpSampler<DataT, smp_type(3, ro), CoordT>(
+          __spirv_ConvertUToSampledImageNV<smp_type(3, ro)>(imageHandle.value),
+          coords);
+    }
 #endif
 #else
     assert(false); // Bindless images not yet implemented on host.
@@ -200,9 +251,21 @@ void write_image(const unsampled_image_handle &imageHandle,
     __invoke__ImageWrite<uint64_t, CoordT, DataT>((uint64_t)imageHandle.value,
                                                   Coords, Color);
 #else
-    __invoke__ImageWrite<OCLImageTy, CoordT, DataT>(
-        __spirv_ConvertUToImageNV<OCLImageTy>(imageHandle.value), Coords,
-        Color);
+    if constexpr (coordSize == 1) {
+      __invoke__ImageWrite<img_type(1, wo), CoordT, DataT>(
+          __spirv_ConvertUToImageNV<img_type(1, wo)>(imageHandle.value), Coords,
+          Color);
+    }
+    if constexpr (coordSize == 2) {
+      __invoke__ImageWrite<img_type(2, wo), CoordT, DataT>(
+          __spirv_ConvertUToImageNV<img_type(2, wo)>(imageHandle.value), Coords,
+          Color);
+    }
+    if constexpr (coordSize == 4) {
+      __invoke__ImageWrite<img_type(3, wo), CoordT, DataT>(
+          __spirv_ConvertUToImageNV<img_type(3, wo)>(imageHandle.value), Coords,
+          Color);
+    }
 #endif
 #else
     assert(false); // Bindless images not yet implemented on host.

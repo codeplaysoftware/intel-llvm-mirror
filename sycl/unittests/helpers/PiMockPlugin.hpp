@@ -412,6 +412,52 @@ inline pi_result mock_piMemImageCreate(pi_context context, pi_mem_flags flags,
   return PI_SUCCESS;
 }
 
+inline pi_result mock_piextMemUnsampledImageHandleDestroy(pi_context context,
+                                                 pi_image_handle *handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemSampledImageHandleDestroy(pi_context context,
+                                                 pi_image_handle *handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemImageAllocate(pi_context context,
+                                            pi_mem_flags flags,
+                                            pi_image_format *image_format,
+                                            pi_image_desc *image_desc,
+                                            void **ret_mem) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemImageFree(pi_context context,
+                                        void *memory_handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemUnsampledImageCreate(pi_context context, void *img_mem,
+                                            pi_image_format *image_format,
+                                            pi_image_desc *desc,
+                                            pi_image_handle *ret_handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemSampledImageCreate(pi_context context, void *img_mem,
+                                          pi_image_format *image_format,
+                                          pi_image_desc *desc,
+                                          pi_sampler sampler,
+                                          pi_image_handle *ret_handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
+                                        void *src_ptr,
+                                        pi_image_format *image_format,
+                                        pi_image_desc *image_desc,
+                                        uint32_t direction) {
+  return PI_SUCCESS;
+}
+
 inline pi_result mock_piMemGetInfo(pi_mem mem, pi_mem_info param_name,
                                    size_t param_value_size, void *param_value,
                                    size_t *param_value_size_ret) {

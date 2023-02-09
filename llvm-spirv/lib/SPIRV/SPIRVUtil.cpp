@@ -2159,6 +2159,31 @@ bool postProcessBuiltinsWithArrayArguments(Module *M, bool IsCpp) {
   return true;
 }
 
+bool bindlessTexturesFuncExist(Module *M) {
+
+  const std::string funcs[7] = {
+      "_Z25__spirv_ConvertUToImageNVI14ocl_image1d_roET_m",
+      "_Z27__spirv_ConvertUToSamplerNVI11ocl_samplerET_m",
+      "_Z32__spirv_ConvertUToSampledImageNVI32__spirv_SampledImage__image1d_"
+      "roET_"
+      "m",
+      "_Z25__spirv_ConvertUToImageNVI14ocl_image2d_roET_m",
+      "_Z32__spirv_ConvertUToSampledImageNVI32__spirv_SampledImage__image2d_"
+      "roET_"
+      "m",
+      "_Z25__spirv_ConvertUToImageNVI14ocl_image3d_roET_m",
+      "_Z32__spirv_ConvertUToSampledImageNVI32__spirv_SampledImage__image3d_"
+      "roET_"
+      "m"};
+
+  for (auto str : funcs) {
+    if (M->getFunction(str)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 } // namespace SPIRV
 
 namespace {

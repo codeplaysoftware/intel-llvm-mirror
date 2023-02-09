@@ -823,16 +823,21 @@ SPIRVFunction *LLVMToSPIRVBase::transFunctionDecl(Function *F) {
 
   auto Attrs = F->getAttributes();
 
+  bool bindlessImages = bindlessTexturesFuncExist(M);
+
   for (Function::arg_iterator I = F->arg_begin(), E = F->arg_end(); I != E;
        ++I) {
     auto ArgNo = I->getArgNo();
     SPIRVFunctionParameter *BA = BF->getArgument(ArgNo);
 
-    // Not a great check but here just to get things working.
-    // This looks for the function that represents the conversion of the image handle to image exists somewhere.
-    // If found then for all image variables mark them with a bindless decorator.
-    // Looks for: ocl_image1d __spirv_ConvertUToImageNV(unsigned long);
-    if (M->getFunction("_Z25__spirv_ConvertUToImageNVI14ocl_image1d_roET_m")) {
+    // If bindless images are used then add bindless decorator to all images and
+    // samplers.
+    if (bindlessImages) {
+      if (BA->getType()->isTypeSampler() &&
+          !BA->hasDecorate(spv::DecorationBindlessSamplerNV)) {
+        BA->addDecorate(
+            new SPIRVDecorate(spv::DecorationBindlessSamplerNV, BA));
+      }
       if (BA->getType()->isTypeImage() &&
           !BA->hasDecorate(spv::DecorationBindlessImageNV)) {
         BA->addDecorate(new SPIRVDecorate(spv::DecorationBindlessImageNV, BA));
@@ -4794,8 +4799,10 @@ void LLVMToSPIRVBase::oclGetMutatedArgumentTypesByBuiltin(
   StringRef Demangled;
   if (!oclIsBuiltin(F->getName(), Demangled))
     return;
-  if (Demangled.find(kSPIRVName::SampledImage) == std::string::npos)
-    return;
+  if (Demangled.find(kSPIRVName::SampledImage) == std::string::npos ||
+      Demangled.find("__spirv_ConvertUToSampledImageNV") != std::string::npos ||
+      Demangled.find("__spirv_ConvertSampledImageToUNV") != std::string::npos)
+      return;
   if (FT->getParamType(1)->isIntegerTy())
     ChangedType[1] = getSPIRVType(OpTypeSampler, true);
 }
@@ -4872,6 +4879,14 @@ SPIRVInstruction *LLVMToSPIRVBase::transBuiltinToInst(StringRef DemangledName,
   if (DemangledName == "__spirv_ConvertUToImageNV") {
     Inst->addDecorate(new SPIRVDecorate(spv::DecorationBindlessImageNV, Inst));
   }
+  if (DemangledName == "__spirv_ConvertUToSamplerNV") {
+    Inst->addDecorate(
+        new SPIRVDecorate(spv::DecorationBindlessSamplerNV, Inst));
+  }
+  if (DemangledName == "__spirv_ConvertUToSampledImageNV") {
+    Inst->addDecorate(new SPIRVDecorate(spv::DecorationBindlessImageNV, Inst));
+  }
+
   return Inst;
 }
 
@@ -5023,8 +5038,7 @@ bool LLVMToSPIRVBase::transSamplerImageAddressingModeNV() {
   BM->setSamplerImageAddressingModeNV(
       SPIRVSamplerImageAddressingModeNVKind::SamplerImageAddressingModeNVNone);
 
-  // Looks for: ocl_image1d __spirv_ConvertUToImageNV(unsigned long);
-  if (M->getFunction("_Z25__spirv_ConvertUToImageNVI14ocl_image1d_roET_m")) {
+  if (bindlessTexturesFuncExist(M)) {
     BM->addExtension(ExtensionID::SPV_NV_bindless_texture);
     BM->addCapability(CapabilityBindlessTextureNV);
 
@@ -5234,6 +5248,16 @@ LLVMToSPIRVBase::transBuiltinToInstWithoutDecoration(Op OC, CallInst *CI,
     return BM->addSampledImageInst(transType(SampledImgTy),
                                    transValue(Image, BB),
                                    transValue(Sampler, BB), BB);
+  }
+  case OpConvertUToSampledImageNV: {
+    Type *SampledImgTy =
+        adjustSampledImageType(CI, kSPIRVTypeName::Image, kSPIRVTypeName::SampledImg);
+    return BM->addUnaryInst(OC, transType(SampledImgTy),
+                            transValue(CI->getArgOperand(0), BB), BB);
+  }
+  case OpConvertSampledImageToUNV: {
+    return BM->addUnaryInst(OC, transType(CI->getType()),
+                            transValue(CI->getArgOperand(0), BB), BB);
   }
   case OpFixedSqrtINTEL:
   case OpFixedRecipINTEL:

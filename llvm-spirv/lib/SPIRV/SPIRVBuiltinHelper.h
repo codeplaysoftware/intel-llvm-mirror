@@ -311,6 +311,9 @@ public:
   llvm::Type *adjustImageType(llvm::Type *T, llvm::StringRef OldImageKind,
                               llvm::StringRef NewImageKind);
 
+  llvm::Type *adjustSampledImageType(llvm::CallInst *T, llvm::StringRef OldImageKind,
+                              llvm::StringRef NewSampledImageKind);
+
   /// Create a new type representing a SPIR-V opaque type that takes no
   /// parameters (such as sampler types).
   ///
