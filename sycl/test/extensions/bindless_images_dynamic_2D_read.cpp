@@ -59,7 +59,7 @@ int main() {
   for (int i = 0; i < numImages; i++) {
     // Extension: create the image and return the handle
     sycl::ext::oneapi::unsampled_image_handle imgHandle =
-        sycl::ext::oneapi::create_image(ctxt, imgAllocations[i]);
+        sycl::ext::oneapi::create_image(ctxt, imgAllocations[i], desc);
     imgHandles.push_back(imgHandle);
   }
 

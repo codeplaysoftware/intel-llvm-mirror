@@ -83,15 +83,6 @@ static RetType __invoke__ImageRead(ImageT Img, CoordT Coords) {
   return sycl::detail::convertDataToType<TempRetT, RetType>(Ret);
 }
 
-template <typename RetType>
-static RetType __invoke_ConvertUToImageNV(unsigned long imageHandle) {
-
-  using TempRetT = sycl::detail::ConvertToOpenCLType_t<RetType>;
-
-  TempRetT Ret = __spirv_ConvertUToImageNV<RetType>(imageHandle);
-  return sycl::detail::convertDataToType<TempRetT, RetType>(Ret);
-}
-
 template <typename RetType, typename ImageT, typename CoordT>
 static RetType __invoke__ImageReadSampler(ImageT Img, CoordT Coords,
                                           const __ocl_sampler_t &Smpl) {
@@ -119,6 +110,32 @@ static RetType __invoke__ImageReadSampler(ImageT Img, CoordT Coords,
   TempRetT Ret = __spirv_ImageSampleExplicitLod<SampledT, TempRetT, TempArgT>(
       __spirv_SampledImage<ImageT, SampledT>(Img, Smpl), TmpCoords,
       ImageOperands::Lod, 0.0f);
+  return sycl::detail::convertDataToType<TempRetT, RetType>(Ret);
+}
+
+template <typename RetType, typename SmpImageT, typename CoordT>
+static RetType __invoke__ImageReadExpSampler(SmpImageT SmpImg, CoordT Coords) {
+
+  // Convert from sycl types to builtin types to get correct function mangling.
+  using TempRetT = sycl::detail::ConvertToOpenCLType_t<RetType>;
+  using TempArgT = sycl::detail::ConvertToOpenCLType_t<CoordT>;
+
+  TempArgT TmpCoords =
+      sycl::detail::convertDataToType<CoordT, TempArgT>(Coords);
+  // According to validation rules(SPIR-V specification, section 2.16.1) result
+  // of __spirv_SampledImage is allowed to be an operand of image lookup
+  // and query instructions explicitly specified to take an operand whose
+  // type is OpTypeSampledImage.
+  //
+  // According to SPIR-V specification section 3.32.10 at least one operand
+  // setting the level of detail must be present. The last two arguments of
+  // __spirv_ImageSampleExplicitLod represent image operand type and value.
+  // From the SPIR-V specification section 3.14:
+  enum ImageOperands { Lod = 0x2 };
+
+  // Lod value is zero as mipmap is not supported.
+  TempRetT Ret = __spirv_ImageSampleExplicitLod<SmpImageT, TempRetT, TempArgT>(
+      SmpImg, TmpCoords, ImageOperands::Lod, 0.0f);
   return sycl::detail::convertDataToType<TempRetT, RetType>(Ret);
 }
 

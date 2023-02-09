@@ -35,7 +35,7 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
 
   Error = Plugin.call_nocheck<
       sycl::detail::PiApiKind::piextMemUnsampledImageHandleDestroy>(
-      C, piImageHandle);
+      C, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
     throw std::invalid_argument("Failed to destroy image_handle");
@@ -56,7 +56,7 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
 
   Error = Plugin.call_nocheck<
       sycl::detail::PiApiKind::piextMemSampledImageHandleDestroy>(
-      C, piImageHandle);
+      C, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
       throw std::invalid_argument("Failed to destroy image_handle");
@@ -153,7 +153,7 @@ __SYCL_EXPORT unsampled_image_handle create_image(
               C, devPtr, &piFormat, &piDesc, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
-    return unsampled_image_handle{nullptr};
+    return unsampled_image_handle{0};
   }
   return unsampled_image_handle{piImageHandle};
 }
@@ -195,7 +195,7 @@ create_image(const sycl::context &syclContext, void *devPtr,
           C, devPtr, &piFormat, &piDesc, piSampler, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
-    return sampled_image_handle{nullptr};
+    return sampled_image_handle{0};
   }
   return sampled_image_handle{piImageHandle};
 }
@@ -260,6 +260,8 @@ __SYCL_EXPORT void *pitched_alloc_device(size_t *ResultPitch,
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextUSMPitchedAlloc>(
       &RetVal, ResultPitch, C, Id, nullptr, WidthInBytes, Height,
       ElementSizeBytes);
+
+  (void)Error;
 
   return RetVal;
 }

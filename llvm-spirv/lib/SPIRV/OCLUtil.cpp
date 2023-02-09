@@ -428,8 +428,12 @@ template <> void SPIRVMap<std::string, Op, SPIRVInstruction>::init() {
   _SPIRV_OP(intel_work_group_barrier_arrive, ControlBarrierArriveINTEL)
   _SPIRV_OP(intel_work_group_barrier_wait, ControlBarrierWaitINTEL)
   // SPV_NV_bindless_texture
-  // Try moving this into its own section.
   _SPIRV_OP(__spirv_ConvertUToImageNV, ConvertUToImageNV);
+  _SPIRV_OP(__spirv_ConvertUToSamplerNV, ConvertUToSamplerNV);
+  _SPIRV_OP(__spirv_ConvertImageToUNV, ConvertImageToUNV);
+  _SPIRV_OP(__spirv_ConvertSamplerToUNV, ConvertSamplerToUNV);
+  _SPIRV_OP(__spirv_ConvertUToSampledImageNV, ConvertUToSampledImageNV);
+  _SPIRV_OP(__spirv_ConvertSampledImageToUNV, ConvertSampledImageToUNV);
 #undef _SPIRV_OP
 }
 

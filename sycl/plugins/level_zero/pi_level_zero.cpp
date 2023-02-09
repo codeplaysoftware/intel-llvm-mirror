@@ -5445,26 +5445,28 @@ pi_result piToLZImageDesc(const pi_image_format *ImageFormat,
   return PI_SUCCESS;
 }
 
-pi_result piextMemUnsampledImageHandleDestroy(pi_context context, pi_image_handle handle) {
+pi_result piextMemUnsampledImageHandleDestroy(pi_context context, pi_image_handle *handle) {
 
   assert(context != nullptr);
   assert(handle != nullptr);
+  assert(*handle != 0);
 
   pi_result retErr = PI_SUCCESS;
 
-  ZE_CALL(zeImageDestroy, (pi_cast<ze_image_handle_t>(handle)));
+  ZE_CALL(zeImageDestroy, (pi_cast<ze_image_handle_t>(*handle)));
 
   return retErr;
 }
 
-pi_result piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle handle) {
+pi_result piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle *handle) {
 
   assert(context != nullptr);
   assert(handle != nullptr);
+  assert(*handle != 0);
 
   pi_result retErr = PI_SUCCESS;
 
-  ZE_CALL(zeImageDestroy, (pi_cast<ze_image_handle_t>(handle)));
+  ZE_CALL(zeImageDestroy, (pi_cast<ze_image_handle_t>(*handle)));
 
   return retErr;
 }
@@ -5478,7 +5480,7 @@ pi_result piextMemImageAllocate(pi_context context, pi_mem_flags flags,
   assert(image_format != nullptr);
   assert(ret_mem != nullptr);
 
-  die("piExtMemImageAllocate not implemented on level zero backend.\n");
+  die("piextMemImageAllocate not implemented on level zero backend.\n");
   // No image formats are supported!
   pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
   return retErr;
@@ -5489,21 +5491,21 @@ pi_result piextMemImageFree(pi_context context, void *memory_handle) {
   assert(context != nullptr);
   assert(memory_handle != nullptr);
 
-  pi_result retErr = PI_SUCCESS;
-  die("piExtMemImageFree not implemented on level zero backend.\n");
-
+  die("piextMemImageFree not implemented on level zero backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
   return retErr;
 }
 
 pi_result piextMemUnsampledImageCreate(pi_context context, void *img_mem,
                                        pi_image_format *image_format,
-                                       pi_image_desc *desc, void **ret_handle) {
+                                       pi_image_desc *desc, pi_image_handle *ret_handle) {
 
   assert(context != nullptr);
   assert(img_mem != nullptr);
   assert(ret_handle != nullptr);
 
-  die("piExtMemImageCreate not implemented on level zero backend.\n");
+  die("piextMemImageCreate not implemented on level zero backend.\n");
   // No image formats are supported!
   pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
   return retErr;
@@ -5512,13 +5514,13 @@ pi_result piextMemUnsampledImageCreate(pi_context context, void *img_mem,
 pi_result piextMemSampledImageCreate(pi_context context, void *img_mem,
                                      pi_image_format *format,
                                      pi_image_desc *desc, pi_sampler sampler,
-                                     void **ret_handle) {
+                                     pi_image_handle *ret_handle) {
 
   assert(context != nullptr);
   assert(img_mem != nullptr);
   assert(ret_handle != nullptr);
 
-  die("piExtMemSampledImageCreate not implemented on level zero backend.\n");
+  die("piextMemSampledImageCreate not implemented on level zero backend.\n");
   // No image formats are supported!
   pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
   return retErr;
@@ -5531,7 +5533,7 @@ pi_result piextMemImageCopy(pi_queue queue, void *image_array,
   assert(image_array != nullptr);
   assert(host_ptr != nullptr);
 
-  die("piExtMemImageCopy not implemented on level zero backend.\n");
+  die("piextMemImageCopy not implemented on level zero backend.\n");
   // No image formats are supported!
   pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
   return retErr;

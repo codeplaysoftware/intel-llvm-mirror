@@ -954,7 +954,7 @@ using pi_program = _pi_program *;
 using pi_kernel = _pi_kernel *;
 using pi_event = _pi_event *;
 using pi_sampler = _pi_sampler *;
-using pi_image_handle = void *;
+using pi_image_handle = pi_uint64;
 
 typedef struct {
   pi_image_channel_order image_channel_order;
@@ -1949,14 +1949,14 @@ __SYCL_EXPORT pi_result piGetDeviceAndHostTimer(pi_device Device,
 /// \param handle is a pointer to the image handle
 __SYCL_EXPORT pi_result piextMemUnsampledImageHandleDestroy(
   pi_context context,
-  pi_image_handle handle);
+  pi_image_handle *handle);
 
 /// API to destroy bindless sampled image handles.
 ///
 /// \param context is the pi_context
 /// \param handle is a pointer to the image handle
 __SYCL_EXPORT pi_result
-piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle handle);
+piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle *handle);
 
 /// API to allocate memory for bindless images.
 ///
@@ -1985,7 +1985,7 @@ __SYCL_EXPORT pi_result piextMemImageFree(pi_context context,
 /// \param ret_mem is the returning memory handle to newly allocated memory
 __SYCL_EXPORT pi_result piextMemUnsampledImageCreate(
     pi_context context, void *img_mem, pi_image_format *image_format,
-    pi_image_desc *desc, void **ret_handle);
+    pi_image_desc *desc, pi_image_handle *ret_handle);
 
 /// API to create sampled bindless image handles.
 ///
@@ -1997,7 +1997,7 @@ __SYCL_EXPORT pi_result piextMemUnsampledImageCreate(
 /// \param ret_mem is the returning memory handle to newly allocated memory
 __SYCL_EXPORT pi_result piextMemSampledImageCreate(
     pi_context context, void *mem, pi_image_format *format, pi_image_desc *desc,
-    pi_sampler sampler, void **ret_handle);
+    pi_sampler sampler, pi_image_handle *ret_handle);
 
 __SYCL_EXPORT pi_result piextMemImageCopy(pi_queue queue,
                                           void *dst_ptr, void *src_ptr,

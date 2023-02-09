@@ -120,3 +120,8 @@ piextUSMGetMemAllocInfo
 piextUSMHostAlloc
 piextUSMSharedAlloc
 piextMemImageHandleDestroy
+piextMemImageCopy
+piextMemImageAllocate
+piextMemSampledImageCreate
+piextMemImageFree
+piextMemImageCreate

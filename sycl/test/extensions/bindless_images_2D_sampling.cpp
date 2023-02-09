@@ -50,7 +50,7 @@ int main() {
 
   // Extension: create the image and return the handle
   sycl::ext::oneapi::sampled_image_handle imgHandle1 =
-      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1);
+      sycl::ext::oneapi::create_image(ctxt, device_ptr1, samp1, desc);
 
   try {
     // Cuda stores data in column-major fashion

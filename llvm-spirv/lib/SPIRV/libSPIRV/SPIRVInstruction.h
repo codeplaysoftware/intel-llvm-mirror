@@ -3637,6 +3637,11 @@ public:
 // true means that the variable has an id. i.e. it returns something.
 // The number 4 indicates the word size of the instruction.
 _SPIRV_OP(ConvertUToImageNV, true, 4)
+_SPIRV_OP(ConvertUToSamplerNV, true, 4)
+_SPIRV_OP(ConvertImageToUNV, true, 4)
+_SPIRV_OP(ConvertSamplerToUNV, true, 4)
+_SPIRV_OP(ConvertUToSampledImageNV, true, 4)
+_SPIRV_OP(ConvertSampledImageToUNV, true, 4)
 #undef _SPIRV_OP
 } // namespace SPIRV
 
