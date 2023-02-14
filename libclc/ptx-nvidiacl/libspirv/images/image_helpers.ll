@@ -58,6 +58,14 @@ define <4 x i16> @__clc_struct16_to_vector({i16,i16,i16,i16} %s) nounwind always
   ret <4 x i16> %v
 }
 
+define <2 x i16> @__clc_struct16_to_vector2({i16,i16} %s) nounwind alwaysinline {
+  %a = alloca {i16,i16}
+  store {i16,i16} %s, {i16,i16}* %a
+  %bc = bitcast {i16,i16} * %a to <2 x i16> *
+  %v = load <2 x i16>, <2 x i16> * %bc, align 128
+  ret <2 x i16> %v
+}
+
 // We need wrappers to convert intrisic return structures to vectors
 declare {i16,i16,i16,i16} @llvm.nvvm.suld.1d.v4i16.trap(i64, i32)
 define <4 x i16> @__clc_llvm_nvvm_suld_1d_v4i16_trap(i64 %img, i32 %x) nounwind alwaysinline {
@@ -208,125 +216,53 @@ entry:
 
 ; <--- SURFACES --->
 
-; RETURN: float
-define <4 x float> @__clc_llvm_nvvm_suld_1d_v4f32_trap(i64 %img, i32 %x) nounwind alwaysinline {
+declare {i16,i16} @llvm.nvvm.suld.1d.v2i8.clamp(i64, i32)
+define <2 x i16> @__clc_llvm_nvvm_suld_1d_v2i8_clamp(i64 %img, i32 %x) nounwind alwaysinline {
 entry:
-  %0 = tail call {i32,i32,i32,i32} @llvm.nvvm.suld.1d.v4i32.trap(i64 %img, i32 %x)
-  %1 = tail call <4 x i32>@__clc_struct32_to_vector({i32,i32,i32,i32} %0)
-  %2 = bitcast <4 x i32>%1 to <4 x float>
-  ret <4 x float> %2
+  %0 = tail call {i16,i16} @llvm.nvvm.suld.1d.v2i8.clamp(i64 %img, i32 %x);
+  %1 = tail call <2 x i16> @__clc_struct16_to_vector2({i16,i16} %0)
+  ret <2 x i16> %1
 }
 
-define <4 x float> @__clc_llvm_nvvm_suld_2d_v4f32_trap(i64 %img, i32 %x, i32 %y) nounwind alwaysinline {
+declare {i16,i16} @llvm.nvvm.suld.2d.v2i8.clamp(i64, i32, i32)
+define <2 x i16> @__clc_llvm_nvvm_suld_2d_v2i8_clamp(i64 %img, i32 %x, i32 %y) nounwind alwaysinline {
 entry:
-  %0 = tail call {i32,i32,i32,i32} @llvm.nvvm.suld.2d.v4i32.trap(i64 %img, i32 %x, i32 %y)
-  %1 = tail call <4 x i32>@__clc_struct32_to_vector({i32,i32,i32,i32} %0)
-  %2 = bitcast <4 x i32>%1 to <4 x float>
-  ret <4 x float> %2
+  %0 = tail call {i16,i16} @llvm.nvvm.suld.2d.v2i8.clamp(i64 %img, i32 %x, i32 %y);
+  %1 = tail call <2 x i16> @__clc_struct16_to_vector2({i16,i16} %0)
+  ret <2 x i16> %1
 }
 
-define <4 x float> @__clc_llvm_nvvm_suld_3d_v4f32_trap(i64 %img, i32 %x, i32 %y, i32 %z) nounwind alwaysinline {
+declare {i16,i16} @llvm.nvvm.suld.3d.v2i8.clamp(i64, i32, i32, i32)
+define <2 x i16> @__clc_llvm_nvvm_suld_3d_v2i8_clamp(i64 %img, i32 %x, i32 %y, i32 %z) nounwind alwaysinline {
 entry:
-  %0 = tail call {i32,i32,i32,i32} @llvm.nvvm.suld.3d.v4i32.trap(i64 %img, i32 %x, i32 %y, i32 %z)
-  %1 = tail call <4 x i32>@__clc_struct32_to_vector({i32,i32,i32,i32} %0)
-  %2 = bitcast <4 x i32>%1 to <4 x float>
-  ret <4 x float> %2
+  %0 = tail call {i16,i16} @llvm.nvvm.suld.3d.v2i8.clamp(i64 %img, i32 %x, i32 %y, i32 %z);
+  %1 = tail call <2 x i16> @__clc_struct16_to_vector2({i16,i16} %0)
+  ret <2 x i16> %1
 }
 
-; RETURN: int & uint
-; ALREADY DEFINED
-
-
-; WRITES
-; WRITE: float
-; must bitcast float data to i32 to store
-
-declare void @llvm.nvvm.sust.p.1d.v4i32.trap(i64, i32, i32, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_1d_v4f32_trap(i64 %img, i32 %x, float %r, float %g, float %b, float %a) nounwind alwaysinline {
+declare {i16,i16,i16,i16} @llvm.nvvm.suld.1d.v4i8.clamp(i64, i32)
+define <4 x i16> @__clc_llvm_nvvm_suld_1d_v4i8_clamp(i64 %img, i32 %x) nounwind alwaysinline {
 entry:
-  %ri = bitcast float %r to i32
-  %gi = bitcast float %g to i32
-  %bi = bitcast float %b to i32
-  %ai = bitcast float %a to i32
-  call void @llvm.nvvm.sust.p.1d.v4i32.trap(i64 %img, i32 %x, i32 %ri, i32 %gi, i32 %bi, i32 %ai);
-  ret void
+  %0 = tail call {i16,i16,i16,i16} @llvm.nvvm.suld.1d.v4i8.clamp(i64 %img, i32 %x);
+  %1 = tail call <4 x i16> @__clc_struct16_to_vector({i16,i16,i16,i16} %0)
+  ret <4 x i16> %1
 }
 
-declare void @llvm.nvvm.sust.p.2d.v4i32.trap(i64, i32, i32, i32, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_2d_v4f32_trap(i64 %img, i32 %x, i32 %y, float %r, float %g, float %b, float %a) nounwind alwaysinline {
+declare {i16,i16,i16,i16} @llvm.nvvm.suld.2d.v4i8.clamp(i64, i32, i32)
+define <4 x i16> @__clc_llvm_nvvm_suld_2d_v4i8_clamp(i64 %img, i32 %x, i32 %y) nounwind alwaysinline {
 entry:
-  %ri = bitcast float %r to i32
-  %gi = bitcast float %g to i32
-  %bi = bitcast float %b to i32
-  %ai = bitcast float %a to i32
-  call void @llvm.nvvm.sust.p.2d.v4i32.trap(i64 %img, i32 %x, i32 %y, i32 %ri, i32 %gi, i32 %bi, i32 %ai);
-  ret void
+  %0 = tail call {i16,i16,i16,i16} @llvm.nvvm.suld.2d.v4i8.clamp(i64 %img, i32 %x, i32 %y);
+  %1 = tail call <4 x i16> @__clc_struct16_to_vector({i16,i16,i16,i16} %0)
+  ret <4 x i16> %1
 }
 
-declare void @llvm.nvvm.sust.p.3d.v4i32.trap(i64, i32, i32, i32, i32, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_3d_v4f32_trap(i64 %img, i32 %x, i32 %y, i32 %z, float %r, float %g, float %b, float %a) nounwind alwaysinline {
+declare {i16,i16,i16,i16} @llvm.nvvm.suld.3d.v4i8.clamp(i64, i32, i32, i32)
+define <4 x i16> @__clc_llvm_nvvm_suld_3d_v4i8_clamp(i64 %img, i32 %x, i32 %y, i32 %z) nounwind alwaysinline {
 entry:
-  %ri = bitcast float %r to i32
-  %gi = bitcast float %g to i32
-  %bi = bitcast float %b to i32
-  %ai = bitcast float %a to i32
-  call void @llvm.nvvm.sust.p.3d.v4i32.trap(i64 %img, i32 %x, i32 %y, i32 %z, i32 %ri, i32 %gi, i32 %bi, i32 %ai);
-  ret void
+  %0 = tail call {i16,i16,i16,i16} @llvm.nvvm.suld.3d.v4i8.clamp(i64 %img, i32 %x, i32 %y, i32 %z);
+  %1 = tail call <4 x i16> @__clc_struct16_to_vector({i16,i16,i16,i16} %0)
+  ret <4 x i16> %1
 }
-
-declare void @llvm.nvvm.sust.p.1d.v2i32.trap(i64, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_1d_v2f32_trap(i64 %img, i32 %x, float %r, float %g) nounwind alwaysinline {
-entry:
-  %ri = bitcast float %r to i32
-  %gi = bitcast float %g to i32
-  call void @llvm.nvvm.sust.p.1d.v2i32.trap(i64 %img, i32 %x, i32 %ri, i32 %gi);
-  ret void
-}
-
-declare void @llvm.nvvm.sust.p.2d.v2i32.trap(i64, i32, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_2d_v2f32_trap(i64 %img, i32 %x, i32 %y, float %r, float %g) nounwind alwaysinline {
-entry:
-  %ri = bitcast float %r to i32
-  %gi = bitcast float %g to i32
-  call void @llvm.nvvm.sust.p.2d.v2i32.trap(i64 %img, i32 %x, i32 %y, i32 %ri, i32 %gi);
-  ret void
-}
-
-declare void @llvm.nvvm.sust.p.3d.v2i32.trap(i64, i32, i32, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_3d_v2f32_trap(i64 %img, i32 %x, i32 %y, i32 %z, float %r, float %g) nounwind alwaysinline {
-entry:
-  %ri = bitcast float %r to i32
-  %gi = bitcast float %g to i32
-  call void @llvm.nvvm.sust.p.3d.v2i32.trap(i64 %img, i32 %x, i32 %y, i32 %z, i32 %ri, i32 %gi);
-  ret void
-}
-
-declare void @llvm.nvvm.sust.p.1d.i32.trap(i64, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_1d_f32_trap(i64 %img, i32 %x, float %r) nounwind alwaysinline {
-entry:
-  %ri = bitcast float %r to i32
-  call void @llvm.nvvm.sust.p.1d.i32.trap(i64 %img, i32 %x, i32 %ri);
-  ret void
-}
-
-declare void @llvm.nvvm.sust.p.2d.i32.trap(i64, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_2d_f32_trap(i64 %img, i32 %x, i32 %y, float %r) nounwind alwaysinline {
-entry:
-  %ri = bitcast float %r to i32
-  call void @llvm.nvvm.sust.p.2d.i32.trap(i64 %img, i32 %x, i32 %y, i32 %ri);
-  ret void
-}
-
-declare void @llvm.nvvm.sust.p.3d.i32.trap(i64, i32, i32, i32, i32)
-define void @__clc_llvm_nvvm_sust_p_3d_f32_trap(i64 %img, i32 %x, i32 %y, i32 %z, float %r) nounwind alwaysinline {
-entry:
-  %ri = bitcast float %r to i32
-  call void @llvm.nvvm.sust.p.3d.i32.trap(i64 %img, i32 %x, i32 %y, i32 %z, i32 %ri);
-  ret void
-}
-
-
-
 
 ; <--- TEXTURES --->
 declare {float,float,float,float} @llvm.nvvm.tex.unified.1d.v4f32.f32(i64, float)

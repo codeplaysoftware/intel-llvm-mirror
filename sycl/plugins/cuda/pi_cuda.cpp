@@ -5587,6 +5587,13 @@ pi_result cuda_piextUSMPitchedAlloc(void **result_ptr, size_t *result_pitch,
   assert(context != nullptr);
   assert(device != nullptr);
   assert(properties == nullptr || *properties == 0);
+  // element_size_bytes can only take on values of 4, 8, or 16
+  // small data types need to be minimised to 4
+  if (element_size_bytes < 4) {
+    element_size_bytes = 4;
+  }
+  assert(element_size_bytes == 4 || element_size_bytes == 8 ||
+         element_size_bytes == 16);
   pi_result result = PI_SUCCESS;
   try {
     ScopedContext active(context);

@@ -104,14 +104,13 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
 __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
                                         sampled_image_handle &imageHandle);
 
-__SYCL_EXPORT void *
-pitched_alloc_device(size_t *result_pitch, size_t width_in_bytes, size_t height,
-                     unsigned int element_size_bytes,
-                     const queue &q);
+__SYCL_EXPORT void *pitched_alloc_device(size_t *result_pitch,
+                                         size_t width_in_bytes, size_t height,
+                                         unsigned int element_size_bytes,
+                                         const queue &q);
 
 namespace detail {
-template<typename CoordT>
-constexpr size_t coord_size(){
+template <typename CoordT> constexpr size_t coord_size() {
   if constexpr (std::is_scalar<CoordT>::value) {
     return 1;
   } else {

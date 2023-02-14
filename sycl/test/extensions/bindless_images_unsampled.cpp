@@ -35,6 +35,16 @@ struct util {
     }
   }
 
+  template <typename DType, int NChannels,
+            std::enable_if_t<std::is_same<DType, half>::value, bool> = true>
+  static void fill_rand(std::vector<sycl::vec<DType, NChannels>> &v) {
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(0.0, 100.0);
+    for (int i = 0; i < v.size(); ++i) {
+      v[i] = sycl::vec<DType, NChannels>(distribution(generator));
+    }
+  }
+
   template <typename DType, int NChannels>
   static void add_host(const std::vector<sycl::vec<DType, NChannels>> &in_0,
                        const std::vector<sycl::vec<DType, NChannels>> &in_1,
@@ -302,107 +312,256 @@ int main() {
 
   unsigned int seed = 0;
 
-  std::cout << "Running 3D float4\n";
-  run_test<3, float, 4, image_channel_type::fp32, image_channel_order::rgba,
-           class float4_3d>({1024, 1024, 16}, {16, 16, 4}, seed);
-  std::cout << "Running 2D float4\n";
-  run_test<2, float, 4, image_channel_type::fp32, image_channel_order::rgba,
-           class float4_2d>({4096, 4096}, {32, 32}, seed);
-  std::cout << "Running 1D float4\n";
-  run_test<1, float, 4, image_channel_type::fp32, image_channel_order::rgba,
-           class float4_1d>({1024}, {512}, seed);
+  std::cout << "Running 1D int\n";
+  run_test<1, int, 1, image_channel_type::signed_int32, image_channel_order::r,
+           class int_1d>({32}, {2}, seed);
+  std::cout << "Running 2D int\n";
+  run_test<2, int32_t, 1, image_channel_type::signed_int32,
+           image_channel_order::r, class int_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D int\n";
+  run_test<3, int32_t, 1, image_channel_type::signed_int32,
+           image_channel_order::r, class int_3d>({48, 128, 32}, {16, 16, 4},
+                                                 seed);
+  std::cout << "Running 1D int2\n";
+  run_test<1, int, 2, image_channel_type::signed_int32, image_channel_order::rg,
+           class int2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D int2\n";
+  run_test<2, int32_t, 2, image_channel_type::signed_int32,
+           image_channel_order::rg, class int2_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D int2\n";
+  run_test<3, int32_t, 2, image_channel_type::signed_int32,
+           image_channel_order::rg, class int2_3d>({48, 128, 32}, {16, 16, 4},
+                                                   seed);
+  std::cout << "Running 1D int4\n";
+  run_test<1, int, 4, image_channel_type::signed_int32,
+           image_channel_order::rgba, class int4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D int4\n";
+  run_test<2, int32_t, 4, image_channel_type::signed_int32,
+           image_channel_order::rgba, class int4_2d>({2816, 32}, {32, 32},
+                                                     seed);
+  std::cout << "Running 3D int4\n";
+  run_test<3, int32_t, 4, image_channel_type::signed_int32,
+           image_channel_order::rgba, class int4_3d>({48, 128, 32}, {16, 16, 4},
+                                                     seed);
 
-  std::cout << "Running 3D float2\n";
-  run_test<3, float, 2, image_channel_type::fp32, image_channel_order::rg,
-           class float2_3d>({832, 1024, 32}, {16, 16, 4}, seed);
-  std::cout << "Running 2D float2\n";
-  run_test<2, float, 2, image_channel_type::fp32, image_channel_order::rg,
-           class float2_2d>({3808, 4096}, {32, 32}, seed);
-  std::cout << "Running 1D float2\n";
-  run_test<1, float, 2, image_channel_type::fp32, image_channel_order::rg,
-           class float2_1d>({608}, {32}, seed);
+  std::cout << "Running 1D unsigned int\n";
+  run_test<1, unsigned int, 1, image_channel_type::unsigned_int32,
+           image_channel_order::r, class uint_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned int\n";
+  run_test<2, uint32_t, 1, image_channel_type::unsigned_int32,
+           image_channel_order::r, class uint_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D unsigned int\n";
+  run_test<3, uint32_t, 1, image_channel_type::unsigned_int32,
+           image_channel_order::r, class uint_3d>({48, 128, 32}, {16, 16, 4},
+                                                  seed);
+  std::cout << "Running 1D unsigned int2\n";
+  run_test<1, unsigned int, 2, image_channel_type::unsigned_int32,
+           image_channel_order::rg, class uint2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned int2\n";
+  run_test<2, uint32_t, 2, image_channel_type::unsigned_int32,
+           image_channel_order::rg, class uint2_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D unsigned int2\n";
+  run_test<3, uint32_t, 2, image_channel_type::unsigned_int32,
+           image_channel_order::rg, class uint2_3d>({48, 128, 32}, {16, 16, 4},
+                                                    seed);
+  std::cout << "Running 1D unsigned int4\n";
+  run_test<1, unsigned int, 4, image_channel_type::unsigned_int32,
+           image_channel_order::rgba, class uint4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned int4\n";
+  run_test<2, uint32_t, 4, image_channel_type::unsigned_int32,
+           image_channel_order::rgba, class uint4_2d>({2816, 32}, {32, 32},
+                                                      seed);
+  std::cout << "Running 3D unsigned int4\n";
+  run_test<3, uint32_t, 4, image_channel_type::unsigned_int32,
+           image_channel_order::rgba, class uint4_3d>({48, 128, 32},
+                                                      {16, 16, 4}, seed);
 
-  std::cout << "Running 3D float\n";
-  run_test<3, float, 1, image_channel_type::fp32, image_channel_order::r,
-           class float_3d>({1024, 832, 32}, {16, 16, 4}, seed);
-  std::cout << "Running 2D float\n";
-  run_test<2, float, 1, image_channel_type::fp32, image_channel_order::r,
-           class float_2d>({4096, 3808}, {32, 32}, seed);
+  std::cout << "Running 1D short\n";
+  run_test<1, short, 1, image_channel_type::signed_int16,
+           image_channel_order::r, class short_1d>({32}, {2}, seed);
+  std::cout << "Running 2D short\n";
+  run_test<2, short, 1, image_channel_type::signed_int16,
+           image_channel_order::r, class short_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D short\n";
+  run_test<3, short, 1, image_channel_type::signed_int16,
+           image_channel_order::r, class short_3d>({48, 128, 32}, {16, 16, 4},
+                                                   seed);
+  std::cout << "Running 1D short2\n";
+  run_test<1, short, 2, image_channel_type::signed_int16,
+           image_channel_order::rg, class short2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D short2\n";
+  run_test<2, short, 2, image_channel_type::signed_int16,
+           image_channel_order::rg, class short2_2d>({2816, 32}, {32, 32},
+                                                     seed);
+  std::cout << "Running 3D short2\n";
+  run_test<3, short, 2, image_channel_type::signed_int16,
+           image_channel_order::rg, class short2_3d>({48, 128, 32}, {16, 16, 4},
+                                                     seed);
+  std::cout << "Running 1D short4\n";
+  run_test<1, short, 4, image_channel_type::signed_int16,
+           image_channel_order::rgba, class short4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D short4\n";
+  run_test<2, short, 4, image_channel_type::signed_int16,
+           image_channel_order::rgba, class short4_2d>({2816, 32}, {32, 32},
+                                                       seed);
+  std::cout << "Running 3D short4\n";
+  run_test<3, short, 4, image_channel_type::signed_int16,
+           image_channel_order::rgba, class short4_3d>({48, 128, 32},
+                                                       {16, 16, 4}, seed);
+
+  std::cout << "Running 1D unsigned short\n";
+  run_test<1, unsigned short, 1, image_channel_type::unsigned_int16,
+           image_channel_order::r, class ushort_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned short\n";
+  run_test<2, unsigned short, 1, image_channel_type::unsigned_int16,
+           image_channel_order::r, class ushort_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D unsigned short\n";
+  run_test<3, unsigned short, 1, image_channel_type::unsigned_int16,
+           image_channel_order::r, class ushort_3d>({48, 128, 32}, {16, 16, 4},
+                                                    seed);
+  std::cout << "Running 1D unsigned short2\n";
+  run_test<1, unsigned short, 2, image_channel_type::unsigned_int16,
+           image_channel_order::rg, class ushort2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned short2\n";
+  run_test<2, unsigned short, 2, image_channel_type::unsigned_int16,
+           image_channel_order::rg, class ushort2_2d>({2816, 32}, {32, 32},
+                                                      seed);
+  std::cout << "Running 3D unsigned short2\n";
+  run_test<3, unsigned short, 2, image_channel_type::unsigned_int16,
+           image_channel_order::rg, class ushort2_3d>({48, 128, 32},
+                                                      {16, 16, 4}, seed);
+  std::cout << "Running 1D unsigned short4\n";
+  run_test<1, unsigned short, 4, image_channel_type::unsigned_int16,
+           image_channel_order::rgba, class ushort4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned short4\n";
+  run_test<2, unsigned short, 4, image_channel_type::unsigned_int16,
+           image_channel_order::rgba, class ushort4_2d>({2816, 32}, {32, 32},
+                                                        seed);
+  std::cout << "Running 3D unsigned short4\n";
+  run_test<3, unsigned short, 4, image_channel_type::unsigned_int16,
+           image_channel_order::rgba, class ushort4_3d>({48, 128, 32},
+                                                        {16, 16, 4}, seed);
+
+  std::cout << "Running 1D char\n";
+  run_test<1, signed char, 1, image_channel_type::signed_int8,
+           image_channel_order::r, class char_1d>({32}, {2}, seed);
+  std::cout << "Running 2D char\n";
+  run_test<2, signed char, 1, image_channel_type::signed_int8,
+           image_channel_order::r, class char_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D char\n";
+  run_test<3, signed char, 1, image_channel_type::signed_int8,
+           image_channel_order::r, class char_3d>({48, 128, 32}, {16, 16, 4},
+                                                  seed);
+  std::cout << "Running 1D char2\n";
+  run_test<1, signed char, 2, image_channel_type::signed_int8,
+           image_channel_order::rg, class char2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D char2\n";
+  run_test<2, signed char, 2, image_channel_type::signed_int8,
+           image_channel_order::rg, class char2_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D char2\n";
+  run_test<3, signed char, 2, image_channel_type::signed_int8,
+           image_channel_order::rg, class char2_3d>({48, 128, 32}, {16, 16, 4},
+                                                    seed);
+  std::cout << "Running 1D char4\n";
+  run_test<1, signed char, 4, image_channel_type::signed_int8,
+           image_channel_order::rgba, class char4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D char4\n";
+  run_test<2, signed char, 4, image_channel_type::signed_int8,
+           image_channel_order::rgba, class char4_2d>({2816, 32}, {32, 32},
+                                                      seed);
+  std::cout << "Running 3D char4\n";
+  run_test<3, signed char, 4, image_channel_type::signed_int8,
+           image_channel_order::rgba, class char4_3d>({48, 128, 32},
+                                                      {16, 16, 4}, seed);
+
+  std::cout << "Running 1D unsigned char\n";
+  run_test<1, unsigned char, 1, image_channel_type::unsigned_int8,
+           image_channel_order::r, class uchar_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned char\n";
+  run_test<2, unsigned char, 1, image_channel_type::unsigned_int8,
+           image_channel_order::r, class uchar_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D unsigned char\n";
+  run_test<3, unsigned char, 1, image_channel_type::unsigned_int8,
+           image_channel_order::r, class uchar_3d>({48, 128, 32}, {16, 16, 4},
+                                                   seed);
+  std::cout << "Running 1D unsigned char2\n";
+  run_test<1, unsigned char, 2, image_channel_type::unsigned_int8,
+           image_channel_order::rg, class uchar2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned char2\n";
+  run_test<2, unsigned char, 2, image_channel_type::unsigned_int8,
+           image_channel_order::rg, class uchar2_2d>({2816, 32}, {32, 32},
+                                                     seed);
+  std::cout << "Running 3D unsigned char2\n";
+  run_test<3, unsigned char, 2, image_channel_type::unsigned_int8,
+           image_channel_order::rg, class uchar2_3d>({48, 128, 32}, {16, 16, 4},
+                                                     seed);
+  std::cout << "Running 1D unsigned char4\n";
+  run_test<1, unsigned char, 4, image_channel_type::unsigned_int8,
+           image_channel_order::rgba, class uchar4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D unsigned char4\n";
+  run_test<2, unsigned char, 4, image_channel_type::unsigned_int8,
+           image_channel_order::rgba, class uchar4_2d>({2816, 32}, {32, 32},
+                                                       seed);
+  std::cout << "Running 3D unsigned char4\n";
+  run_test<3, unsigned char, 4, image_channel_type::unsigned_int8,
+           image_channel_order::rgba, class uchar4_3d>({48, 128, 32},
+                                                       {16, 16, 4}, seed);
+
   std::cout << "Running 1D float\n";
   run_test<1, float, 1, image_channel_type::fp32, image_channel_order::r,
            class float_1d>({1024}, {512}, seed);
+  std::cout << "Running 2D float\n";
+  run_test<2, float, 1, image_channel_type::fp32, image_channel_order::r,
+           class float_2d>({4096, 3808}, {32, 32}, seed);
+  std::cout << "Running 3D float\n";
+  run_test<3, float, 1, image_channel_type::fp32, image_channel_order::r,
+           class float_3d>({1024, 832, 32}, {16, 16, 4}, seed);
+  std::cout << "Running 1D float2\n";
+  run_test<1, float, 2, image_channel_type::fp32, image_channel_order::rg,
+           class float2_1d>({608}, {32}, seed);
+  std::cout << "Running 2D float2\n";
+  run_test<2, float, 2, image_channel_type::fp32, image_channel_order::rg,
+           class float2_2d>({3808, 4096}, {32, 32}, seed);
+  std::cout << "Running 3D float2\n";
+  run_test<3, float, 2, image_channel_type::fp32, image_channel_order::rg,
+           class float2_3d>({832, 1024, 32}, {16, 16, 4}, seed);
+  std::cout << "Running 1D float4\n";
+  run_test<1, float, 4, image_channel_type::fp32, image_channel_order::rgba,
+           class float4_1d>({1024}, {512}, seed);
+  std::cout << "Running 2D float4\n";
+  run_test<2, float, 4, image_channel_type::fp32, image_channel_order::rgba,
+           class float4_2d>({4096, 4096}, {32, 32}, seed);
+  std::cout << "Running 3D float4\n";
+  run_test<3, float, 4, image_channel_type::fp32, image_channel_order::rgba,
+           class float4_3d>({1024, 1024, 16}, {16, 16, 4}, seed);
 
-  std::cout << "Running 3D int4\n";
-  run_test<3, int32_t, 4, image_channel_type::signed_int32,
-           image_channel_order::rgba, class int4_3d>({896, 1024, 32},
-                                                     {16, 16, 4}, seed);
-  std::cout << "Running 2D int4\n";
-  run_test<2, int32_t, 4, image_channel_type::signed_int32,
-           image_channel_order::rgba, class int4_2d>({2368, 2432}, {32, 32},
-                                                     seed);
-  std::cout << "Running 1D int4\n";
-  run_test<1, int32_t, 4, image_channel_type::signed_int32,
-           image_channel_order::rgba, class int4_1d>({256}, {128}, seed);
-
-  std::cout << "Running 3D int2\n";
-  run_test<3, int32_t, 2, image_channel_type::signed_int32,
-           image_channel_order::rg, class int2_3d>({32, 256, 32},
-                                                   {16, 16, 4}, seed);
-  std::cout << "Running 2D int2\n";
-  run_test<2, int32_t, 2, image_channel_type::signed_int32,
-           image_channel_order::rg, class int2_2d>({3328, 3840}, {32, 32},
-                                                   seed);
-  std::cout << "Running 1D int2\n";
-  run_test<1, int32_t, 2, image_channel_type::signed_int32,
-           image_channel_order::rg, class int2_1d>({32}, {16}, seed);
-
-  std::cout << "Running 3D int\n";
-  run_test<3, int32_t, 1, image_channel_type::signed_int32,
-           image_channel_order::r, class int_3d>({48, 128, 32}, {16, 16,
-           4}, seed);
-  std::cout << "Running 2D int\n";
-  run_test<2, int32_t, 1, image_channel_type::signed_int32,
-           image_channel_order::r, class int_2d>({2816, 32}, {32, 32},
-           seed);
-  std::cout << "Running 1D int\n";
-  run_test<1, int32_t, 1, image_channel_type::signed_int32,
-           image_channel_order::r, class int_1d>({1024}, {512}, seed);
-
-  std::cout << "Running 3D uint4\n";
-  run_test<3, uint32_t, 4, image_channel_type::unsigned_int32,
-           image_channel_order::rgba, class uint4_3d>({272, 144, 4},
-                                                      {16, 16, 4}, seed);
-  std::cout << "Running 2D uint4\n";
-  run_test<2, uint32_t, 4, image_channel_type::unsigned_int32,
-           image_channel_order::rgba, class uint4_2d>({2464, 96}, {32, 32},
-                                                      seed);
-  std::cout << "Running 1D uint4\n";
-  run_test<1, uint32_t, 4, image_channel_type::unsigned_int32,
-           image_channel_order::rgba, class uint4_1d>({1024}, {512}, seed);
-
-  std::cout << "Running 3D uint2\n";
-  run_test<3, uint32_t, 2, image_channel_type::unsigned_int32,
-           image_channel_order::rg, class uint2_3d>({1024, 1024, 32},
-                                                    {16, 16, 4}, seed);
-  std::cout << "Running 2D uint2\n";
-  run_test<2, uint32_t, 2, image_channel_type::unsigned_int32,
-           image_channel_order::rg, class uint2_2d>({96, 2464}, {32, 32},
-                                                    seed);
-  std::cout << "Running 1D uint2\n";
-  run_test<1, uint32_t, 2, image_channel_type::unsigned_int32,
-           image_channel_order::rg, class uint2_1d>({12}, {4}, seed);
-
-  std::cout << "Running 3D uint\n";
-  run_test<3, uint32_t, 1, image_channel_type::unsigned_int32,
-           image_channel_order::r, class uint_3d>({16, 12, 6}, {2, 2,
-           2}, seed);
-  std::cout << "Running 2D uint\n";
-  run_test<2, uint32_t, 1, image_channel_type::unsigned_int32,
-           image_channel_order::r, class uint_2d>({80, 40}, {4, 4},
-           seed);
-  std::cout << "Running 1D uint\n";
-  run_test<1, uint32_t, 1, image_channel_type::unsigned_int32,
-           image_channel_order::r, class uint_1d>({32}, {2}, seed);
+  std::cout << "Running 1D half\n";
+  run_test<1, half, 1, image_channel_type::fp16, image_channel_order::r,
+           class half_1d>({32}, {2}, seed);
+  std::cout << "Running 2D half\n";
+  run_test<2, half, 1, image_channel_type::fp16, image_channel_order::r,
+           class half_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D half\n";
+  run_test<3, half, 1, image_channel_type::fp16, image_channel_order::r,
+           class half_3d>({48, 128, 32}, {16, 16, 4}, seed);
+  std::cout << "Running 1D half2\n";
+  run_test<1, half, 2, image_channel_type::fp16, image_channel_order::rg,
+           class half2_1d>({32}, {2}, seed);
+  std::cout << "Running 2D half2\n";
+  run_test<2, half, 2, image_channel_type::fp16, image_channel_order::rg,
+           class half2_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D half2\n";
+  run_test<3, half, 2, image_channel_type::fp16, image_channel_order::rg,
+           class half2_3d>({48, 128, 32}, {16, 16, 4}, seed);
+  std::cout << "Running 1D half4\n";
+  run_test<1, half, 4, image_channel_type::fp16, image_channel_order::rgba,
+           class half4_1d>({32}, {2}, seed);
+  std::cout << "Running 2D half4\n";
+  run_test<2, half, 4, image_channel_type::fp16, image_channel_order::rgba,
+           class half4_2d>({2816, 32}, {32, 32}, seed);
+  std::cout << "Running 3D half4\n";
+  run_test<3, half, 4, image_channel_type::fp16, image_channel_order::rgba,
+           class half4_3d>({48, 128, 32}, {16, 16, 4}, seed);
 
   return 0;
 }
