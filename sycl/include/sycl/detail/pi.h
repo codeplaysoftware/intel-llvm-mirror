@@ -388,7 +388,8 @@ typedef enum {
   PI_IMAGE_INFO_SLICE_PITCH = 0x1113,
   PI_IMAGE_INFO_WIDTH = 0x1114,
   PI_IMAGE_INFO_HEIGHT = 0x1115,
-  PI_IMAGE_INFO_DEPTH = 0x1116
+  PI_IMAGE_INFO_DEPTH = 0x1116,
+  PI_IMAGE_INFO_FLAGS = 0x1117,
 } _pi_image_info;
 
 typedef enum {
@@ -2007,6 +2008,11 @@ __SYCL_EXPORT pi_result piextMemImageCopy(pi_queue queue, void *dst_ptr,
                                           pi_uint32 num_events_in_wait_list,
                                           const pi_event *event_wait_list,
                                           pi_event *event);
+
+__SYCL_EXPORT pi_result piextMemImageGetInfo(const void *mem_handle,
+                                          pi_image_info param_name,
+                                          void *param_value,
+                                          size_t *param_value_size_ret);
 
 struct _pi_plugin {
   // PI version supported by host passed to the plugin. The Plugin

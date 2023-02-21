@@ -5543,6 +5543,15 @@ pi_result piextMemImageCopy(pi_queue command_queue, void *dst_ptr,
   return retErr;
 }
 
+pi_result piextMemImageGetInfo(const void *mem_handle, pi_image_info param_name,
+                               void *param_value,
+                               size_t *param_value_size_ret) {
+  assert(mem_handle);
+
+  die("piextMemImageGetInfo not implemented on level zero backend.\n");
+  return PI_SUCCESS;
+}
+
 pi_result piKernelGetGroupInfo(pi_kernel Kernel, pi_device Device,
                                pi_kernel_group_info ParamName,
                                size_t ParamValueSize, void *ParamValue,

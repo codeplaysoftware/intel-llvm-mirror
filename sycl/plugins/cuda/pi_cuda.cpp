@@ -384,6 +384,9 @@ pi_result piToCudaImageChannelFormat(pi_image_channel_type image_channel_type,
 
   switch (image_channel_type) {
   case PI_IMAGE_CHANNEL_TYPE_UNORM_INT8:
+    cuda_format = CU_AD_FORMAT_UNORM_INT8X1;
+    pixel_type_size_bytes = 1;
+    break;
   case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8:
     cuda_format = CU_AD_FORMAT_UNSIGNED_INT8;
     pixel_type_size_bytes = 1;
@@ -393,6 +396,9 @@ pi_result piToCudaImageChannelFormat(pi_image_channel_type image_channel_type,
     pixel_type_size_bytes = 1;
     break;
   case PI_IMAGE_CHANNEL_TYPE_UNORM_INT16:
+    cuda_format = CU_AD_FORMAT_UNORM_INT16X1;
+    pixel_type_size_bytes = 2;
+    break;
   case PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16:
     cuda_format = CU_AD_FORMAT_UNSIGNED_INT16;
     pixel_type_size_bytes = 2;
@@ -427,6 +433,50 @@ pi_result piToCudaImageChannelFormat(pi_image_channel_type image_channel_type,
   if (return_pixel_types_size_bytes) {
     *return_pixel_types_size_bytes = pixel_type_size_bytes;
   }
+  return err;
+}
+
+pi_result
+cudaToPiImageChannelFormat(CUarray_format cuda_format,
+                           pi_image_channel_type *return_image_channel_type) {
+  assert(return_image_channel_type);
+  pi_result err = PI_SUCCESS;
+
+  switch (cuda_format) {
+  case CU_AD_FORMAT_UNSIGNED_INT8:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT8;
+    break;
+  case CU_AD_FORMAT_UNSIGNED_INT16:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT16;
+    break;
+  case CU_AD_FORMAT_UNSIGNED_INT32:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_UNSIGNED_INT32;
+    break;
+  case CU_AD_FORMAT_SIGNED_INT8:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_SIGNED_INT8;
+    break;
+  case CU_AD_FORMAT_SIGNED_INT16:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_SIGNED_INT16;
+    break;
+  case CU_AD_FORMAT_SIGNED_INT32:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_SIGNED_INT32;
+    break;
+  case CU_AD_FORMAT_HALF:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_HALF_FLOAT;
+    break;
+  case CU_AD_FORMAT_FLOAT:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_FLOAT;
+    break;
+  case CU_AD_FORMAT_UNORM_INT8X1:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_UNORM_INT8;
+    break;
+  case CU_AD_FORMAT_UNORM_INT16X1:
+    *return_image_channel_type = PI_IMAGE_CHANNEL_TYPE_UNORM_INT16;
+    break;
+  default:
+    err = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  }
+
   return err;
 }
 
@@ -3532,6 +3582,71 @@ pi_result cuda_piextMemSampledImageHandleDestroy(pi_context context,
   return retErr;
 }
 
+pi_result cuda_piextMemImageGetInfo(const void *mem_handle,
+                                    pi_image_info param_name, void *param_value,
+                                    size_t *param_value_size_ret) {
+  assert(mem_handle);
+
+  pi_result retErr = PI_SUCCESS;
+
+  CUDA_ARRAY3D_DESCRIPTOR arrayDesc;
+  PI_CHECK_ERROR(cuArray3DGetDescriptor(&arrayDesc, (CUarray)mem_handle));
+  switch (param_name) {
+  case PI_IMAGE_INFO_WIDTH:
+    if (param_value)
+      *(size_t *)param_value = arrayDesc.Width;
+    if (param_value_size_ret)
+      *param_value_size_ret = sizeof(size_t);
+    break;
+  case PI_IMAGE_INFO_HEIGHT:
+    if (param_value)
+      *(size_t *)param_value = arrayDesc.Height;
+    if (param_value_size_ret)
+      *param_value_size_ret = sizeof(size_t);
+    break;
+  case PI_IMAGE_INFO_DEPTH:
+    if (param_value)
+      *(size_t *)param_value = arrayDesc.Depth;
+    if (param_value_size_ret)
+      *param_value_size_ret = sizeof(size_t);
+    break;
+  case PI_IMAGE_INFO_FLAGS:
+    if (param_value)
+      *(unsigned int *)param_value = arrayDesc.Flags;
+    if (param_value_size_ret)
+      *param_value_size_ret = sizeof(unsigned int);
+    break;
+  case PI_IMAGE_INFO_FORMAT:
+    pi_image_channel_type channel_type;
+    pi_image_channel_order channel_order;
+    cudaToPiImageChannelFormat(arrayDesc.Format, &channel_type);
+    // CUDA does not have a notion of channel "order" in the same way that
+    // SYCL 1.2.1 does.
+    switch (arrayDesc.NumChannels) {
+    case 1:
+      channel_order = PI_IMAGE_CHANNEL_ORDER_R;
+      break;
+    case 2:
+      channel_order = PI_IMAGE_CHANNEL_ORDER_RG;
+      break;
+    case 4:
+      channel_order = PI_IMAGE_CHANNEL_ORDER_RGBA;
+      break;
+    }
+    if (param_value) {
+      ((pi_image_format *)param_value)->image_channel_data_type = channel_type;
+      ((pi_image_format *)param_value)->image_channel_order = channel_order;
+    }
+    if (param_value_size_ret)
+      *param_value_size_ret = sizeof(pi_image_format);
+    break;
+  default:
+    return PI_ERROR_INVALID_VALUE;
+  }
+
+  return PI_SUCCESS;
+}
+
 pi_result cuda_piKernelGetGroupInfo(pi_kernel kernel, pi_device device,
                                     pi_kernel_group_info param_name,
                                     size_t param_value_size, void *param_value,
@@ -6232,6 +6347,7 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   _PI_CL(piextMemUnsampledImageCreate, cuda_piextMemUnsampledImageCreate)
   _PI_CL(piextMemSampledImageCreate, cuda_piextMemSampledImageCreate)
   _PI_CL(piextMemImageCopy, cuda_piextMemImageCopy)
+  _PI_CL(piextMemImageGetInfo, cuda_piextMemImageGetInfo)
 
   _PI_CL(piPluginGetLastError, cuda_piPluginGetLastError)
   _PI_CL(piTearDown, cuda_piTearDown)

@@ -146,6 +146,7 @@ _PI_API(piextMemImageFree)
 _PI_API(piextMemUnsampledImageCreate)
 _PI_API(piextMemSampledImageCreate)
 _PI_API(piextMemImageCopy)
+_PI_API(piextMemImageGetInfo)
 
 _PI_API(piPluginGetLastError)
 

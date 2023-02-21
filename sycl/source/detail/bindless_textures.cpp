@@ -242,6 +242,119 @@ __SYCL_EXPORT void *pitched_alloc_device(size_t *ResultPitch,
   return RetVal;
 }
 
+__SYCL_EXPORT sycl::range<3>
+get_image_range(const sycl::context &syclContext,
+                const image_mem_handle mem_handle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  size_t Width, Height, Depth;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageGetInfo>(
+      mem_handle.value, PI_IMAGE_INFO_WIDTH, &Width, nullptr);
+  if (Error != PI_SUCCESS)
+    return {0, 0, 0};
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageGetInfo>(
+      mem_handle.value, PI_IMAGE_INFO_HEIGHT, &Height, nullptr);
+  if (Error != PI_SUCCESS)
+    return {0, 0, 0};
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageGetInfo>(
+      mem_handle.value, PI_IMAGE_INFO_DEPTH, &Depth, nullptr);
+  if (Error != PI_SUCCESS)
+    return {0, 0, 0};
+
+  return {Width, Height, Depth};
+}
+
+__SYCL_EXPORT unsigned int get_image_flags(const sycl::context &syclContext,
+                                           const image_mem_handle mem_handle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  unsigned int Flags;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageGetInfo>(
+      mem_handle.value, PI_IMAGE_INFO_FLAGS, &Flags, nullptr);
+  if (Error != PI_SUCCESS)
+    return ~(unsigned int)0;
+
+  return Flags;
+}
+
+__SYCL_EXPORT sycl::image_channel_type
+get_image_channel_type(const sycl::context &syclContext,
+                       const image_mem_handle mem_handle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  pi_image_format PIFormat;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageGetInfo>(
+      mem_handle.value, PI_IMAGE_INFO_FORMAT, &PIFormat, nullptr);
+  if (Error != PI_SUCCESS)
+    return (sycl::image_channel_type)~0;
+
+  image_channel_type ChannelType =
+      sycl::detail::convertChannelType(PIFormat.image_channel_data_type);
+
+  return ChannelType;
+}
+
+__SYCL_EXPORT unsigned int
+get_image_num_channels(const sycl::context &syclContext,
+                       const image_mem_handle mem_handle) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  pi_image_format PIFormat;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageGetInfo>(
+      mem_handle.value, PI_IMAGE_INFO_FORMAT, &PIFormat, nullptr);
+  if (Error != PI_SUCCESS)
+    return 0;
+
+  image_channel_order Order =
+      sycl::detail::convertChannelOrder(PIFormat.image_channel_order);
+  switch (Order) {
+  case image_channel_order::a:
+  case image_channel_order::r:
+    return 1;
+  case image_channel_order::rx:
+  case image_channel_order::rg:
+  case image_channel_order::ra:
+    return 2;
+  case image_channel_order::rgx:
+  case image_channel_order::rgb:
+    return 3;
+  case image_channel_order::rgbx:
+  case image_channel_order::rgba:
+  case image_channel_order::argb:
+  case image_channel_order::bgra:
+  case image_channel_order::abgr:
+    return 4;
+  // Unsupported channel types
+  case image_channel_order::intensity:
+  case image_channel_order::luminance:
+  case image_channel_order::ext_oneapi_srgba:
+  default:
+    return 0;
+  }
+}
+
 } // namespace oneapi
 } // namespace ext
 } // __SYCL_INLINE_VER_NAMESPACE(_V1)

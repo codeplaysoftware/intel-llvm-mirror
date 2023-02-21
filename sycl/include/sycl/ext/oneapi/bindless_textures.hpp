@@ -109,6 +109,25 @@ __SYCL_EXPORT void *pitched_alloc_device(size_t *result_pitch,
                                          unsigned int element_size_bytes,
                                          const queue &q);
 
+__SYCL_EXPORT sycl::range<3> get_image_range(const sycl::context &syclContext,
+                                             const image_mem_handle mem_handle);
+
+__SYCL_EXPORT unsigned int get_image_flags(const sycl::context &syclContext,
+                                           const image_mem_handle mem_handle);
+
+__SYCL_EXPORT sycl::image_channel_type
+get_image_channel_type(const sycl::context &syclContext,
+                       const image_mem_handle mem_handle);
+
+__SYCL_EXPORT unsigned int
+get_image_num_channels(const sycl::context &syclContext,
+                       const image_mem_handle mem_handle);
+
+__SYCL_EXPORT void *
+pitched_alloc_device(size_t *result_pitch, size_t width_in_bytes, size_t height,
+                     unsigned int element_size_bytes,
+                     const queue &q);
+
 namespace detail {
 template <typename CoordT> constexpr size_t coord_size() {
   if constexpr (std::is_scalar<CoordT>::value) {
