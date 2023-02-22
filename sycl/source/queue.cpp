@@ -17,6 +17,7 @@
 #include <sycl/handler.hpp>
 #include <sycl/queue.hpp>
 #include <sycl/stl.hpp>
+#include <sycl/usm.hpp>
 
 #include <algorithm>
 
@@ -192,6 +193,67 @@ event queue::ext_image_memcpy(void *Dest, ext::oneapi::image_mem_handle Src,
 
   return impl->ext_image_memcpy(impl, Dest, Src.value, PiDesc, PiFormat,
                                 pi_image_copy_flags::PI_IMAGE_COPY_DTOH,
+                                DepEvents);
+}
+
+event queue::ext_image_memcpy(void *Dest, void *Src,
+                              const ext::oneapi::image_descriptor &Desc) {
+  return this->ext_image_memcpy(Dest, Src, Desc, std::vector<event>{});
+}
+
+event queue::ext_image_memcpy(void *Dest, void *Src,
+                              const ext::oneapi::image_descriptor &Desc,
+                              event DepEvent) {
+  return this->ext_image_memcpy(Dest, Src, Desc, {DepEvent});
+}
+
+event queue::ext_image_memcpy(void *Dest, void *Src,
+                              const ext::oneapi::image_descriptor &Desc,
+                              const std::vector<event> &DepEvents) {
+  RT::PiMemImageDesc PiDesc = {};
+  PiDesc.image_width = Desc.width;
+  PiDesc.image_height = Desc.height;
+  PiDesc.image_depth = Desc.depth;
+  PiDesc.image_row_pitch = Desc.row_pitch;
+  PiDesc.image_type = Desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (Desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
+  RT::PiMemImageFormat PiFormat;
+  PiFormat.image_channel_data_type =
+      detail::convertChannelType(Desc.channel_type);
+  PiFormat.image_channel_order =
+      detail::convertChannelOrder(Desc.channel_order);
+
+  // Flags
+  pi_image_copy_flags copy_flags;
+  usm::alloc dest_type = get_pointer_type(Dest, impl->get_context());
+  usm::alloc src_type = get_pointer_type(Src, impl->get_context());
+  if (dest_type == usm::alloc::device) {
+    // Dest is on device
+    if (src_type == usm::alloc::device) {
+      copy_flags = pi_image_copy_flags::PI_IMAGE_COPY_DTOD;
+    } else if (src_type == usm::alloc::host ||
+               src_type == usm::alloc::unknown) {
+      copy_flags = pi_image_copy_flags::PI_IMAGE_COPY_HTOD;
+    } else {
+      assert(false && "Unknown copy source location");
+    }
+  } else if (dest_type == usm::alloc::host ||
+             dest_type == usm::alloc::unknown) {
+    // Dest is on host
+    if (src_type == usm::alloc::device) {
+      copy_flags = pi_image_copy_flags::PI_IMAGE_COPY_DTOH;
+    } else if (src_type == usm::alloc::host ||
+               src_type == usm::alloc::unknown) {
+      assert(false && "Cannot copy image from host to host");
+    } else {
+      assert(false && "Unknown copy source location");
+    }
+  } else {
+    assert(false && "Unknown copy destination location");
+  }
+
+  return impl->ext_image_memcpy(impl, Dest, Src, PiDesc, PiFormat, copy_flags,
                                 DepEvents);
 }
 

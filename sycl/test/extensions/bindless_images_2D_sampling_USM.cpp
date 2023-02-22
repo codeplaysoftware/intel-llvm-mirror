@@ -59,10 +59,7 @@ int main() {
   }
 
   // Copy data over via USM
-  for (int i = 0; i < height; ++i) {
-    q.memcpy((char *)img_mem_usm_0 + (pitch * i), &dataIn1[width * i],
-             width_in_bytes);
-  }
+  q.ext_image_memcpy(img_mem_usm_0, dataIn1.data(), descUSM);
   // Copy over data via extension
   q.ext_image_memcpy(img_mem_handle_0, dataIn2.data(), desc);
   q.wait();

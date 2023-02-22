@@ -1078,6 +1078,15 @@ public:
                          const ext::oneapi::image_descriptor &Desc,
                          const std::vector<event> &DepEvents);
 
+  event ext_image_memcpy(void *Dest, void *Src,
+                         const ext::oneapi::image_descriptor &Desc);
+  event ext_image_memcpy(void *Dest, void *Src,
+                         const ext::oneapi::image_descriptor &Desc,
+                         event DepEvent);
+  event ext_image_memcpy(void *Dest, void *Src,
+                         const ext::oneapi::image_descriptor &Desc,
+                         const std::vector<event> &DepEvents);
+
   /// single_task version with a kernel represented as a lambda.
   ///
   /// \param Properties is the kernel properties.

@@ -193,12 +193,8 @@ bool run_test(sycl::range<NDims> dims, sycl::range<NDims> localSize,
     q.memcpy(device_ptr_0, input_0.data(), width_in_bytes);
     q.memcpy(device_ptr_1, input_1.data(), width_in_bytes);
   } else if constexpr (NDims == 2) {
-    for (int i = 0; i < dims[1]; ++i) {
-      q.memcpy((char *)device_ptr_0 + (pitch_in_bytes1 * i),
-               &input_0[dims[0] * i], width_in_bytes);
-      q.memcpy((char *)device_ptr_1 + (pitch_in_bytes2 * i),
-               &input_1[dims[0] * i], width_in_bytes);
-    }
+    q.ext_image_memcpy(device_ptr_0, input_0.data(), desc);
+    q.ext_image_memcpy(device_ptr_1, input_1.data(), desc);
   }
 
   q.wait();

@@ -3429,8 +3429,15 @@ pi_result cuda_piextMemImageCopy(
         memset(&cpy_desc, 0, sizeof(cpy_desc));
         cpy_desc.srcMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_HOST;
         cpy_desc.srcHost = src_ptr;
-        cpy_desc.dstMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_ARRAY;
-        cpy_desc.dstArray = (CUarray)dst_ptr;
+        if (image_desc->image_row_pitch == 0) {
+          cpy_desc.dstMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_ARRAY;
+          cpy_desc.dstArray = (CUarray)dst_ptr;
+        } else {
+          // Pitched memory
+          cpy_desc.dstMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_DEVICE;
+          cpy_desc.dstDevice = (CUdeviceptr)dst_ptr;
+          cpy_desc.dstPitch = image_desc->image_row_pitch;
+        }
         cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
         cpy_desc.Height = image_desc->image_height;
         retErr = PI_CHECK_ERROR(cuMemcpy2DAsync(&cpy_desc, cuStream));
@@ -3454,10 +3461,17 @@ pi_result cuda_piextMemImageCopy(
       } else if (image_desc->image_type == PI_MEM_TYPE_IMAGE2D) {
         CUDA_MEMCPY2D cpy_desc;
         memset(&cpy_desc, 0, sizeof(cpy_desc));
-        cpy_desc.srcMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_ARRAY;
-        cpy_desc.srcArray = (CUarray)src_ptr;
         cpy_desc.dstMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_HOST;
         cpy_desc.dstHost = dst_ptr;
+        if (image_desc->image_row_pitch == 0) {
+          cpy_desc.srcMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_ARRAY;
+          cpy_desc.srcArray = (CUarray)src_ptr;
+        } else {
+          // Pitched memory
+          cpy_desc.srcMemoryType = CUmemorytype_enum::CU_MEMORYTYPE_DEVICE;
+          cpy_desc.srcPitch = image_desc->image_row_pitch;
+          cpy_desc.srcDevice = (CUdeviceptr)src_ptr;
+        }
         cpy_desc.WidthInBytes = pixel_size_bytes * image_desc->image_width;
         cpy_desc.Height = image_desc->image_height;
         retErr = PI_CHECK_ERROR(cuMemcpy2DAsync(&cpy_desc, cuStream));
