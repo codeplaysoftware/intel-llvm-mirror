@@ -446,6 +446,7 @@ inline pi_result mock_piextMemSampledImageCreate(pi_context context, void *img_m
                                           pi_image_format *image_format,
                                           pi_image_desc *desc,
                                           pi_sampler sampler,
+                                          pi_mem *ret_mem,
                                           pi_image_handle *ret_handle) {
   return PI_SUCCESS;
 }

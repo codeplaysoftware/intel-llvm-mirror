@@ -5499,13 +5499,15 @@ pi_result piextMemImageFree(pi_context context, void *memory_handle) {
 
 pi_result piextMemUnsampledImageCreate(pi_context context, void *img_mem,
                                        pi_image_format *image_format,
-                                       pi_image_desc *desc, pi_image_handle *ret_handle) {
+                                       pi_image_desc *desc, pi_mem *ret_mem,
+                                       pi_image_handle *ret_handle) {
 
   assert(context != nullptr);
   assert(img_mem != nullptr);
+  assert(ret_mem != nullptr);
   assert(ret_handle != nullptr);
 
-  die("piextMemImageCreate not implemented on level zero backend.\n");
+  die("piextMemUnsampledImageCreate not implemented on level zero backend.\n");
   // No image formats are supported!
   pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
   return retErr;
@@ -5514,10 +5516,12 @@ pi_result piextMemUnsampledImageCreate(pi_context context, void *img_mem,
 pi_result piextMemSampledImageCreate(pi_context context, void *img_mem,
                                      pi_image_format *format,
                                      pi_image_desc *desc, pi_sampler sampler,
+                                     pi_mem *ret_mem,
                                      pi_image_handle *ret_handle) {
 
   assert(context != nullptr);
   assert(img_mem != nullptr);
+  assert(ret_mem != nullptr);
   assert(ret_handle != nullptr);
 
   die("piextMemSampledImageCreate not implemented on level zero backend.\n");

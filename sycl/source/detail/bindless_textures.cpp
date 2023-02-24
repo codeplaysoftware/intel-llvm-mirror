@@ -152,11 +152,12 @@ __SYCL_EXPORT unsampled_image_handle create_image(
       sycl::_V1::detail::convertChannelOrder(desc.channel_order);
 
   // Call impl.
+  pi_mem piImage;
   pi_image_handle piImageHandle;
   Error =
       Plugin
           .call_nocheck<sycl::detail::PiApiKind::piextMemUnsampledImageCreate>(
-              C, devPtr, &piFormat, &piDesc, &piImageHandle);
+              C, devPtr, &piFormat, &piDesc, &piImage, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
     return unsampled_image_handle{0};
@@ -201,10 +202,11 @@ create_image(const sycl::context &syclContext, void *devPtr,
       sycl::_V1::detail::convertChannelOrder(desc.channel_order);
 
   // Call impl.
+  pi_mem piImage;
   pi_image_handle piImageHandle;
   Error =
       Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemSampledImageCreate>(
-          C, devPtr, &piFormat, &piDesc, piSampler, &piImageHandle);
+          C, devPtr, &piFormat, &piDesc, piSampler, &piImage, &piImageHandle);
 
   if (Error != PI_SUCCESS) {
     return sampled_image_handle{0};
