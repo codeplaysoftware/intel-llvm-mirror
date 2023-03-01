@@ -40,9 +40,6 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
   if (Error != PI_SUCCESS) {
     throw std::invalid_argument("Failed to destroy image_handle");
   }
-
-  /// TODO: would be nice to have overloaded assignment operator for this
-  imageHandle.value = piImageHandle;
 }
 
 __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
@@ -61,9 +58,6 @@ __SYCL_EXPORT void destroy_image_handle(const sycl::context &syclContext,
   if (Error != PI_SUCCESS) {
       throw std::invalid_argument("Failed to destroy image_handle");
   }
-
-  /// TODO: would be nice to have overloaded assignment operator for this
-  imageHandle.value = piImageHandle;
 }
 
 __SYCL_EXPORT image_mem_handle allocate_image(const sycl::context &syclContext,
@@ -96,10 +90,9 @@ __SYCL_EXPORT image_mem_handle allocate_image(const sycl::context &syclContext,
       sycl::_V1::detail::convertChannelOrder(desc.channel_order);
 
   // Call impl.
-  // TODO: replace 1 with flags
   image_mem_handle devPtr;
   Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImageAllocate>(
-      C, 1, &piFormat, &piDesc, &devPtr.value);
+      C, &piFormat, &piDesc, &devPtr.value);
 
   if (Error != PI_SUCCESS) {
     return image_mem_handle{nullptr};
@@ -165,6 +158,43 @@ __SYCL_EXPORT unsampled_image_handle create_image(
   return unsampled_image_handle{piImageHandle};
 }
 
+__SYCL_EXPORT unsampled_image_handle
+create_image_interop(const sycl::context &syclContext,
+                     interop_mem_handle memHandle, image_descriptor desc) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  pi_image_desc piDesc = {};
+  piDesc.image_type = desc.depth > 0 ? PI_MEM_TYPE_IMAGE3D
+                                     : (desc.height > 0 ? PI_MEM_TYPE_IMAGE2D
+                                                        : PI_MEM_TYPE_IMAGE1D);
+  piDesc.image_width = desc.width;
+  piDesc.image_height = desc.height;
+  piDesc.image_depth = desc.depth;
+  piDesc.image_row_pitch = desc.row_pitch;
+
+  pi_image_format piFormat;
+  piFormat.image_channel_data_type =
+      sycl::_V1::detail::convertChannelType(desc.channel_type);
+  piFormat.image_channel_order =
+      sycl::_V1::detail::convertChannelOrder(desc.channel_order);
+
+  // Call impl.
+  pi_image_handle piImageHandle;
+  pi_interop_mem_handle piMemHandle{memHandle.value};
+  Error = Plugin.call_nocheck<
+      sycl::detail::PiApiKind::piextMemUnsampledImageCreateInterop>(
+      C, &piFormat, &piDesc, piMemHandle, &piImageHandle);
+
+  if (Error != PI_SUCCESS) {
+    return unsampled_image_handle{0};
+  }
+  return unsampled_image_handle{piImageHandle};
+}
+
 __SYCL_EXPORT sampled_image_handle
 create_image(const sycl::context &syclContext, image_mem_handle memHandle,
              sampler &sampler, image_descriptor desc) {
@@ -212,6 +242,46 @@ create_image(const sycl::context &syclContext, void *devPtr,
     return sampled_image_handle{0};
   }
   return sampled_image_handle{piImageHandle};
+}
+
+__SYCL_EXPORT interop_mem_handle import_external_memory(
+    const sycl::context &syclContext, size_t size,
+    external_mem_descriptor externalMem, external_memory_type externalMemType) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  pi_interop_mem_handle piInteropMem;
+  if (externalMemType == external_memory_type::OpaqueFD) {
+    Error =
+        Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemImportOpaqueFD>(
+            C, size, externalMem.handle.fd, &piInteropMem);
+  } else {
+    throw std::invalid_argument("Unknown external memory handle type");
+  }
+
+  if (Error != PI_SUCCESS) {
+    throw std::invalid_argument("Failed to import external memory");
+  }
+  return interop_mem_handle{piInteropMem};
+}
+
+__SYCL_EXPORT void destroy_external_memory(const sycl::context &syclContext,
+                                           interop_mem_handle extMem) {
+  std::shared_ptr<sycl::detail::context_impl> CtxImpl =
+      sycl::detail::getSyclObjImpl(syclContext);
+  pi_context C = CtxImpl->getHandleRef();
+  const sycl::detail::plugin &Plugin = CtxImpl->getPlugin();
+  pi_result Error;
+
+  Error = Plugin.call_nocheck<sycl::detail::PiApiKind::piextMemDestroyInterop>(
+      C, (pi_interop_mem_handle)extMem.value);
+
+  if (Error != PI_SUCCESS) {
+    throw std::invalid_argument("Failed to destroy image_handle");
+  }
 }
 
 __SYCL_EXPORT void *pitched_alloc_device(size_t *ResultPitch,

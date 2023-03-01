@@ -5471,7 +5471,7 @@ pi_result piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle 
   return retErr;
 }
 
-pi_result piextMemImageAllocate(pi_context context, pi_mem_flags flags,
+pi_result piextMemImageAllocate(pi_context context,
                                 pi_image_format *image_format,
                                 pi_image_desc *image_desc, void **ret_mem) {
 
@@ -5513,12 +5513,47 @@ pi_result piextMemUnsampledImageCreate(pi_context context, void *img_mem,
   return retErr;
 }
 
+pi_result piextMemUnsampledImageCreateInterop(
+    pi_context context, pi_image_format *image_format, pi_image_desc *desc,
+    pi_interop_mem_handle ext_mem_handle, pi_image_handle *ret_img_handle) {
+  assert(context != nullptr);
+  assert(ret_img_handle != nullptr);
+  assert(ext_mem_handle);
+
+  die("piextMemUnsampledImageCreateInterop not implemented on level zero "
+      "backend.\n");
+  // No image formats are supported!
+  pi_result retErr = PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED;
+  return retErr;
+}
+
+pi_result piextMemImportOpaqueFD(pi_context context, size_t size,
+                                 int file_descriptor,
+                                 pi_interop_mem_handle *ret_handle) {
+  assert(context);
+  assert(file_descriptor);
+  assert(ret_handle);
+
+  die("piextMemImportOpaqueFD not implemented on level zero backend.\n");
+  pi_result retErr = PI_ERROR_UNKNOWN;
+  return retErr;
+}
+
+pi_result piextMemDestroyInterop(pi_context context,
+                                 pi_interop_mem_handle ext_mem) {
+  assert(context);
+  assert(ext_mem);
+
+  die("piextMemDestroyInterop not implemented on level zero backend.\n");
+  pi_result retErr = PI_ERROR_UNKNOWN;
+  return retErr;
+}
+
 pi_result piextMemSampledImageCreate(pi_context context, void *img_mem,
                                      pi_image_format *format,
                                      pi_image_desc *desc, pi_sampler sampler,
                                      pi_mem *ret_mem,
                                      pi_image_handle *ret_handle) {
-
   assert(context != nullptr);
   assert(img_mem != nullptr);
   assert(ret_mem != nullptr);

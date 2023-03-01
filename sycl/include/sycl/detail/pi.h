@@ -956,6 +956,7 @@ using pi_kernel = _pi_kernel *;
 using pi_event = _pi_event *;
 using pi_sampler = _pi_sampler *;
 using pi_image_handle = pi_uint64;
+using pi_interop_mem_handle = pi_uint64;
 
 typedef struct {
   pi_image_channel_order image_channel_order;
@@ -1966,9 +1967,10 @@ piextMemSampledImageHandleDestroy(pi_context context, pi_image_handle *handle);
 /// \param image_format format of the image (channel order and data type)
 /// \param image_desc image descriptor
 /// \param ret_mem is the returning memory handle to newly allocated memory
-__SYCL_EXPORT pi_result piextMemImageAllocate(
-    pi_context context, pi_mem_flags flags, pi_image_format *image_format,
-    pi_image_desc *image_desc, void **ret_mem);
+__SYCL_EXPORT pi_result piextMemImageAllocate(pi_context context,
+                                              pi_image_format *image_format,
+                                              pi_image_desc *image_desc,
+                                              void **ret_mem);
 
 /// API to free memory for bindless images.
 ///
@@ -1987,6 +1989,21 @@ __SYCL_EXPORT pi_result piextMemImageFree(pi_context context,
 __SYCL_EXPORT pi_result piextMemUnsampledImageCreate(
     pi_context context, void *img_mem, pi_image_format *image_format,
     pi_image_desc *desc, pi_mem *ret_mem, pi_image_handle *ret_handle);
+
+__SYCL_EXPORT pi_result piextMemUnsampledImageCreateInterop(
+    pi_context context, pi_image_format *image_format, pi_image_desc *desc,
+    pi_interop_mem_handle ext_mem_handle, pi_image_handle *ret_img_handle);
+
+__SYCL_EXPORT pi_result
+piextMemImportOpaqueFD(pi_context context, size_t size, int fileDescriptor,
+                       pi_interop_mem_handle *ret_handle);
+
+/// API to destroy interop memory.
+///
+/// \param context is the pi_context
+/// \param memory_handle is the handle to interop memory to be freed
+__SYCL_EXPORT pi_result
+piextMemDestroyInterop(pi_context context, pi_interop_mem_handle memory_handle);
 
 /// API to create sampled bindless image handles.
 ///

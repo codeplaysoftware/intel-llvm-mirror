@@ -37,6 +37,24 @@ struct sampled_image_handle {
   unsigned long value;
 };
 
+struct interop_mem_handle {
+  unsigned long value;
+};
+
+enum class external_memory_type : uint32_t {
+  OpaqueFD = 0,
+};
+
+struct external_mem_descriptor {
+  union {
+    int fd;
+    struct {
+      void *handle;
+      const void *name;
+    } win32;
+  } handle;
+};
+
 // SPIR-V Image Types
 #ifdef __SYCL_DEVICE_ONLY__
 #define img_type(Dim, AMSuffix) __ocl_image##Dim##d_##AMSuffix##_t
@@ -53,6 +71,17 @@ __SYCL_EXPORT image_mem_handle allocate_image(const sycl::context &syclContext,
                                               image_descriptor desc);
 
 /**
+ *  @brief   Allocate image memory based on image_descriptor
+ *  @param   syclContext The context in which we create our handle
+ *  @param   desc The image descriptor
+ *  @returns Handle to allocated memory on the GPU
+ */
+__SYCL_EXPORT interop_mem_handle
+import_external_memory(const sycl::context &syclContext, size_t size,
+                       external_mem_descriptor externalMem, 
+                       external_memory_type externalMemType);
+
+/**
  *  @brief   Create an image and return the device handle
  *  @param   syclContext The context in which we create our handle
  *  @param   devPtr Device memory handle for created image
@@ -64,6 +93,10 @@ __SYCL_EXPORT unsampled_image_handle create_image(
 __SYCL_EXPORT unsampled_image_handle
 create_image(const sycl::context &syclContext, image_mem_handle memHandle,
              image_descriptor desc);
+
+__SYCL_EXPORT unsampled_image_handle
+create_image_interop(const sycl::context &syclContext,
+                     interop_mem_handle memHandle, image_descriptor desc);
 
 /**
  *  @brief   Create a sampled image and return the device handle
@@ -122,6 +155,14 @@ get_image_channel_type(const sycl::context &syclContext,
 __SYCL_EXPORT unsigned int
 get_image_num_channels(const sycl::context &syclContext,
                        const image_mem_handle mem_handle);
+/**
+ *  @brief Destroy an imported memory handle. Does not free memory backing the
+ *handle.
+ *  @param imageHandle The handle to destroy.
+ *  @param syclContext The context the handle is valid in.
+ **/
+__SYCL_EXPORT void destroy_external_memory(const sycl::context &syclContext,
+                                           interop_mem_handle interopHandle);
 
 __SYCL_EXPORT void *
 pitched_alloc_device(size_t *result_pitch, size_t width_in_bytes, size_t height,

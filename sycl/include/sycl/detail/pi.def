@@ -148,6 +148,11 @@ _PI_API(piextMemSampledImageCreate)
 _PI_API(piextMemImageCopy)
 _PI_API(piextMemImageGetInfo)
 
+// Interop
+_PI_API(piextMemUnsampledImageCreateInterop)
+_PI_API(piextMemImportOpaqueFD)
+_PI_API(piextMemDestroyInterop)
+
 _PI_API(piPluginGetLastError)
 
 _PI_API(piTearDown)

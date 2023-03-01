@@ -423,7 +423,6 @@ inline pi_result mock_piextMemSampledImageHandleDestroy(pi_context context,
 }
 
 inline pi_result mock_piextMemImageAllocate(pi_context context,
-                                            pi_mem_flags flags,
                                             pi_image_format *image_format,
                                             pi_image_desc *image_desc,
                                             void **ret_mem) {
@@ -439,6 +438,24 @@ inline pi_result mock_piextMemUnsampledImageCreate(pi_context context, void *img
                                             pi_image_format *image_format,
                                             pi_image_desc *desc,
                                             pi_image_handle *ret_handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result
+mock_piextMemImportOpaqueFD(pi_context context, size_t size,
+                            int file_descriptor,
+                            pi_interop_mem_handle *ret_handle) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemDestroyInterop(pi_context context,
+                                             pi_interop_mem_handle ext_mem) {
+  return PI_SUCCESS;
+}
+
+inline pi_result mock_piextMemUnsampledImageCreateInterop(
+    pi_context context, pi_image_format *image_format, pi_image_desc *desc,
+    pi_interop_mem_handle ext_mem_handle, pi_image_handle *ret_img_handle) {
   return PI_SUCCESS;
 }
 

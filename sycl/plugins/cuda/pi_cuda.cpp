@@ -3133,7 +3133,7 @@ pi_result cuda_piextKernelSetArgSampler(pi_kernel kernel, pi_uint32 arg_index,
   return retErr;
 }
 
-pi_result cuda_piextMemImageAllocate(pi_context context, pi_mem_flags flags,
+pi_result cuda_piextMemImageAllocate(pi_context context,
                                      pi_image_format *image_format,
                                      pi_image_desc *image_desc,
                                      void **ret_mem) {
@@ -3327,6 +3327,118 @@ pi_result cuda_piextMemUnsampledImageCreate(pi_context context, void *img_mem,
       sycl::detail::pi::die(
           "cuda_piextMemUnsampledImageCreate unknown memory type passed");
     }
+
+  } catch (pi_result err) {
+    return err;
+  } catch (...) {
+    return PI_ERROR_UNKNOWN;
+  }
+
+  return retErr;
+}
+
+pi_result cuda_piextMemImportOpaqueFD(pi_context context, size_t size,
+                                      int file_descriptor,
+                                      pi_interop_mem_handle *ret_handle) {
+  assert(context);
+  assert(ret_handle);
+  assert(file_descriptor);
+  assert(size);
+
+  pi_result retErr = PI_SUCCESS;
+
+  try {
+    ScopedContext active(context);
+
+    CUDA_EXTERNAL_MEMORY_HANDLE_DESC extMemDesc = {};
+    extMemDesc.handle.fd = file_descriptor;
+    extMemDesc.type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD;
+    extMemDesc.size = size;
+
+    CUexternalMemory extMem;
+    PI_CHECK_ERROR(cuImportExternalMemory(&extMem, &extMemDesc));
+    *ret_handle = (pi_interop_mem_handle)extMem;
+
+  } catch (pi_result err) {
+    return err;
+  } catch (...) {
+    return PI_ERROR_UNKNOWN;
+  }
+
+  return retErr;
+}
+
+pi_result cuda_piextMemDestroyInterop(pi_context context,
+                                      pi_interop_mem_handle ext_mem) {
+  assert(context);
+  assert(ext_mem);
+  pi_result retErr = PI_SUCCESS;
+
+  try {
+    ScopedContext active(context);
+    PI_CHECK_ERROR(cuDestroyExternalMemory((CUexternalMemory)ext_mem));
+  } catch (pi_result err) {
+    return err;
+  } catch (...) {
+    return PI_ERROR_UNKNOWN;
+  }
+  return retErr;
+}
+
+pi_result cuda_piextMemUnsampledImageCreateInterop(
+    pi_context context, pi_image_format *image_format, pi_image_desc *desc,
+    pi_interop_mem_handle ext_mem_handle, pi_image_handle *ret_img_handle) {
+  assert(context);
+  assert(ret_img_handle);
+  assert(ext_mem_handle);
+  pi_result retErr = PI_SUCCESS;
+
+  unsigned int num_channels = 0;
+  retErr =
+      piCalculateNumChannels(image_format->image_channel_order, &num_channels);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "piextMemUnsampledImageCreateFromExternalHandle given "
+        "unsupported image_channel_order");
+  }
+
+  CUarray_format format;
+  retErr = piToCudaImageChannelFormat(image_format->image_channel_data_type,
+                                      &format, nullptr);
+  if (retErr == PI_ERROR_IMAGE_FORMAT_NOT_SUPPORTED) {
+    sycl::detail::pi::die(
+        "piextMemUnsampledImageCreateFromExternalHandle given "
+        "unsupported image_channel_data_type");
+  }
+
+  try {
+    ScopedContext active(context);
+
+    CUDA_ARRAY3D_DESCRIPTOR arrayDesc = {};
+    arrayDesc.Width = desc->image_width;
+    arrayDesc.Height = desc->image_height;
+    arrayDesc.Depth = desc->image_depth;
+    arrayDesc.NumChannels = num_channels;
+    arrayDesc.Format = format;
+
+    CUDA_EXTERNAL_MEMORY_MIPMAPPED_ARRAY_DESC mipmapDesc = {};
+    mipmapDesc.numLevels = 1;
+    mipmapDesc.arrayDesc = arrayDesc;
+
+    CUmipmappedArray imgMipmap;
+    PI_CHECK_ERROR(cuExternalMemoryGetMappedMipmappedArray(
+        &imgMipmap, (CUexternalMemory)ext_mem_handle, &mipmapDesc));
+
+    CUarray imgArray;
+    PI_CHECK_ERROR(cuMipmappedArrayGetLevel(&imgArray, imgMipmap, 0));
+
+    CUDA_RESOURCE_DESC image_res_desc = {};
+    image_res_desc.resType = CU_RESOURCE_TYPE_ARRAY;
+    image_res_desc.res.array.hArray = imgArray;
+
+    CUsurfObject surface;
+    retErr = PI_CHECK_ERROR(cuSurfObjectCreate(&surface, &image_res_desc));
+    *ret_img_handle = (pi_image_handle)surface;
 
   } catch (pi_result err) {
     return err;
@@ -6390,6 +6502,11 @@ pi_result piPluginInit(pi_plugin *PluginInit) {
   _PI_CL(piextMemSampledImageCreate, cuda_piextMemSampledImageCreate)
   _PI_CL(piextMemImageCopy, cuda_piextMemImageCopy)
   _PI_CL(piextMemImageGetInfo, cuda_piextMemImageGetInfo)
+
+  _PI_CL(piextMemImportOpaqueFD, cuda_piextMemImportOpaqueFD)
+  _PI_CL(piextMemDestroyInterop, cuda_piextMemDestroyInterop)
+  _PI_CL(piextMemUnsampledImageCreateInterop,
+         cuda_piextMemUnsampledImageCreateInterop)
 
   _PI_CL(piPluginGetLastError, cuda_piPluginGetLastError)
   _PI_CL(piTearDown, cuda_piTearDown)
