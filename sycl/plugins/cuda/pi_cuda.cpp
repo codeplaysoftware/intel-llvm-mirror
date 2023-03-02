@@ -3445,6 +3445,10 @@ pi_result cuda_piextMemSampledImageCreate(pi_context context, void *img_mem,
                                ? CU_TRSF_NORMALIZED_COORDINATES
                                : image_tex_desc.flags;
 
+    // CUDA default promotes 8-bit and 16-bit integers to float between [0,1]
+    // This flag prevents this behaviour
+    image_tex_desc.flags |= CU_TRSF_READ_AS_INTEGER;
+
     // We create a texture for both the USM and non-USM sampled image case
     // as it conforms to how CUDA deals with sampled images
     CUtexObject texture;

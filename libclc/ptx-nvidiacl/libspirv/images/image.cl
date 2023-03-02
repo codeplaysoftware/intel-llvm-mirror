@@ -1771,26 +1771,572 @@ _CLC_DEFINE_IMAGE_BINDLESS_WRITE_BUILTIN(half4, 3, Dv4_i, Dv4_DF16_, v4f16, int4
 
 // <--- TEXTURES --->
 
-// ONLY READS
+// Int
+int4 __nvvm_tex_1d_v4i32_f32(unsigned long,
+                               float) __asm("__clc_llvm_nvvm_tex_1d_v4i32_f32");
+int4 __nvvm_tex_2d_v4i32_f32(unsigned long, float,
+                               float) __asm("__clc_llvm_nvvm_tex_2d_v4i32_f32");
+int4 __nvvm_tex_3d_v4i32_f32(unsigned long, float, float,
+                               float) __asm("__clc_llvm_nvvm_tex_3d_v4i32_f32");
+int2 __nvvm_tex_1d_v2i32_f32(unsigned long imageHandle, float x)
+{
+  int4 a = __nvvm_tex_1d_v4i32_f32(imageHandle, x); 
+  int2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+int2 __nvvm_tex_2d_v2i32_f32(unsigned long imageHandle, float x, float y)
+{
+  int4 a = __nvvm_tex_2d_v4i32_f32(imageHandle, x, y); 
+  int2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+int2 __nvvm_tex_3d_v2i32_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  int4 a = __nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z); 
+  int2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+int __nvvm_tex_1d_i32_f32(unsigned long imageHandle, float x)
+{
+  return __nvvm_tex_1d_v4i32_f32(imageHandle, x)[0];
+}
+int __nvvm_tex_2d_i32_f32(unsigned long imageHandle, float x, float y)
+{
+  return __nvvm_tex_2d_v4i32_f32(imageHandle, x, y)[0];
+}
+int __nvvm_tex_3d_i32_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return __nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z)[0];
+}
 
+// Unsigned int
+uint4 __nvvm_tex_1d_v4j32_f32(unsigned long,
+                               float) __asm("__clc_llvm_nvvm_tex_1d_v4j32_f32");
+uint4 __nvvm_tex_2d_v4j32_f32(unsigned long, float,
+                               float) __asm("__clc_llvm_nvvm_tex_2d_v4j32_f32");
+uint4 __nvvm_tex_3d_v4j32_f32(unsigned long, float, float,
+                               float) __asm("__clc_llvm_nvvm_tex_3d_v4j32_f32");
+uint2 __nvvm_tex_1d_v2j32_f32(unsigned long imageHandle, float x)
+{
+  uint4 a = __nvvm_tex_1d_v4j32_f32(imageHandle, x); 
+  uint2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+uint2 __nvvm_tex_2d_v2j32_f32(unsigned long imageHandle, float x, float y)
+{
+  uint4 a = __nvvm_tex_2d_v4j32_f32(imageHandle, x, y); 
+  uint2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+uint2 __nvvm_tex_3d_v2j32_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  uint4 a = __nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z); 
+  uint2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+uint __nvvm_tex_1d_j32_f32(unsigned long imageHandle, float x)
+{
+  return __nvvm_tex_1d_v4j32_f32(imageHandle, x)[0];
+}
+uint __nvvm_tex_2d_j32_f32(unsigned long imageHandle, float x, float y)
+{
+  return __nvvm_tex_2d_v4j32_f32(imageHandle, x, y)[0];
+}
+uint __nvvm_tex_3d_j32_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return __nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z)[0];
+}
+
+// Short
+short4 __nvvm_tex_1d_v4i16_f32(unsigned long imageHandle, float x)
+{
+  int4 a = __nvvm_tex_1d_v4i32_f32(imageHandle, x);
+  short4 ret;
+  ret.x = (short)a.x;
+  ret.y = (short)a.y;
+  ret.z = (short)a.z;
+  ret.w = (short)a.w;
+  return ret;
+}
+short4 __nvvm_tex_2d_v4i16_f32(unsigned long imageHandle, float x, float y)
+{
+  int4 a = __nvvm_tex_2d_v4i32_f32(imageHandle, x, y);
+  short4 ret;
+  ret.x = (short)a.x;
+  ret.y = (short)a.y;
+  ret.z = (short)a.z;
+  ret.w = (short)a.w;
+  return ret;
+}
+short4 __nvvm_tex_3d_v4i16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  int4 a = __nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z);
+  short4 ret;
+  ret.x = (short)a.x;
+  ret.y = (short)a.y;
+  ret.z = (short)a.z;
+  ret.w = (short)a.w;
+  return ret;
+}
+short2 __nvvm_tex_1d_v2i16_f32(unsigned long imageHandle, float x)
+{
+  int4 a = __nvvm_tex_1d_v4i32_f32(imageHandle, x); 
+  short2 ret;
+  ret.x = (short)a.x;
+  ret.y = (short)a.y;
+  return ret;
+}
+short2 __nvvm_tex_2d_v2i16_f32(unsigned long imageHandle, float x, float y)
+{
+  int4 a = __nvvm_tex_2d_v4i32_f32(imageHandle, x, y); 
+  short2 ret;
+  ret.x = (short)a.x;
+  ret.y = (short)a.y;
+  return ret;
+}
+short2 __nvvm_tex_3d_v2i16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  int4 a = __nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z); 
+  short2 ret;
+  ret.x = (short)a.x;
+  ret.y = (short)a.y;
+  return ret;
+}
+short __nvvm_tex_1d_i16_f32(unsigned long imageHandle, float x)
+{
+  return (short)(__nvvm_tex_1d_v4i32_f32(imageHandle, x)[0]);
+}
+short __nvvm_tex_2d_i16_f32(unsigned long imageHandle, float x, float y)
+{
+  return (short)(__nvvm_tex_2d_v4i32_f32(imageHandle, x, y)[0]);
+}
+short __nvvm_tex_3d_i16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return (short)(__nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z)[0]);
+}
+
+// Unsigned Short
+ushort4 __nvvm_tex_1d_v4t16_f32(unsigned long imageHandle, float x)
+{
+  uint4 a = __nvvm_tex_1d_v4j32_f32(imageHandle, x);
+  ushort4 ret;
+  ret.x = (ushort)a.x;
+  ret.y = (ushort)a.y;
+  ret.z = (ushort)a.z;
+  ret.w = (ushort)a.w;
+  return ret;
+}
+ushort4 __nvvm_tex_2d_v4t16_f32(unsigned long imageHandle, float x, float y)
+{
+  uint4 a = __nvvm_tex_2d_v4j32_f32(imageHandle, x, y);
+  ushort4 ret;
+  ret.x = (ushort)a.x;
+  ret.y = (ushort)a.y;
+  ret.z = (ushort)a.z;
+  ret.w = (ushort)a.w;
+  return ret;
+}
+ushort4 __nvvm_tex_3d_v4t16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  uint4 a = __nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z);
+  ushort4 ret;
+  ret.x = (ushort)a.x;
+  ret.y = (ushort)a.y;
+  ret.z = (ushort)a.z;
+  ret.w = (ushort)a.w;
+  return ret;
+}
+ushort2 __nvvm_tex_1d_v2t16_f32(unsigned long imageHandle, float x)
+{
+  uint4 a = __nvvm_tex_1d_v4j32_f32(imageHandle, x); 
+  ushort2 ret;
+  ret.x = (ushort)a.x;
+  ret.y = (ushort)a.y;
+  return ret;
+}
+ushort2 __nvvm_tex_2d_v2t16_f32(unsigned long imageHandle, float x, float y)
+{
+  uint4 a = __nvvm_tex_2d_v4j32_f32(imageHandle, x, y); 
+  ushort2 ret;
+  ret.x = (ushort)a.x;
+  ret.y = (ushort)a.y;
+  return ret;
+}
+ushort2 __nvvm_tex_3d_v2t16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  uint4 a = __nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z); 
+  ushort2 ret;
+  ret.x = (ushort)a.x;
+  ret.y = (ushort)a.y;
+  return ret;
+}
+ushort __nvvm_tex_1d_t16_f32(unsigned long imageHandle, float x)
+{
+  return (ushort)(__nvvm_tex_1d_v4j32_f32(imageHandle, x)[0]);
+}
+ushort __nvvm_tex_2d_t16_f32(unsigned long imageHandle, float x, float y)
+{
+  return (ushort)(__nvvm_tex_2d_v4j32_f32(imageHandle, x, y)[0]);
+}
+ushort __nvvm_tex_3d_t16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return (ushort)(__nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z)[0]);
+}
+
+// Char
+char4 __nvvm_tex_1d_v4i8_f32(unsigned long imageHandle, float x)
+{
+  int4 a = __nvvm_tex_1d_v4i32_f32(imageHandle, x);
+  char4 ret;
+  ret.x = (char)a.x;
+  ret.y = (char)a.y;
+  ret.z = (char)a.z;
+  ret.w = (char)a.w;
+  return ret;
+}
+char4 __nvvm_tex_2d_v4i8_f32(unsigned long imageHandle, float x, float y)
+{
+  int4 a = __nvvm_tex_2d_v4i32_f32(imageHandle, x, y);
+  char4 ret;
+  ret.x = (char)a.x;
+  ret.y = (char)a.y;
+  ret.z = (char)a.z;
+  ret.w = (char)a.w;
+  return ret;
+}
+char4 __nvvm_tex_3d_v4i8_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  int4 a = __nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z);
+  char4 ret;
+  ret.x = (char)a.x;
+  ret.y = (char)a.y;
+  ret.z = (char)a.z;
+  ret.w = (char)a.w;
+  return ret;
+}
+char2 __nvvm_tex_1d_v2i8_f32(unsigned long imageHandle, float x)
+{
+  int4 a = __nvvm_tex_1d_v4i32_f32(imageHandle, x); 
+  char2 ret;
+  ret.x = (char)a.x;
+  ret.y = (char)a.y;
+  return ret;
+}
+char2 __nvvm_tex_2d_v2i8_f32(unsigned long imageHandle, float x, float y)
+{
+  int4 a = __nvvm_tex_2d_v4i32_f32(imageHandle, x, y); 
+  char2 ret;
+  ret.x = (char)a.x;
+  ret.y = (char)a.y;
+  return ret;
+}
+char2 __nvvm_tex_3d_v2i8_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  int4 a = __nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z); 
+  char2 ret;
+  ret.x = (char)a.x;
+  ret.y = (char)a.y;
+  return ret;
+}
+char __nvvm_tex_1d_i8_f32(unsigned long imageHandle, float x)
+{
+  return (char)(__nvvm_tex_1d_v4i32_f32(imageHandle, x)[0]);
+}
+char __nvvm_tex_2d_i8_f32(unsigned long imageHandle, float x, float y)
+{
+  return (char)(__nvvm_tex_2d_v4i32_f32(imageHandle, x, y)[0]);
+}
+char __nvvm_tex_3d_i8_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return (char)(__nvvm_tex_3d_v4i32_f32(imageHandle, x, y, z)[0]);
+}
+
+// Unsigned Char
+uchar4 __nvvm_tex_1d_v4h8_f32(unsigned long imageHandle, float x)
+{
+  uint4 a = __nvvm_tex_1d_v4j32_f32(imageHandle, x);
+  uchar4 ret;
+  ret.x = (uchar)a.x;
+  ret.y = (uchar)a.y;
+  ret.z = (uchar)a.z;
+  ret.w = (uchar)a.w;
+  return ret;
+}
+uchar4 __nvvm_tex_2d_v4h8_f32(unsigned long imageHandle, float x, float y)
+{
+  uint4 a = __nvvm_tex_2d_v4j32_f32(imageHandle, x, y);
+  uchar4 ret;
+  ret.x = (uchar)a.x;
+  ret.y = (uchar)a.y;
+  ret.z = (uchar)a.z;
+  ret.w = (uchar)a.w;
+  return ret;
+}
+uchar4 __nvvm_tex_3d_v4h8_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  uint4 a = __nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z);
+  uchar4 ret;
+  ret.x = (uchar)a.x;
+  ret.y = (uchar)a.y;
+  ret.z = (uchar)a.z;
+  ret.w = (uchar)a.w;
+  return ret;
+}
+uchar2 __nvvm_tex_1d_v2h8_f32(unsigned long imageHandle, float x)
+{
+  uint4 a = __nvvm_tex_1d_v4j32_f32(imageHandle, x); 
+  uchar2 ret;
+  ret.x = (uchar)a.x;
+  ret.y = (uchar)a.y;
+  return ret;
+}
+uchar2 __nvvm_tex_2d_v2h8_f32(unsigned long imageHandle, float x, float y)
+{
+  uint4 a = __nvvm_tex_2d_v4j32_f32(imageHandle, x, y); 
+  uchar2 ret;
+  ret.x = (uchar)a.x;
+  ret.y = (uchar)a.y;
+  return ret;
+}
+uchar2 __nvvm_tex_3d_v2h8_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  uint4 a = __nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z); 
+  uchar2 ret;
+  ret.x = (uchar)a.x;
+  ret.y = (uchar)a.y;
+  return ret;
+}
+uchar __nvvm_tex_1d_h8_f32(unsigned long imageHandle, float x)
+{
+  return (uchar)(__nvvm_tex_1d_v4j32_f32(imageHandle, x)[0]);
+}
+uchar __nvvm_tex_2d_h8_f32(unsigned long imageHandle, float x, float y)
+{
+  return (uchar)(__nvvm_tex_2d_v4j32_f32(imageHandle, x, y)[0]);
+}
+uchar __nvvm_tex_3d_h8_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return (uchar)(__nvvm_tex_3d_v4j32_f32(imageHandle, x, y, z)[0]);
+}
+
+// Float
 float4 __nvvm_tex_1d_v4f32_f32(unsigned long,
                                float) __asm("__clc_llvm_nvvm_tex_1d_v4f32_f32");
 float4 __nvvm_tex_2d_v4f32_f32(unsigned long, float,
                                float) __asm("__clc_llvm_nvvm_tex_2d_v4f32_f32");
 float4 __nvvm_tex_3d_v4f32_f32(unsigned long, float, float,
                                float) __asm("__clc_llvm_nvvm_tex_3d_v4f32_f32");
-
-_CLC_DEF float4 _Z17__spirv_ImageReadIDv4_fmS0_ET_T0_T1_(
-    unsigned long imageHandle, float4 coord) {
-  return __nvvm_tex_3d_v4f32_f32(imageHandle, coord.x, coord.y, coord.z);
+float2 __nvvm_tex_1d_v2f32_f32(unsigned long imageHandle, float x)
+{
+  float4 a = __nvvm_tex_1d_v4f32_f32(imageHandle, x); 
+  float2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+float2 __nvvm_tex_2d_v2f32_f32(unsigned long imageHandle, float x, float y)
+{
+  float4 a = __nvvm_tex_2d_v4f32_f32(imageHandle, x, y); 
+  float2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+float2 __nvvm_tex_3d_v2f32_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  float4 a = __nvvm_tex_3d_v4f32_f32(imageHandle, x, y, z); 
+  float2 ret;
+  ret.x = a.x;
+  ret.y = a.y;
+  return ret;
+}
+float __nvvm_tex_1d_f32_f32(unsigned long imageHandle, float x)
+{
+  return __nvvm_tex_1d_v4f32_f32(imageHandle, x)[0];
+}
+float __nvvm_tex_2d_f32_f32(unsigned long imageHandle, float x, float y)
+{
+  return __nvvm_tex_2d_v4f32_f32(imageHandle, x, y)[0];
+}
+float __nvvm_tex_3d_f32_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return __nvvm_tex_3d_v4f32_f32(imageHandle, x, y, z)[0];
 }
 
-_CLC_DEF float _Z17__spirv_ImageReadIfmfET_T0_T1_(
-  unsigned long imageHandle, float coord){
-    return __nvvm_tex_1d_v4f32_f32(imageHandle, coord)[0];
+// Half
+half4 __nvvm_tex_1d_v4f16_f32(unsigned long imageHandle, float x)
+{
+  float4 a = __nvvm_tex_1d_v4f32_f32(imageHandle, x);
+  half4 ret;
+  ret.x = (half)a.x;
+  ret.y = (half)a.y;
+  ret.z = (half)a.z;
+  ret.w = (half)a.w;
+  return ret;
+}
+half4 __nvvm_tex_2d_v4f16_f32(unsigned long imageHandle, float x, float y)
+{
+  float4 a = __nvvm_tex_2d_v4f32_f32(imageHandle, x, y);
+  half4 ret;
+  ret.x = (half)a.x;
+  ret.y = (half)a.y;
+  ret.z = (half)a.z;
+  ret.w = (half)a.w;
+  return ret;
+}
+half4 __nvvm_tex_3d_v4f16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  float4 a = __nvvm_tex_1d_v4f32_f32(imageHandle, x);
+  half4 ret;
+  ret.x = (half)a.x;
+  ret.y = (half)a.y;
+  ret.z = (half)a.z;
+  ret.w = (half)a.w;
+  return ret;
+}
+half2 __nvvm_tex_1d_v2f16_f32(unsigned long imageHandle, float x)
+{
+  float4 a = __nvvm_tex_1d_v4f32_f32(imageHandle, x); 
+  half2 ret;
+  ret.x = (half)a.x;
+  ret.y = (half)a.y;
+  return ret;
+}
+half2 __nvvm_tex_2d_v2f16_f32(unsigned long imageHandle, float x, float y)
+{
+  float4 a = __nvvm_tex_2d_v4f32_f32(imageHandle, x, y); 
+  half2 ret;
+  ret.x = (half)a.x;
+  ret.y = (half)a.y;
+  return ret;
+}
+half2 __nvvm_tex_3d_v2f16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  float4 a = __nvvm_tex_3d_v4f32_f32(imageHandle, x, y, z); 
+  half2 ret;
+  ret.x = (half)a.x;
+  ret.y = (half)a.y;
+  return ret;
+}
+half __nvvm_tex_1d_f16_f32(unsigned long imageHandle, float x)
+{
+  return (half)__nvvm_tex_1d_v4f32_f32(imageHandle, x)[0];
+}
+half __nvvm_tex_2d_f16_f32(unsigned long imageHandle, float x, float y)
+{
+  return (half)__nvvm_tex_2d_v4f32_f32(imageHandle, x, y)[0];
+}
+half __nvvm_tex_3d_f16_f32(unsigned long imageHandle, float x, float y, float z)
+{
+  return (half)__nvvm_tex_3d_v4f32_f32(imageHandle, x, y, z)[0];
 }
 
-_CLC_DEF float _Z17__spirv_ImageReadIfmDv2_fET_T0_T1_(
-  unsigned long imageHandle, float2 coord){
-    return __nvvm_tex_2d_v4f32_f32(imageHandle, coord.x, coord.y)[0];
-}
+#define _CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(                        \
+    elem_t, dimension, elem_t_mangled, vec_size, coord_mangled, coord_input,   \
+    coord_parameter)                                                           \
+  _CLC_DEF                                                                     \
+  elem_t _Z17__spirv_ImageReadI##elem_t_mangled##m##coord_mangled##ET_T0_T1_(  \
+      unsigned long imageHandle, coord_input) {                                \
+    return __nvvm_tex_##dimension##d_##vec_size##_f32(imageHandle,             \
+                                                      coord_parameter);        \
+  }
+
+// Int
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int, 1, i, i32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int, 2, i, i32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int, 3, i, i32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int2, 1, Dv2_i, v2i32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int2, 2, Dv2_i, v2i32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int2, 3, Dv2_i, v2i32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int4, 1, Dv4_i, v4i32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int4, 2, Dv4_i, v4i32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(int4, 3, Dv4_i, v4i32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Unsigned int
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint, 1, j, j32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint, 2, j, j32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint, 3, j, j32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint2, 1, Dv2_j, v2j32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint2, 2, Dv2_j, v2j32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint2, 3, Dv2_j, v2j32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint4, 1, Dv4_j, v4j32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint4, 2, Dv4_j, v4j32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uint4, 3, Dv4_j, v4j32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Short
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short, 1, s, i16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short, 2, s, i16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short, 3, s, i16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short2, 1, Dv2_s, v2i16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short2, 2, Dv2_s, v2i16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short2, 3, Dv2_s, v2i16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short4, 1, Dv4_s, v4i16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short4, 2, Dv4_s, v4i16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(short4, 3, Dv4_s, v4i16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Unsigned short
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort, 1, t, t16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort, 2, t, t16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort, 3, t, t16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort2, 1, Dv2_t, v2t16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort2, 2, Dv2_t, v2t16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort2, 3, Dv2_t, v2t16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort4, 1, Dv4_t, v4t16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort4, 2, Dv4_t, v4t16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(ushort4, 3, Dv4_t, v4t16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Char
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char, 1, a, i8, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char, 2, a, i8, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char, 3, a, i8, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char2, 1, Dv2_a, v2i8, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char2, 2, Dv2_a, v2i8, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char2, 3, Dv2_a, v2i8, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char4, 1, Dv4_a, v4i8, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char4, 2, Dv4_a, v4i8, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(char4, 3, Dv4_a, v4i8, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Unsigned Char
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar, 1, h, h8, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar, 2, h, h8, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar, 3, h, h8, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar2, 1, Dv2_h, v2h8, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar2, 2, Dv2_h, v2h8, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar2, 3, Dv2_h, v2h8, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar4, 1, Dv4_h, v4h8, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar4, 2, Dv4_h, v4h8, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(uchar4, 3, Dv4_h, v4h8, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Float
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float, 1, f, f32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float, 2, f, f32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float, 3, f, f32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float2, 1, Dv2_f, v2f32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float2, 2, Dv2_f, v2f32, S0_, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float2, 3, Dv2_f, v2f32, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float4, 1, Dv4_f, v4f32, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float4, 2, Dv4_f, v4f32, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(float4, 3, Dv4_f, v4f32, S0_, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+
+// Half
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half, 1, DF16_, f16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half, 2, DF16_, f16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half, 3, DF16_, f16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half2, 1, Dv2_DF16_, v2f16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half2, 2, Dv2_DF16_, v2f16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half2, 3, Dv2_DF16_, v2f16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half4, 1, Dv4_DF16_, v4f16, f, float x, x)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half4, 2, Dv4_DF16_, v4f16, Dv2_f, float2 coord, coord.x COMMA coord.y)
+_CLC_DEFINE_SAMPLEDIMAGE_BINDLESS_READ_BUILTIN(half4, 3, Dv4_DF16_, v4f16, Dv4_f, float4 coord, coord.x COMMA coord.y COMMA coord.z)
