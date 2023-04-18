@@ -145,6 +145,8 @@ if 'amdgcn-amd-amdhsa' in triple:
         additional_flags += ['-Xsycl-target-backend=amdgcn-amd-amdhsa',
                             '--offload-arch=gfx906']
 
+additional_flags += ['-fsycl-check-address-space-infer']
+
 # Dump-only tests do not have clang available
 if not dump_only_tests:
     llvm_config.use_clang(additional_flags=additional_flags)

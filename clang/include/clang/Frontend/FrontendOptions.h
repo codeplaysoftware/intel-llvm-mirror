@@ -350,6 +350,9 @@ public:
   /// Whether to share the FileManager when building modules.
   unsigned ModulesShareFileManager : 1;
 
+  /// Whether to run SYCL address space inference checks.
+  unsigned SYCLAddressSpaceInfer : 1;
+
   CodeCompleteOptions CodeCompleteOpts;
 
   /// Specifies the output format of the AST.

@@ -5200,6 +5200,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     // We want to compile sycl kernels.
     CmdArgs.push_back("-fsycl-is-device");
     CmdArgs.push_back("-fdeclare-spirv-builtins");
+    Args.AddLastArg(CmdArgs, options::OPT_fsycl_check_address_space_infer);
 
     // Default value for FPGA is false, for all other targets is true.
     if (!Args.hasFlag(options::OPT_fsycl_early_optimizations,

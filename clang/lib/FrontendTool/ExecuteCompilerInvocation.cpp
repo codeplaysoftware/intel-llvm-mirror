@@ -23,6 +23,7 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/FrontendTool/Utils.h"
+#include "clang/InferASPChecker/InferActions.h"
 #include "clang/Rewrite/Frontend/FrontendActions.h"
 #include "clang/StaticAnalyzer/Frontend/AnalyzerHelpFlags.h"
 #include "clang/StaticAnalyzer/Frontend/FrontendActions.h"
@@ -191,6 +192,9 @@ CreateFrontendAction(CompilerInstance &CI) {
   if (!FEOpts.ASTMergeFiles.empty())
     Act = std::make_unique<ASTMergeAction>(std::move(Act),
                                             FEOpts.ASTMergeFiles);
+  if (FEOpts.SYCLAddressSpaceInfer) {
+    Act = std::make_unique<InferASPAction>(std::move(Act));
+  }
 
   return Act;
 }

@@ -3778,6 +3778,18 @@ def fsycl_optimize_non_user_code : Flag<["-"], "fsycl-optimize-non-user-code">,
   MarshallingInfoFlag<CodeGenOpts<"OptimizeSYCLFramework">>,
   HelpText<"Option used in conjunction with -O0 to "
   "optimize SYCL framework utility functions and leave user's kernel code unoptimized. (experimental)">;
+def fsycl_check_address_space_infer : Flag<["-"], "fsycl-check-address-space-infer">,
+  HelpText<"Check SYCL address space inference constraints are respected">,
+  Visibility<[ClangOption, CLOption, DXCOption, CC1Option]>,
+  MarshallingInfoFlag<FrontendOpts<"SYCLAddressSpaceInfer">>;
+def fsycl_dump_inferred_address_space : Flag<["-"], "fsycl-dump-inferred-address-space">,
+  HelpText<"Dump the infered type of declarations">,
+  Visibility<[ CC1Option]>,
+  MarshallingInfoFlag<LangOpts<"SYCLDumpInferredAddressSpace">>;
+def fsycl_infer_dump_stmt_kind : Flag<["-"], "fsycl-infer-dump-stmt-kind">,
+  HelpText<"Dump the statement kinds required to process a TU">,
+  Visibility<[ CC1Option]>,
+  MarshallingInfoFlag<LangOpts<"SYCLInferASPDumpStatementKind">>;
 def fsyntax_only : Flag<["-"], "fsyntax-only">,
   Flags<[NoXarchOption]>,
   Visibility<[ClangOption, CLOption, DXCOption, CC1Option, FC1Option, FlangOption]>,

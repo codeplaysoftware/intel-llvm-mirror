@@ -7388,6 +7388,10 @@ def err_sycl_device_global_not_publicly_accessible: Error<
   "'device_global' member variable %0 should be publicly accessible from namespace scope">;
 def err_sycl_device_global_array : Error<
   "'device_global' array is not allowed">;
+def err_asp_conflict : Error<
+  "Conflicting deduced address space '%0' and '%1'">;
+def note_asp_conflict_ctx : Note<
+  "Address space deduced to '%0' from here">;
 
 def err_unexpected_interface : Error<
   "unexpected interface name %0: expected expression">;
