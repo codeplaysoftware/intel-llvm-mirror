@@ -1,4 +1,4 @@
-// REQUIRES: cuda
+// REQUIRES: aspect-ext_oneapi_bindless_images
 // XFAIL: *
 // XFAIL-TRACKER: https://github.com/intel/llvm/issues/15727
 // RUN: %{build} -o %t.out
