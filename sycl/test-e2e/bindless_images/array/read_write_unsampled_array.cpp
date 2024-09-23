@@ -1,4 +1,3 @@
-// REQUIRES: linux
 // REQUIRES: aspect-ext_oneapi_bindless_images
 
 // RUN: %{build} -o %t.out
