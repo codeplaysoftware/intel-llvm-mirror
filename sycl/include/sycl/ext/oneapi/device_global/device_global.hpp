@@ -15,9 +15,11 @@
 #include <sycl/multi_ptr.hpp>                           // for multi_ptr
 #include <sycl/pointers.hpp>                            // for decorated_gl...
 
-#include <cstddef>     // for ptrdiff_t
-#include <type_traits> // for enable_if_t
-#include <utility>     // for declval
+#include <cstddef>          // for ptrdiff_t
+#include <initializer_list> // for initializer_list
+#include <type_traits>      // for enable_if_t, extent_v, is_same_v, rank_v,
+                            // remove_all_extents_t
+#include <utility>          // for declval
 
 #ifdef __SYCL_DEVICE_ONLY__
 #define __SYCL_HOST_NOT_SUPPORTED(Op)
@@ -58,18 +60,30 @@ protected:
   // The pointer member is mutable to avoid the compiler optimizing it out when
   // accessing const-qualified device_global variables.
   mutable pointer_t usmptr{};
-  const T init_val{};
+  T init_val{};
 
   pointer_t get_ptr() noexcept { return usmptr; }
   pointer_t get_ptr() const noexcept { return usmptr; }
 
 public:
-#if __cpp_consteval
   template <typename... Args>
-  consteval explicit device_global_base(Args &&...args) : init_val{args...} {}
-#else
-  device_global_base() = default;
-#endif // __cpp_consteval
+  constexpr device_global_base(Args &&...args) : init_val{args...} {}
+
+  template <typename DependentT = T,
+            typename DataT = std::enable_if_t<std::is_same_v<T, DependentT> &&
+                                                  (std::rank_v<T> == 2),
+                                              std::remove_all_extents_t<T>>>
+  constexpr device_global_base(
+      std::initializer_list<std::initializer_list<DataT>> init) {
+    auto it = init.begin();
+    for (auto i = 0u; i < std::extent_v<T, 0>; ++i, ++it) {
+      // NOTE: With C++20 we could use std::copy instead of the inner loop
+      auto it2 = it->begin();
+      for (auto j = 0u; j < std::extent_v<T, 1>; ++j, ++it2) {
+        init_val[i][j] = *it2;
+      }
+    }
+  }
 
   template <access::decorated IsDecorated>
   multi_ptr<T, access::address_space::global_space, IsDecorated>
@@ -101,12 +115,24 @@ protected:
   const T *get_ptr() const noexcept { return &val; }
 
 public:
-#if __cpp_consteval
   template <typename... Args>
-  consteval explicit device_global_base(Args &&...args) : val{args...} {}
-#else
-  device_global_base() = default;
-#endif // __cpp_consteval
+  constexpr explicit device_global_base(Args &&...args) : val{args...} {}
+
+  template <typename DependentT = T,
+            typename DataT = std::enable_if_t<std::is_same_v<T, DependentT> &&
+                                                  (std::rank_v<T> == 2),
+                                              std::remove_all_extents_t<T>>>
+  constexpr device_global_base(
+      std::initializer_list<std::initializer_list<DataT>> init) {
+    auto it = init.begin();
+    for (auto i = 0u; i < std::extent_v<T, 0>; ++i, ++it) {
+      // NOTE: With C++20 we could use std::copy instead of the inner loop
+      auto it2 = it->begin();
+      for (auto j = 0u; j < std::extent_v<T, 1>; ++j, ++it2) {
+        val[i][j] = *it2;
+      }
+    }
+  }
 
   template <access::decorated IsDecorated>
   multi_ptr<T, access::address_space::global_space, IsDecorated>
@@ -155,11 +181,6 @@ class
 public:
   using element_type = std::remove_extent_t<T>;
 
-#if !__cpp_consteval
-  static_assert(std::is_trivially_default_constructible_v<T>,
-                "Type T must be trivially default constructable (until C++20 "
-                "consteval is supported and enabled.)");
-#endif // !__cpp_consteval
   static_assert(std::is_trivially_destructible_v<T>,
                 "Type T must be trivially destructible.");
 
