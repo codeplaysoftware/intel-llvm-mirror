@@ -51,6 +51,19 @@ struct HasArrowOperator<T,
                         std::void_t<decltype(std::declval<T>().operator->())>>
     : std::true_type {};
 
+template <typename T, std::size_t Extent0, std::size_t Extent1>
+constexpr void
+init2dArray(T *ptr, std::initializer_list<std::initializer_list<T>> init) {
+  auto it = init.begin();
+  for (auto i = 0u; i < Extent0; ++i, ++it) {
+    // NOTE: With C++20 we could use std::copy instead of the inner loop
+    auto it2 = it->begin();
+    for (auto j = 0u; j < Extent1; ++j, ++it2) {
+      ptr[i][j] = *it2;
+    }
+  }
+}
+
 // Base class for device_global.
 template <typename T, typename PropertyListT, typename = void>
 class device_global_base {
@@ -75,14 +88,8 @@ public:
                                               std::remove_all_extents_t<T>>>
   constexpr device_global_base(
       std::initializer_list<std::initializer_list<DataT>> init) {
-    auto it = init.begin();
-    for (auto i = 0u; i < std::extent_v<T, 0>; ++i, ++it) {
-      // NOTE: With C++20 we could use std::copy instead of the inner loop
-      auto it2 = it->begin();
-      for (auto j = 0u; j < std::extent_v<T, 1>; ++j, ++it2) {
-        init_val[i][j] = *it2;
-      }
-    }
+    init2dArray<DataT, std::extent_v<T, 0>, std::extent_v<T, 1>>(
+        init_val, std::move(init));
   }
 
   template <access::decorated IsDecorated>
@@ -124,14 +131,8 @@ public:
                                               std::remove_all_extents_t<T>>>
   constexpr device_global_base(
       std::initializer_list<std::initializer_list<DataT>> init) {
-    auto it = init.begin();
-    for (auto i = 0u; i < std::extent_v<T, 0>; ++i, ++it) {
-      // NOTE: With C++20 we could use std::copy instead of the inner loop
-      auto it2 = it->begin();
-      for (auto j = 0u; j < std::extent_v<T, 1>; ++j, ++it2) {
-        val[i][j] = *it2;
-      }
-    }
+    init2dArray<DataT, std::extent_v<T, 0>, std::extent_v<T, 1>>(
+        val, std::move(init));
   }
 
   template <access::decorated IsDecorated>
