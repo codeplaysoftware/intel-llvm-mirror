@@ -17,6 +17,8 @@
   _Z##namelength##name##prefix##m##postfix
 #endif
 
+float4 __ockl_image_sample_1D(unsigned int *, unsigned int *, int);
+
 #define _CLC_DEFINE_IMAGE_BINDLESS_FETCH_BUILTIN(                              \
     elem_t, dimension, elem_t_mangled, vec_size, coord_mangled, coord_input,   \
     ...)                                                                       \
