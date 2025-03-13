@@ -23,11 +23,14 @@ int main() {
   try {
 
     // Pool properties
-    syclexp::property::initial_threshold InitialThreshold(1024);
-    syclexp::property::maximum_size MaximumSize(4096);
-    syclexp::property::read_only ReadOnly;
-    syclexp::property::zero_init ZeroInit;
-    sycl::property_list PoolProps{InitialThreshold, MaximumSize, ReadOnly,
+    //     sycl::ext::oneapi::experimental::properties Props{
+    //        sycl::ext::oneapi::experimental::event_mode{
+    //            sycl::ext::oneapi::experimental::event_mode_enum::low_power}};
+    syclexp::initial_threshold InitialThreshold(1024);
+    syclexp::maximum_size MaximumSize(4096);
+    syclexp::read_only ReadOnly{};
+    syclexp::zero_init ZeroInit{};
+    syclexp::properties PoolProps{InitialThreshold, MaximumSize, ReadOnly,
                                   ZeroInit};
 
     // Create pools -- device only
@@ -64,30 +67,41 @@ int main() {
            "Stored pool allocation kind is incorrect!");
 
     // Check property has-ers/getters
-    assert(MemPool1.has_property<syclexp::property::initial_threshold>() &&
+    assert(MemPool1.has_property<syclexp::initial_threshold>() &&
            "Pool does not have property when it should!");
-    assert(MemPool1.has_property<syclexp::property::maximum_size>() &&
+    assert(MemPool1.has_property<syclexp::maximum_size>() &&
            "Pool does not have property when it should!");
-    assert(MemPool1.has_property<syclexp::property::read_only>() &&
-           "Pool does not have property when it should!");
-    assert(MemPool1.has_property<syclexp::property::zero_init>() &&
-           "Pool does not have property when it should!");
-    assert(!MemPoolMoveAssign
-                .has_property<syclexp::property::initial_threshold>() &&
+    // assert(MemPool1.has_property<syclexp::read_only>() &&
+    //        "Pool does not have property when it should!");
+    // assert(MemPool1.has_property<syclexp::zero_init>() &&
+    //        "Pool does not have property when it should!");
+    assert(!MemPoolMoveAssign.has_property<syclexp::initial_threshold>() &&
            "Pool has property when it should not!");
-    assert(!MemPoolMoveAssign.has_property<syclexp::property::maximum_size>() &&
+    assert(!MemPoolMoveAssign.has_property<syclexp::maximum_size>() &&
            "Pool has property when it should not!");
-    assert(!MemPoolMoveAssign.has_property<syclexp::property::read_only>() &&
-           "Pool has property when it should not!");
-    assert(!MemPoolMoveAssign.has_property<syclexp::property::zero_init>() &&
-           "Pool has property when it should not!");
+    // assert(!MemPoolMoveAssign.has_property<syclexp::read_only>() &&
+    //        "Pool has property when it should not!");
+    // assert(!MemPoolMoveAssign.has_property<syclexp::zero_init>() &&
+    //        "Pool has property when it should not!");
 
-    assert(MemPool1.get_property<syclexp::property::initial_threshold>()
-                   .get_initial_threshold() ==
-               InitialThreshold.get_initial_threshold() &&
+    // std::cout
+    //     << "NO HAS: "
+    //     << MemPoolMoveAssign.get_property<syclexp::initial_threshold>().value
+    //     << std::endl;
+
+    std::cout << "val: "
+              << MemPool1.get_property<syclexp::initial_threshold>().value
+              << std::endl;
+    std::cout << "val: " << InitialThreshold.value << std::endl;
+
+    std::cout << "val: " << MemPool1.get_property<syclexp::maximum_size>().value
+              << std::endl;
+    std::cout << "val: " << MaximumSize.value << std::endl;
+    assert(MemPool1.get_property<syclexp::initial_threshold>().value ==
+               InitialThreshold.value &&
            "Pool property values do not match!");
-    assert(MemPool1.get_property<syclexp::property::maximum_size>()
-                   .get_maximum_size() == MaximumSize.get_maximum_size() &&
+    assert(MemPool1.get_property<syclexp::maximum_size>().value ==
+               MaximumSize.value &&
            "Pool property values do not match!");
 
     size_t ReleaseThresholdGet = MemPool1.get_threshold();

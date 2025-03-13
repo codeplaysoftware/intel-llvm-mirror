@@ -7,114 +7,53 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-#include <sycl/context.hpp>       // for context
-#include <sycl/device.hpp>        // for device
+// #include <detail/memory_pool_impl.hpp>
+#include <sycl/context.hpp> // for context
+#include <sycl/device.hpp>  // for device
+#include <sycl/ext/oneapi/experimental/async_alloc/memory_pool_properties.hpp>
 #include <sycl/queue.hpp>         // for queue
 #include <sycl/usm/usm_enums.hpp> // for usm::alloc
 
 namespace sycl {
 inline namespace _V1 {
 namespace ext::oneapi::experimental {
-namespace property {
 
-// Property that determines the initial threshold of a memory pool.
-struct initial_threshold : public sycl::detail::PropertyWithData<
-                               sycl::detail::MemPoolInitialThreshold> {
-public:
-  initial_threshold(size_t initialThreshold)
-      : initialThreshold(initialThreshold) {};
-  size_t get_initial_threshold() { return initialThreshold; }
-
-private:
-  size_t initialThreshold;
-};
-
-// Property that determines the maximum size of a memory pool.
-struct maximum_size
-    : public sycl::detail::PropertyWithData<sycl::detail::MemPoolMaximumSize> {
-public:
-  maximum_size(size_t maxSize) : maxSize(maxSize) {};
-  size_t get_maximum_size() { return maxSize; }
-
-private:
-  size_t maxSize;
-};
-
-// Property that provides a performance hint that all allocations from this pool
-// will only be read from within SYCL kernel functions.
-struct read_only
-    : public sycl::detail::DataLessProperty<sycl::detail::MemPoolReadOnly> {
-public:
-  read_only() = default;
-};
-
-// Property that initial allocations to a pool (not subsequent allocations from
-// prior frees) are iniitialised to zero.
-struct zero_init
-    : public sycl::detail::DataLessProperty<sycl::detail::MemPoolZeroInit> {
-public:
-  zero_init() = default;
-};
-} // namespace property
-
+// Forward declare memory_pool_impl.
 namespace detail {
-class memory_pool_impl {
-public:
-  memory_pool_impl(const sycl::context &ctx, const sycl::device &dev,
-                   const sycl::usm::alloc kind, const property_list &props);
-  memory_pool_impl(const sycl::context &ctx, const sycl::device &dev,
-                   const sycl::usm::alloc kind, ur_usm_pool_handle_t poolHandle,
-                   const bool isDefaultPool, const property_list &props);
-
-  ~memory_pool_impl();
-
-  memory_pool_impl(const memory_pool_impl &) = delete;
-  memory_pool_impl &operator=(const memory_pool_impl &) = delete;
-
-  ur_usm_pool_handle_t get_handle() const { return MPoolHandle; }
-  sycl::device get_device() const { return MDevice; }
-  sycl::context get_context() const {
-    return sycl::detail::createSyclObjFromImpl<sycl::context>(MContextImplPtr);
-  }
-  sycl::usm::alloc get_alloc_kind() const { return MKind; }
-  const property_list &getPropList() const { return MPropList; }
-
-  // Returns backend specific values.
-  size_t get_threshold() const;
-  size_t get_reserved_size_current() const;
-  size_t get_reserved_size_high() const;
-  size_t get_used_size_current() const;
-  size_t get_used_size_high() const;
-
-  void set_new_threshold(size_t newThreshold);
-  void reset_reserved_size_high();
-  void reset_used_size_high();
-  void trim_to(size_t minBytesToKeep);
-
-private:
-  std::shared_ptr<sycl::detail::context_impl> MContextImplPtr;
-  sycl::device MDevice;
-  sycl::usm::alloc MKind;
-  ur_usm_pool_handle_t MPoolHandle{0};
-  bool MIsDefaultPool = false;
-  property_list MPropList;
-};
+class memory_pool_impl;
 } // namespace detail
 
 /// Memory pool
 class __SYCL_EXPORT memory_pool {
 
 public:
-  memory_pool(const sycl::context &ctx, const property_list &props = {});
+  template <typename Properties = empty_properties_t>
+  __SYCL_EXPORT memory_pool(const sycl::context &ctx, const sycl::device &dev,
+                            const sycl::usm::alloc kind,
+                            const Properties &props = {})
+      : memory_pool(ctx, dev, kind, stripProps(props)) {}
 
-  memory_pool(const sycl::context &ctx, const sycl::device &dev,
-              const sycl::usm::alloc kind, const property_list &props = {});
+  // NOT SUPPORTED: Host side pools unsupported.
+  template <typename Properties = empty_properties_t>
+  __SYCL_EXPORT memory_pool(const sycl::context &, const Properties &) {
+    throw sycl::exception(
+        sycl::make_error_code(sycl::errc::feature_not_supported),
+        "Host allocated pools are unsupported!");
+  }
 
-  memory_pool(const sycl::queue &q, const sycl::usm::alloc kind,
-              const property_list &props = {});
+  template <typename Properties = empty_properties_t>
+  __SYCL_EXPORT memory_pool(const sycl::queue &q, const sycl::usm::alloc kind,
+                            const Properties &props = {})
+      : memory_pool(q.get_context(), q.get_device(), kind, props) {}
 
-  memory_pool(const sycl::context &ctx, const void *ptr, size_t size,
-              const property_list &props = {});
+  // NOT SUPPORTED: Creating a pool from an existing allocation is unsupported.
+  template <typename Properties = empty_properties_t>
+  __SYCL_EXPORT memory_pool(const sycl::context &, const void *, size_t,
+                            const Properties &) {
+    throw sycl::exception(
+        sycl::make_error_code(sycl::errc::feature_not_supported),
+        "Creating a pool from an existing allocation is unsupported!");
+  }
 
   ~memory_pool() = default;
 
@@ -129,10 +68,9 @@ public:
   bool operator!=(const memory_pool &rhs) const { return !(*this == rhs); }
 
   // Impl handles getters and setters.
-  sycl::context get_context() const { return impl->get_context(); }
-  sycl::device get_device() const { return impl->get_device(); }
-  sycl::usm::alloc get_alloc_kind() const { return impl->get_alloc_kind(); }
-
+  sycl::context get_context() const;
+  sycl::device get_device() const;
+  sycl::usm::alloc get_alloc_kind() const;
   size_t get_threshold() const;
   size_t get_reserved_size_current() const;
   size_t get_reserved_size_high() const;
@@ -145,11 +83,39 @@ public:
   void trim_to(size_t minBytesToKeep);
 
   // Property getters.
-  template <typename propertyT> bool has_property() const noexcept {
-    return getPropList().template has_property<propertyT>();
+  template <typename PropertyT> bool has_property() const noexcept {
+    const auto tuple = getPropsTuple();
+    if constexpr (std::is_same_v<PropertyT, initial_threshold>) {
+      return std::get<0>(tuple.first);
+    }
+    if constexpr (std::is_same_v<PropertyT, maximum_size>) {
+      return std::get<1>(tuple.first);
+    }
+    if constexpr (std::is_same_v<PropertyT, read_only>) {
+      return std::get<2>(tuple.first);
+    }
+    if constexpr (std::is_same_v<PropertyT, zero_init>) {
+      return std::get<3>(tuple.first);
+    }
   }
-  template <typename propertyT> propertyT get_property() const {
-    return getPropList().template get_property<propertyT>();
+
+  template <typename PropertyT> PropertyT get_property() const {
+    if (!has_property<PropertyT>())
+      throw sycl::exception(make_error_code(errc::invalid),
+                            "The property is not found");
+    const auto tuple = getPropsTuple();
+    if constexpr (std::is_same_v<PropertyT, initial_threshold>) {
+      return initial_threshold(std::get<0>(tuple.second));
+    }
+    if constexpr (std::is_same_v<PropertyT, maximum_size>) {
+      return maximum_size(std::get<1>(tuple.second));
+    }
+    if constexpr (std::is_same_v<PropertyT, read_only>) {
+      return read_only();
+    }
+    if constexpr (std::is_same_v<PropertyT, zero_init>) {
+      return zero_init();
+    }
   }
 
 protected:
@@ -163,27 +129,85 @@ protected:
   friend T sycl::detail::createSyclObjFromImpl(decltype(T::impl) ImplObj);
 
   const property_list &getPropList() const;
+  const std::pair<std::tuple<bool, bool, bool, bool>,
+                  std::tuple<size_t, size_t, bool, bool>> &
+  getPropsTuple() const;
 
   memory_pool(std::shared_ptr<detail::memory_pool_impl> Impl) : impl(Impl) {}
+  memory_pool(const sycl::context &ctx, const sycl::device &dev,
+              const sycl::usm::alloc kind,
+              const std::pair<std::tuple<bool, bool, bool, bool>,
+                              std::tuple<size_t, size_t, bool, bool>> &props);
+
+  template <typename Properties = empty_properties_t>
+  std::pair<std::tuple<bool, bool, bool, bool>,
+            std::tuple<size_t, size_t, bool, bool>>
+  stripProps(const Properties props) {
+
+    // Pair of tuples of set properties and their values.
+    // initial_threshold, maximum_size, read_only, zero_init.
+    std::pair<std::tuple<bool, bool, bool, bool>,
+              std::tuple<size_t, size_t, bool, bool>>
+        tuple;
+    bool initialThreshold = 0;
+    bool maximumSize = 0;
+    bool readOnly = 0;
+    bool zeroInit = 0;
+    size_t initialThresholdVal = 0;
+    size_t maximumSizeVal = 0;
+    bool readOnlyVal = 0;
+    bool zeroInitVal = 0;
+
+    namespace sycloaexp = sycl::ext::oneapi::experimental;
+    namespace syclintelexp = sycl::ext::intel::experimental;
+
+    if constexpr (decltype(props)::template has_property<
+                      sycloaexp::initial_threshold_key>()) {
+      std::cout << "Has initial threshold" << std::endl;
+      initialThresholdVal =
+          props.template get_property<sycloaexp::initial_threshold>().value;
+      initialThreshold = 1;
+    } else {
+      std::cout << "Does not have initial threshold" << std::endl;
+    }
+
+    if constexpr (decltype(props)::template has_property<
+                      sycloaexp::maximum_size_key>()) {
+      std::cout << "Has maximum size" << std::endl;
+      maximumSizeVal =
+          props.template get_property<sycloaexp::maximum_size>().value;
+      maximumSize = 1;
+    } else {
+      std::cout << "Does not have maximum size" << std::endl;
+    }
+
+    if constexpr (decltype(props)::template has_property<
+                      sycloaexp::read_only_key>()) {
+      std::cout << "Has read only" << std::endl;
+      readOnly = 1;
+      readOnlyVal = 1;
+    } else {
+      std::cout << "Does not have read only" << std::endl;
+    }
+
+    if constexpr (decltype(props)::template has_property<
+                      sycloaexp::zero_init_key>()) {
+      std::cout << "Has zero init" << std::endl;
+      zeroInit = 1;
+      zeroInitVal = 1;
+    } else {
+      std::cout << "Does not have zero init" << std::endl;
+    }
+
+    tuple.first = {initialThreshold, maximumSize, readOnly, zeroInit};
+    tuple.second = {initialThresholdVal, maximumSizeVal, readOnlyVal,
+                    zeroInitVal};
+
+    return tuple;
+  }
 };
 
 } // namespace ext::oneapi::experimental
-
-template <>
-struct is_property<sycl::ext::oneapi::experimental::property::initial_threshold>
-    : std::true_type {};
-
-template <>
-struct is_property<sycl::ext::oneapi::experimental::property::maximum_size>
-    : std::true_type {};
-
-template <>
-struct is_property<sycl::ext::oneapi::experimental::property::read_only>
-    : std::true_type {};
-
-template <>
-struct is_property<sycl::ext::oneapi::experimental::property::zero_init>
-    : std::true_type {};
 } // namespace _V1
 } // namespace sycl
 

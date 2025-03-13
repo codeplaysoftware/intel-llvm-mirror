@@ -7,6 +7,9 @@
 
 #include <sycl/ext/oneapi/experimental/async_alloc/async_alloc.hpp>
 #include <sycl/ext/oneapi/experimental/async_alloc/memory_pool.hpp>
+#include <sycl/ext/oneapi/properties/properties.hpp>
+
+namespace syclexp = sycl::ext::oneapi::experimental;
 
 // Uncomment to print additional test information
 // #define VERBOSE_PRINT
@@ -40,8 +43,11 @@ int main() {
   try {
 
     // Create pool
-    syclexp::memory_pool MemPool(Ctx, Dev, sycl::usm::alloc::device);
-
+    syclexp::memory_pool MemPool(
+        Ctx, Dev, sycl::usm::alloc::device,
+        syclexp::properties{syclexp::initial_threshold{1024},
+                            syclexp::maximum_size{2048}, syclexp::read_only{},
+                            syclexp::zero_init{}});
     // <--- First allocation, use, and free --->
 
     // Allocate in pool
