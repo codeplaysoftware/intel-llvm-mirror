@@ -19,9 +19,10 @@
 #include <sycl/sycl.hpp>
 
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <map>
-#include <stdlib.h>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -126,6 +127,20 @@ std::array<int, 2> GetNumberOfSubAndSubSubDevices(const device &Device) {
   return {NumSubDevices, NumSubDevices * NumSubSubDevices};
 }
 
+std::string formatUUID(detail::uuid_type UUID) {
+  std::ostringstream oss;
+
+  for (int i = 0u; i < std::size(UUID); ++i) {
+    if (i == 4 || i == 6 || i == 8 || i == 10) {
+      oss << "-";
+    }
+    oss << std::hex << std::setw(2) << std::setfill('0')
+        << static_cast<int>(UUID[i]);
+  }
+
+  return oss.str();
+}
+
 static void printDeviceInfo(const device &Device, bool Verbose,
                             const std::string &Prepend) {
   auto DeviceVersion = Device.get_info<info::device::version>();
@@ -146,11 +161,8 @@ static void printDeviceInfo(const device &Device, bool Verbose,
     // Get and print device UUID, if it is available.
     if (Device.has(aspect::ext_intel_device_info_uuid)) {
       auto UUID = Device.get_info<sycl::ext::intel::info::device::uuid>();
-      std::cout << Prepend << "UUID              : ";
-      for (int i = 0; i < 16; i++) {
-        std::cout << std::to_string(UUID[i]);
-      }
-      std::cout << std::endl;
+      std::cout << Prepend << "UUID              : " << formatUUID(UUID)
+                << std::endl;
     }
 
     // Get and print device ID, if it is available.
